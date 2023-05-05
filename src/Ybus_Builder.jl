@@ -186,7 +186,7 @@ function Create_Ybus_WithTaps(Ybus_WithoutTaps,CDF_DF_List_pu)
     Ybus_WithTaps = Ybus_WithoutTaps
 
     # Getting Subset of BranchDataCard_DFfor lines with Tap Changing Transformers
-    BranchDataCard_Filter = filter(row -> ((row.Transformer_t != 0) || (row.Transformer_ps != 0), BranchDataCard_DF)
+    BranchDataCard_Filter = filter(row -> ((row.Transformer_t != 0) || (row.Transformer_ps != 0), BranchDataCard_DF))
 
     BranchDataCard_Filter_Num = nrow(BranchDataCard_Filter)
 

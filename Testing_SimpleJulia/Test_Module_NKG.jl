@@ -2,8 +2,9 @@ module Test_Module_NKG
 
     export Test_Add_NKG , Test_Sub_NKG , Add_Sub_Numbers
 
-    # Functions
+    #export Test_Add_NKG , Test_Sub_NKG
 
+    # Functions
     function Add_Sub_Numbers(Num1,Num2)
 
         Sum = Test_Add_NKG(Num1,Num2)
@@ -13,6 +14,7 @@ module Test_Module_NKG
         return Sum, Diff
 
     end
+
 
     # Including component files
     include("Test_FunctionFile_1.jl")
