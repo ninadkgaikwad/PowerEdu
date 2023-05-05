@@ -98,7 +98,7 @@ function LU_ForwardSubstitution(L, b)
     # Solving: Remaining Forward Substitution
     for ii in 2:Row_L
 
-        y[ii] = (b[ii] - L[ii,1:ii-1]'*y[1:ii-1]))/L[ii,ii]
+        y[ii] = (b[ii] - L[ii,1:ii-1]'*y[1:ii-1])/L[ii,ii]
 
     end
 
@@ -133,7 +133,7 @@ function LU_BackwardSubstitution(U, y)
     # Solving: Remaining Backward Substitution
     for ii in Row_U-1:-1:1
 
-        x[ii] = (y[ii] - U[ii,ii+1:end]'*x[ii+1:end]))/U[ii,ii]
+        x[ii] = (y[ii] - U[ii,ii+1:end]'*x[ii+1:end])/U[ii,ii]
 
     end
 

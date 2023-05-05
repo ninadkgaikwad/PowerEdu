@@ -39,13 +39,13 @@ function Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVect
     N_Bus = nrow(BusDataCard_DF)
     if (ContinuationPowerFlow_Indicator == 0)
 
-        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
 
     elseif (ContinuationPowerFlow_Indicator == 1)
 
-        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF))
 
     end
 
@@ -83,7 +83,7 @@ function Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVect
                 else # Off-Diagonal Term
 
                     J_11[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *
-                                  sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1]))
+                                  sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))
 
                 end
 
@@ -103,7 +103,7 @@ function Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVect
                 else # Off-Diagonal Term
 
                     J_12[ii,jj] = (SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *
-                                  cos(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1]))
+                                  cos(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))
 
                 end
 
@@ -123,7 +123,7 @@ function Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVect
                 else # Off-Diagonal Term
 
                     J_21[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *
-                                  cos(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1]))
+                                  cos(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))
 
                 end
 
@@ -143,7 +143,7 @@ function Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVect
                 else # Off-Diagonal Term
 
                     J_22[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *
-                                  sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1]))
+                                  sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))
 
                 end
 
@@ -181,7 +181,7 @@ function Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVect
 
                     else # Off-Diagonal Term
 
-                        J_11[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *                                          sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1]))
+                        J_11[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) * sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))
 
                     end
 
@@ -201,7 +201,7 @@ function Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVect
                     else # Off-Diagonal Term
 
                         J_22[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *
-                                          sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1]))
+                                          sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))
 
                     end
 
