@@ -43,7 +43,7 @@ export CDF_Parser,
 # Main Functions
 
 """
-    PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num))
+    PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
 
 Creates Ybus without taps for a power system network.
 
@@ -421,3 +421,5 @@ include("LU_Factorization.jl")
 include("BasicContinuationPowerFlow_Functions.jl")
 
 include("BasicStateEstimation_Functions.jl")
+
+end

@@ -23,7 +23,8 @@ function Compute_PLU(A, Tol_Num)
     RowNum_A, ColNum_A = size(A)
 
     # Initializing P, L and U
-    U = A
+
+    U = copy(A)
     L = Matrix{Float64}(I, RowNum_A, ColNum_A)
     P = Matrix{Float64}(I, RowNum_A, ColNum_A)
 
@@ -34,7 +35,7 @@ function Compute_PLU(A, Tol_Num)
         for jj in ii+1:RowNum_A # Through all the rows
 
             # Checking if Pivot is near Zero
-            if (!isapprox(U[ii,ii],0.0; atol=Tol_Num))
+            if (abs(U[ii,ii]) > Tol_Num)
 
                 break
 
@@ -93,7 +94,7 @@ function LU_ForwardSubstitution(L, b)
     y = zeros(Row_L,1)
 
     # Initializing: Forward Substitution
-    y[0] = b[0]/L[0,0]
+    y[1] = b[1]/L[1,1]
 
     # Solving: Remaining Forward Substitution
     for ii in 2:Row_L
@@ -101,6 +102,8 @@ function LU_ForwardSubstitution(L, b)
         y[ii] = (b[ii] - L[ii,1:ii-1]'*y[1:ii-1])/L[ii,ii]
 
     end
+
+    return y
 
 end
 
@@ -136,6 +139,8 @@ function LU_BackwardSubstitution(U, y)
         x[ii] = (y[ii] - U[ii,ii+1:end]'*x[ii+1:end])/U[ii,ii]
 
     end
+
+    return x
 
 end
 
@@ -175,10 +180,10 @@ function PLU_Solve(A, b, Tol_Num)
     for ii in 1:length(x_Permuted)
 
         # Finding Position of 1 in ii Row of P
-        OriginalIndex = finadall(x -> x == 1, P[ii,:])
+        OriginalIndex = findall(x -> x == 1, P[ii,:])
 
         # Updating x from x_Permuted using OriginalIndex
-        x[OriginalIndex,1] = x_Permuted[ii,1]
+        x[OriginalIndex[1],1] = x_Permuted[ii,1]
 
     end
 

@@ -45,7 +45,7 @@ function CDF_Parser(CDF_FilePath)
         for ii in 1:length(CDF_Text_Array)
 
                 # Gathering Data from Bus Data Card into a Array
-                if (!Bool(cmp("BUS DATA FOLLOWS",match(r"BUS DATA FOLLOWS",CDF_Text_Array[ii]).match)))
+                if (!Bool(cmp("BUS DATA FOLLOWS",match(r"BUS DATA FOLLOWS",c).match)))
 
                         for jj in ii+1:length(CDF_Text_Array)
 
