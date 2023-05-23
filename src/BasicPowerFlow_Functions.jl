@@ -25,9 +25,9 @@ function Create_Initial_SolutionVector_NR(CDF_DF_List_pu)
 
         # Number of Buses
         N_Bus = nrow(BusDataCard_DF)
-        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF)
-        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
         # Creating Initial_SolutionVector_NR Length
         Initial_SolutionVector_NR_Len = 2*N_PQ_Bus+N_PV_Bus
@@ -74,9 +74,9 @@ function Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_NR)
 
         # Number of Buses
         N_Bus = nrow(BusDataCard_DF)
-        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF)
-        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
         # Initializing SolutionVector_V, SolutionVector_Delta
         SolutionVector_V = Array{Float64}(undef, N_Bus,1)
@@ -133,9 +133,9 @@ function Create_SolutionVector_NR(CDF_DF_List_pu, SolutionVector_V, SolutionVect
 
         # Number of Buses
         N_Bus = nrow(BusDataCard_DF)
-        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF)
-        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
         # Creating SolutionVector_NR Length
         SolutionVector_NR_Len = 2*N_PQ_Bus+N_PV_Bus
@@ -240,9 +240,9 @@ function Compute_PQ_MismatchVector(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V
 
         # Number of Buses
         N_Bus = nrow(BusDataCard_DF)
-        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF)
-        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
         # Length of PQ_MismatchVector
         Len_PQ_MismatchVector = 2*N_PQ_Bus+N_PV_Bus
@@ -364,9 +364,9 @@ function PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Type, NR_Type, Soluti
 
         # Number of Buses
         N_Bus = nrow(BusDataCard_DF)
-        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF)
-        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
         # Creating SolutionVector_V and SolutionVector_Delta
         SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_NR)

@@ -81,19 +81,19 @@ function CDF_AddMeasurements_SE(CDF_DF_List, Bus_Measurement_Array, Branch_Measu
 
                                 if (Current_V_EV != -9999)
 
-                                        BusDataCard_DF.ErrorVariance_V [jj] = Current_V_EV
+                                        BusDataCard_DF.ErrorVariance_V[jj] = Current_V_EV
 
                                 end
 
                                 if (Current_P_EV != -9999)
 
-                                        BusDataCard_DF.ErrorVariance_P [jj] = Current_P_EV
+                                        BusDataCard_DF.ErrorVariance_P[jj] = Current_P_EV
 
                                 end
 
                                 if (Current_Q_EV != -9999)
 
-                                        BusDataCard_DF.ErrorVariance_Q [jj] = Current_Q_EV
+                                        BusDataCard_DF.ErrorVariance_Q[jj] = Current_Q_EV
 
                                 end
 
@@ -158,7 +158,7 @@ function CDF_AddMeasurements_SE(CDF_DF_List, Bus_Measurement_Array, Branch_Measu
 
                                 if (Current_P_Neg_EV != -9999)
 
-                                        BranchDataCard_DF.ErrorVariance_Neg_Pjj] = Current_P_Neg_EV
+                                        BranchDataCard_DF.ErrorVariance_Neg_P[jj] = Current_P_Neg_EV
 
                                 end
 
@@ -208,7 +208,7 @@ function CDF_AddMeasurements_SE(CDF_DF_List, Bus_Measurement_Array, Branch_Measu
 
                                 if (Current_P_Neg_EV != -9999)
 
-                                        BranchDataCard_DF.ErrorVariance_Pos_Pjj] = Current_P_Neg_EV
+                                        BranchDataCard_DF.ErrorVariance_Pos_P[jj] = Current_P_Neg_EV
 
                                 end
 
@@ -309,7 +309,7 @@ function CDF_pu_Converter_SE(CDF_DF_List)
                 # Converting SE Measurements to Pu
                 if (BusDataCard_DF.V_Measured[ii] != -9999)
 
-                        BusDataCard_DF.V_Measured[ii] = BusDataCard_DF.V_Measured[ii]/BusDataCard_DF.Base_KV [ii]
+                        BusDataCard_DF.V_Measured[ii] = BusDataCard_DF.V_Measured[ii]/BusDataCard_DF.Base_KV[ii]
 
                 end
 

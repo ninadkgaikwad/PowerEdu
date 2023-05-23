@@ -111,7 +111,7 @@ function Create_Ybus_WithoutTaps(CDF_DF_List_pu)
 
         Bus_Num = BusDataCard_DF.Bus_Num[ii]
 
-        BranchDataCard_Filter = filter(row -> (row.Tap_Bus_Num == Bus_Num) || (row.Z_Bus_Num == Bus_Num)), BranchDataCard_Row)
+        BranchDataCard_Filter = filter(row -> (row.Tap_Bus_Num == Bus_Num) || (row.Z_Bus_Num == Bus_Num), BranchDataCard_Row)
 
         BranchDataCard_Filter_Num = nrow(BranchDataCard_Filter)
 
