@@ -324,7 +324,9 @@ function CDF_Parser(CDF_FilePath)
 
         end
 
-        return CDF_DF_List = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
+        CDF_DF_List = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
+
+        return CDF_DF_List
 
 end
 
@@ -446,6 +448,7 @@ function CDF_pu_Converter(CDF_DF_List)
 
         end
 
-        return CDF_DF_List_pu = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
+        CDF_DF_List_pu = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
 
+        return CDF_DF_List_pu
 end
