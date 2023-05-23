@@ -67,11 +67,7 @@ function CDF_Parser(CDF_FilePath)
                 end
 
                 # Gathering Data from Bus Data Card into a Array
-<<<<<<< Updated upstream
-                if (!Bool(cmp("BUS DATA FOLLOWS",match(r"BUS DATA FOLLOWS",CDF_Text_Array[ii]).match)))
-=======
                 if (!Bool(cmp("BUS DATA FOLLOWS",BusCard_Title_RegEx.match)))
->>>>>>> Stashed changes
 
                         for jj in ii+1:length(CDF_Text_Array)
 
