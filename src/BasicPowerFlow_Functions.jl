@@ -30,10 +30,10 @@ function Create_Initial_SolutionVector_NR(CDF_DF_List_pu)
         N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
         # Creating Initial_SolutionVector_NR Length
-        Initial_SolutionVector_NR_Len = 2*N_PQ_Bus+N_PV_Bus
+        Initial_SolutionVector_NR_Len = 2 * N_PQ_Bus + N_PV_Bus
 
         # Initializing Initial_SolutionVector_NR
-        Initial_SolutionVector_NR = Array{Float64}(undef, Initial_SolutionVector_NR_Len ,1)
+        Initial_SolutionVector_NR = Array{Float64}(undef,Initial_SolutionVector_NR_Len,1)
 
         # Creating Initial_SolutionVector_NR Delta part for both PQ and PV Buses
         Initial_SolutionVector_NR[1:(N_PQ_Bus+N_PV_Bus),1] = zeros((N_PQ_Bus+N_PV_Bus),1)
@@ -645,12 +645,12 @@ function Compute_LineFlows(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVecto
                 # Computing P_ij
                 P_ij = -(SolutionVector_V[Bus_i_Index]^(2)*real(Ybus[Bus_i_Index, Bus_j_Index])) +
                         (SolutionVector_V[Bus_i_Index]*SolutionVector_V[Bus_j_Index]*abs(Ybus[Bus_i_Index, Bus_j_Index]))*
-                        cos(angle(Ybus[Bus_i_Index, Bus_j_Index])+deg2rad(SolutionVector_Delta[Bus_j_Index])-deg2rad(SolutionVector_Delta[Bus_i_Index])
+                        cos(angle(Ybus[Bus_i_Index, Bus_j_Index])+deg2rad(SolutionVector_Delta[Bus_j_Index])-deg2rad(SolutionVector_Delta[Bus_i_Index]))
 
                 LineFlow_Array[ii,1] = P_ij
 
                 # Computing Q_ij
-                Q_ij = -((SolutionVector_V[Bus_i_Index]^(2)*((BranchDataCard_DF.B_pu[ii]/2) - imag(Ybus[Bus_i_Index, Bus_j_Index]))) +
+                Q_ij = -((SolutionVector_V[Bus_i_Index]^(2)*((BranchDataCard_DF.B_pu[ii]/2) - imag(Ybus[Bus_i_Index, Bus_j_Index])))) +
                         (SolutionVector_V[Bus_i_Index]*SolutionVector_V[Bus_j_Index]*abs(Ybus[Bus_i_Index, Bus_j_Index]))*
                         sin(angle(Ybus[Bus_i_Index, Bus_j_Index])+deg2rad(SolutionVector_Delta[Bus_j_Index])-deg2rad(SolutionVector_Delta[Bus_i_Index]))
 
@@ -754,11 +754,11 @@ function Compute_Corrected_CorrectionVector(CDF_DF_List_pu, Correction_Vector_NR
 
         # Number of Buses
         N_Bus = nrow(BusDataCard_DF)
-        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF)
-        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
-        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF)
+        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
         # Initializing Correction_Vector_NR_Corrected
         Correction_Vector_NR_Corrected = Correction_Vector_NR

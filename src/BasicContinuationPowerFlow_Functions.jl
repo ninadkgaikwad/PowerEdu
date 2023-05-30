@@ -25,9 +25,9 @@ function Create_Initial_SolutionVector_CPF(CDF_DF_List_pu)
 
         # Number of Buses
         N_Bus = nrow(BusDataCard_DF)
-        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF)
-        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF))
 
         # Creating Initial_SolutionVector_CPF Length
         Initial_SolutionVector_CPF_Len = 2*N_PQ_Bus+N_PV_Bus+1
@@ -77,9 +77,9 @@ function Create_SolutionVector_VDelta_CPF(CDF_DF_List_pu, SolutionVector_CPF)
 
         # Number of Buses
         N_Bus = nrow(BusDataCard_DF)
-        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF)
-        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF))
 
         # Getting SolutionVector_NR
         SolutionVector_NR = SolutionVector_CPF[1:end-1,1]
@@ -131,9 +131,9 @@ function Create_SolutionVector_CPF(CDF_DF_List_pu, SolutionVector_V, SolutionVec
 
         # Number of Buses
         N_Bus = nrow(BusDataCard_DF)
-        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF)
-        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF))
 
         # Creating SolutionVector_NR Length
         SolutionVector_NR_Len = 2*N_PQ_Bus+N_PV_Bus
@@ -177,9 +177,9 @@ function Create_KVector_CPF(CDF_DF_List_pu, PQ_V_Curve_Tuple)
 
         # Number of Buses
         N_Bus = nrow(BusDataCard_DF)
-        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF)
-        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF))
 
         # Initializing K_Vector
         K_Vector = zeros(N_Bus-1,1)
@@ -377,9 +377,9 @@ function Compute_PQ_MismatchVector_CPF(CDF_DF_List_pu, PQ_BusArray, SolutionVect
 
         # Number of Buses
         N_Bus = nrow(BusDataCard_DF)
-        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF)
-        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF))
 
         # Length of PQ_MismatchVector
         Len_PQ_MismatchVector = 2*N_PQ_Bus+N_PV_Bus
@@ -513,11 +513,11 @@ function Compute_Corrected_CorrectionVector_CPF(CDF_DF_List_pu, Correction_Vecto
 
         # Number of Buses
         N_Bus = nrow(BusDataCard_DF)
-        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF)
-        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF))
 
-        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF)
+        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF))
 
         # Initializing Correction_Vector_NR_Corrected
         Correction_Vector_NR_Corrected = Correction_Vector_NR
@@ -576,11 +576,11 @@ function PowerFlow_MainFunction_CPF(CDF_DF_List_pu, Ybus, NR_Type, Initial_Solut
 
     # Number of Buses
     N_Bus = nrow(BusDataCard_DF)
-    N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF)
-    N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF)
-    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF)
+    N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+    N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
-    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF)
+    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
     # We have Y_Bus
 
