@@ -1,18 +1,18 @@
 # in file Foo.jl
-
 module Foo # Declare the module
 
-export initializeVectors
+export initializeVectors_pu
 export sortMatrixByBusTypes
 export ybusGenerator # write what will be accessible from outside
 
 # Write your functions...
 
-# function initializeVectors(busData; MVAb=100)
-function initializeVectors(busData; MVAb=100)
+# function initializeVectors_pu(CDF_DF_List_pu)
+function initializeVectors_pu(CDF_DF_List_pu)
+    
+    busData_pu = CDF_DF_List_pu[2]
 
-
-    N = size(busData, 1)
+    N = size(busData_pu, 1)
     PSpecified = zeros(N)
     QSpecified = zeros(N)
     V = zeros(N)
@@ -27,65 +27,88 @@ function initializeVectors(busData; MVAb=100)
     listOfSlackBuses = zeros(Int64, N)
 
     for i = 1:N
-        bus = busData.bus[i]
+        bus = busData_pu.Bus_Num[i]
         delta[bus] = 0.0000
-        if busData.busType[i] == 0
+        if busData_pu.Type[i] == 0
             nPQ += 1
             listOfPQBuses[nPQ] = bus
             n += 1
             listOfNonSlackBuses[n] = bus
             V[bus] = 1.0000
-        elseif busData.busType[i] == 2
+        elseif busData_pu.Type[i] == 2
             nPV += 1
             listOfPVBuses[nPV] = bus
             n += 1
             listOfNonSlackBuses[n] = bus
-            V[bus] = busData.Vset[i]
-        elseif busData.busType[i] == 3
+            V[bus] = busData_pu.Desired_V_pu[i]
+        elseif busData_pu.Type[i] == 3
             nSlack += 1
             listOfSlackBuses[nSlack] = bus
-            V[bus] = busData.Vset[i]
+            V[bus] = busData_pu.Desired_V_pu[i]
         end
-        PSpecified[bus] = busData.PG[i] / MVAb - busData.PL[i] / MVAb
-        QSpecified[bus] = busData.QG[i] / MVAb - busData.QL[i] / MVAb
+        PSpecified[bus] = busData_pu.Gen_MW[i] - busData_pu.Load_MW[i]
+        QSpecified[bus] = busData_pu.Gen_MVAR[i] - busData_pu.Load_MVAR[i]
     end
 
     listOfSlackBuses = reshape(listOfSlackBuses[1:nSlack], nSlack)
     listOfSlackBuses = reshape(listOfSlackBuses[1:nSlack], nSlack)
     listOfPVBuses = reshape(listOfPVBuses[1:nPV], nPV)
     listOfPQBuses = reshape(listOfPQBuses[1:nPQ], nPQ)
-    # @show typeof(listOfPQBuses)
 
     return [PSpecified, QSpecified, V, delta, listOfSlackBuses, listOfPVBuses, listOfPQBuses, listOfNonSlackBuses, nSlack, nPV, nPQ]
 end
 
 
-function sortMatrixByBusTypes(busData, ybus)
-
-    @show outputs  = initializeVectors(busData)
-    @show listOfSlackBuses, listOfPVBuses, listOfPQBuses = outputs[5], outputs[6], outputs[7]
-    # @show typeof(listOfPVBuses)
-    @show newOrder = vcat(listOfSlackBuses, listOfPVBuses, listOfPQBuses)
-    # @show newOrder = [listOfSlackBuses listOfPVBuses listOfPQBuses]
+function sortMatrixByBusTypes(CDF_DF_List_pu, ybus)
+    busData_pu = CDF_DF_List_pu[2]
+    outputs  = initializeVectors_pu(CDF_DF_List_pu)
+    listOfSlackBuses, listOfPVBuses, listOfPQBuses = outputs[5], outputs[6], outputs[7]
+    newOrder = vcat(listOfSlackBuses, listOfPVBuses, listOfPQBuses)
     ybusByTypes = ybus[newOrder, newOrder]
 
-    @show typeof(newOrder)
-    @show rowNamesByTypes = [string(i) for i in newOrder]
+    typeof(newOrder)
+    rowNamesByTypes = [string(i) for i in newOrder]
 
     return ybusByTypes, rowNamesByTypes
 end
 
-using DataFrames
-using CSV
+"""
+    extractSystemName(CDF_DF_List::Vector{DataFrame})
+
+Extracts the system name from a vector of DataFrames (assumed to be its CDF_DF_List).
+
+# Arguments
+- `CDF_DF_List::Vector{DataFrame}`: A vector of DataFrames.
+
+# Returns
+- `bus_name::AbstractString`: The extracted system name, in the format "{prefix}_{bus_number}" if found, or "Bus number not found." otherwise.
+"""
+function extractSystemName(CDF_DF_List::Vector{DataFrame})
+    using 
+    header_CDF = CDF_DF_List[1]
+    vector_string = header_CDF.Case_ID
+    pattern = r"(\D+)\s*(\d+)"
+
+    match_obj = match(pattern, vector_string)
+    if match_obj !== nothing
+        prefix = strip(match_obj.captures[1])
+        bus_number = match_obj.captures[2]
+        bus_name = string(prefix, "_", bus_number)
+        return bus_name
+    else
+        return "Bus number not found.\n"
+    end
+end
+
 
 """
-    ybusGenerator(busData, branchData; kwargs...)
+    ybusGenerator(busData_pu, branchData_pu; kwargs...)
 
 Generates the Y-bus matrix and related matrices for a power system.
 
 # Arguments
-- `busData`: A DataFrame containing the bus data for the power system.
-- `branchData`: A DataFrame containing the branch data for the power system.
+- `busData_pu`: A DataFrame containing the bus data for the power system.
+- `branchData_pu`: A DataFrame containing the branch data for the power system.
 
 # Optional keyword arguments
 - `disableTaps`: A logical value indicating whether to disable tap ratios (default: `false`).
@@ -107,13 +130,11 @@ Generates the Y-bus matrix and related matrices for a power system.
 ```julia
 using DataFrames, CSV
 
-busData = DataFrame(G=[0.1, 0.05, 0.2], B=[0.2, 0.15, 0.25])
-branchData = DataFrame(i=[1, 2, 3], j=[2, 3, 1], R=[0.1, 0.2, 0.15], X=[0.2, 0.3, 0.25], B=[0.05, 0.1, 0.08])
-ybus, BMatrix, b, A, branchNames, E = ybusGenerator(busData, branchData, verbose=true, saveTables=true)
+busData_pu = DataFrame(G=[0.1, 0.05, 0.2], B=[0.2, 0.15, 0.25])
+branchData_pu = DataFrame(i=[1, 2, 3], j=[2, 3, 1], R=[0.1, 0.2, 0.15], X=[0.2, 0.3, 0.25], B=[0.05, 0.1, 0.08])
+ybus, BMatrix, b, A, branchNames, E = ybusGenerator(busData_pu, branchData_pu, verbose=true, saveTables=true)
 """
-
-# Function code
-function ybusGenerator(busData::DataFrame, branchData::DataFrame;
+function ybusGenerator(CDF_DF_List_pu::Vector{DataFrame};
     disableTaps::Bool = false,
     sortBy::String = "busNumbers",
     verbose::Bool = false,
@@ -121,8 +142,10 @@ function ybusGenerator(busData::DataFrame, branchData::DataFrame;
     saveLocation::String = "processedData/",
     systemName::String = "systemNameNOTSpecified")
 
-    N = size(busData, 1)
-    numBranch = size(branchData, 1)
+    busData_pu = CDF_DF_List_pu[2]
+    branchData_pu = CDF_DF_List_pu[3]
+    N = size(busData_pu, 1)
+    numBranch = size(branchData_pu, 1)
 
     ybus = zeros(ComplexF64, N, N)
     BMatrix = zeros(ComplexF64, N, N)
@@ -136,7 +159,7 @@ function ybusGenerator(busData::DataFrame, branchData::DataFrame;
     branchNames = Vector{String}(undef, numBranch)
 
     for branch = 1:numBranch
-        currentBranch = branchData[branch, :]
+        currentBranch = branchData_pu[branch, :]
         # vscodedisplay(currentBranch)
         i = currentBranch.Tap_Bus_Num
         k = currentBranch.Z_Bus_Num
@@ -164,25 +187,25 @@ function ybusGenerator(busData::DataFrame, branchData::DataFrame;
     end
 
     for bus = 1:N
-        ybus[bus, bus] += busData.G_pu[bus] + im*busData.B_pu[bus]
+        ybus[bus, bus] += busData_pu.G_pu[bus] + im*busData_pu.B_pu[bus]
     end
 
     BMatrix = -imag(ybus)
     # Sort Y-bus matrix
     if sortBy == "busNumbers"
-        @show rowNames = [string(i) for i in 1:N]
+        rowNames = [string(i) for i in 1:N]
         #might wanna change the names to be Gen01, Gen02, ... , Gen14.
         tag = ""
     elseif sortBy == "busTypes"
-        ybusByTypes, rowNamesByTypes = sortMatrixByBusTypes(busData, ybus)
+        ybusByTypes, rowNamesByTypes = sortMatrixByBusTypes(CDF_DF_List_pu, ybus)
         ybus = ybusByTypes
         rowNames  = rowNamesByTypes
-        BMatrixByTypes, rowNamesByTypes = sortMatrixByBusTypes(busData, BMatrix)
+        BMatrixByTypes, rowNamesByTypes = sortMatrixByBusTypes(CDF_DF_List_pu, BMatrix)
         BMatrix = BMatrixByTypes
         tag = "_sortedByBusTypes"
     end
 
-    @show ybusTable = DataFrame(ybus, Symbol.(rowNames))
+    ybusTable = DataFrame(ybus, Symbol.(rowNames))
     BMatrixTable = DataFrame(BMatrix, Symbol.(rowNames))
 
     if verbose
@@ -212,9 +235,10 @@ function ybusGenerator(busData::DataFrame, branchData::DataFrame;
 
 end
 
-# busData = DataFrame(G=[0.1, 0.05, 0.2], B=[0.2, 0.15, 0.25])
-# branchData = DataFrame(i=[1, 2, 3], j=[2, 3, 1], R=[0.1, 0.2, 0.15], X=[0.2, 0.3, 0.25], B=[0.05, 0.1, 0.08])
-# ybus, BMatrix, b, A, branchNames, E = ybusGenerator(busData, branchData, verbose=true, saveTables=true)
+# Test case generated by ChatGPT
+# busData_pu = DataFrame(G=[0.1, 0.05, 0.2], B=[0.2, 0.15, 0.25])
+# branchData_pu = DataFrame(i=[1, 2, 3], j=[2, 3, 1], R=[0.1, 0.2, 0.15], X=[0.2, 0.3, 0.25], B=[0.05, 0.1, 0.08])
+# ybus, BMatrix, b, A, branchNames, E = ybusGenerator(busData_pu, branchData_pu, verbose=true, saveTables=true)
 
 
 end # Foo
