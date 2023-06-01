@@ -10,8 +10,9 @@ include("src/IEEE_CDF_Parser.jl")
 
 folderInput = "data/"
 folder_processedData = "processedData/";
-systemName = "IEEE_14"
-fileType_CDFFile = ".txt"
+systemName = "IEEE_14";
+Ybus_Builder.createFolderIfNotExisting(systemName, folder_processedData)
+fileType_CDFFile = ".txt";
 
 filename_CDFFile = folderInput*systemName*"_Data"*fileType_CDFFile
 CDF_DF_List = IEEE_CDF_Parser.CDF_Parser(filename_CDFFile);
