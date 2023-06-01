@@ -15,6 +15,7 @@ export Create_Ybus_WithTaps
 export initializeVectors_pu
 export sortMatrixByBusTypes
 export extractSystemName
+export createFolderIfNotExisting
 export ybusGenerator 
 
 
@@ -444,6 +445,30 @@ function extractSystemName(CDF_DF_List::Vector{DataFrame})
         return bus_name
     else
         return "Bus number not found.\n"
+    end
+end
+
+"""
+    createFolderIfNotExisting(systemName::AbstractString, folderPath::AbstractString = "processedData/")
+
+Create a folder with the specified system name if it doesn't already exist in the specified folder path.
+
+## Arguments
+- `systemName::AbstractString`: The name of the system for which you want to create the folder.
+- `folderPath::AbstractString (optional)`: The path where the folder should be created. Default is "processedData/".
+
+## Example
+```julia
+createFolderIfNotExisting("IEEE_14")
+"""
+function createFolderIfNotExisting(systemName::AbstractString, folderPath::AbstractString = "processedData/")
+    folder_name = folderPath * systemName
+
+    if !isdir(folder_name)
+        mkdir(folder_name)
+        println("Folder '$folder_name' created successfully.")
+    else
+        println("Folder '$folder_name' already exists.")
     end
 end
 
