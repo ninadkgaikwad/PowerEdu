@@ -44,86 +44,134 @@ function CDF_Parser(CDF_FilePath)
         # Gathering Data from Data Cards into a Array
         for ii in 1:length(CDF_Text_Array)
 
+                # Creating Regular Expressions for matching CDF File Card Titles
+                BusCard_Title_RegEx = match(r"BUS DATA FOLLOWS",CDF_Text_Array[ii])
+                if (isnothing(BusCard_Title_RegEx))
+                        BusCard_Title_RegEx = match(r"",CDF_Text_Array[ii])
+                end
+                BranchCard_Title_RegEx = match(r"BRANCH DATA FOLLOWS",CDF_Text_Array[ii])
+                if (isnothing(BranchCard_Title_RegEx))
+                        BranchCard_Title_RegEx = match(r"",CDF_Text_Array[ii])
+                end
+                ZoneCard_Title_RegEx = match(r"LOSS ZONES FOLLOWS",CDF_Text_Array[ii])
+                if (isnothing(ZoneCard_Title_RegEx))
+                        ZoneCard_Title_RegEx = match(r"",CDF_Text_Array[ii])
+                end
+                InterchangeCard_Title_RegEx = match(r"INTERCHANGE DATA FOLLOWS",CDF_Text_Array[ii])
+                if (isnothing(InterchangeCard_Title_RegEx))
+                        InterchangeCard_Title_RegEx = match(r"",CDF_Text_Array[ii])
+                end
+                TieLinesCard_Title_RegEx = match(r"TIE LINES FOLLOWS",CDF_Text_Array[ii])
+                if (isnothing(TieLinesCard_Title_RegEx))
+                        TieLinesCard_Title_RegEx = match(r"",CDF_Text_Array[ii])
+                end
+
                 # Gathering Data from Bus Data Card into a Array
-                if (!Bool(cmp("BUS DATA FOLLOWS",match(r"BUS DATA FOLLOWS",CDF_Text_Array[ii]).match)))
+                if (!Bool(cmp("BUS DATA FOLLOWS",BusCard_Title_RegEx.match)))
+
 
                         for jj in ii+1:length(CDF_Text_Array)
 
-                                if (!Bool(cmp("-999",match(r"-999",CDF_Text_Array[jj]).match)))
+                                End_Card_RegEx = match(r"-999",CDF_Text_Array[jj])
+                                if (isnothing(End_Card_RegEx))
+                                        End_Card_RegEx = match(r"",CDF_Text_Array[jj])
+                                end 
+
+                                if (!Bool(cmp("-999",End_Card_RegEx.match)))
 
                                         break
 
                                 else
 
-                                        append!(BusDataCard_Array,CDF_Text_Array[jj])
+                                        append!(BusDataCard_Array,[CDF_Text_Array[jj]])
 
                                 end
 
                         end
 
                 # Gathering Data from Branch Data Card into a Array
-                elseif ((!Bool(cmp("BRANCH DATA FOLLOWS",match(r"BRANCH DATA FOLLOWS",CDF_Text_Array[ii]).match))))
+                elseif ((!Bool(cmp("BRANCH DATA FOLLOWS",BranchCard_Title_RegEx.match))))
 
                         for jj in ii+1:length(CDF_Text_Array)
 
-                                if (!Bool(cmp("-999",match(r"-999",CDF_Text_Array[jj]).match)))
+                                End_Card_RegEx = match(r"-999",CDF_Text_Array[jj])
+                                if (isnothing(End_Card_RegEx))
+                                        End_Card_RegEx = match(r"",CDF_Text_Array[jj])
+                                end 
+
+                                if (!Bool(cmp("-999",End_Card_RegEx.match)))
 
                                         break
 
                                 else
 
-                                        append!(BranchDataCard_Array,CDF_Text_Array[jj])
+                                        append!(BranchDataCard_Array,[CDF_Text_Array[jj]])
 
                                 end
 
                         end
 
                 # Gathering Data from Line Zones Card into a Array
-                elseif ((!Bool(cmp("LOSS ZONES FOLLOWS",match(r"LOSS ZONES FOLLOWS",CDF_Text_Array[ii]).match))))
+                elseif ((!Bool(cmp("LOSS ZONES FOLLOWS",ZoneCard_Title_RegEx.match))))
 
                         for jj in ii+1:length(CDF_Text_Array)
 
-                                if (!Bool(cmp("-99",match(r"-99",CDF_Text_Array[jj]).match)))
+                                End_Card_RegEx = match(r"-99",CDF_Text_Array[jj])
+                                if (isnothing(End_Card_RegEx))
+                                        End_Card_RegEx = match(r"",CDF_Text_Array[jj])
+                                end 
+
+                                if (!Bool(cmp("-99",End_Card_RegEx.match)))
 
                                         break
 
                                 else
 
-                                        append!(LossZonesCard_Array,CDF_Text_Array[jj])
+                                        append!(LossZonesCard_Array,[CDF_Text_Array[jj]])
 
                                 end
 
                         end
 
                 # Gathering Data from Interchange Data Card into a Array
-                elseif ((!Bool(cmp("INTERCHANGE DATA FOLLOWS",match(r"INTERCHANGE DATA FOLLOWS",CDF_Text_Array[ii]).match))))
+                elseif ((!Bool(cmp("INTERCHANGE DATA FOLLOWS",InterchangeCard_Title_RegEx.match))))
 
                         for jj in ii+1:length(CDF_Text_Array)
 
-                                if (!Bool(cmp("-9",match(r"-9",CDF_Text_Array[jj]).match)))
+                                End_Card_RegEx = match(r"-9",CDF_Text_Array[jj])
+                                if (isnothing(End_Card_RegEx))
+                                        End_Card_RegEx = match(r"",CDF_Text_Array[jj])
+                                end 
+
+                                if (!Bool(cmp("-9",End_Card_RegEx.match)))
 
                                         break
 
                                 else
 
-                                        append!(InterchangeDataCard_Array,CDF_Text_Array[jj])
+                                        append!(InterchangeDataCard_Array,[CDF_Text_Array[jj]])
 
                                 end
 
                         end
 
                 # Gathering Data from Tie Lines Data Card into a Array
-                elseif ((!Bool(cmp("TIE LINES FOLLOWS",match(r"TIE LINES FOLLOWS",CDF_Text_Array[ii]).match))))
+                elseif ((!Bool(cmp("TIE LINES FOLLOWS",TieLinesCard_Title_RegEx.match))))
 
                         for jj in ii+1:length(CDF_Text_Array)
 
-                                if (!Bool(cmp("-999",match(r"-999",CDF_Text_Array[jj]).match)))
+                                End_Card_RegEx = match(r"-999",CDF_Text_Array[jj])
+                                if (isnothing(End_Card_RegEx))
+                                        End_Card_RegEx = match(r"",CDF_Text_Array[jj])
+                                end 
+
+                                if (!Bool(cmp("-999",End_Card_RegEx.match)))
 
                                         break
 
                                 else
 
-                                        append!(TieLinesCard_Array,CDF_Text_Array[jj])
+                                        append!(TieLinesCard_Array,[CDF_Text_Array[jj]])
 
                                 end
 
@@ -210,7 +258,7 @@ function CDF_Parser(CDF_FilePath)
                                          Area_Code = String[],
                                          Area_Name = String[])
 
-        TieLinesCard_DF=DataFrame(Meter_Bus_Num = Int64[],
+        TieLinesDataCard_DF=DataFrame(Meter_Bus_Num = Int64[],
                                   Meter_Area_Num = Int64[],
                                   NonMeter_Bus_Num = Int64[],
                                   NonMeter_Area_Num = Int64[],
@@ -220,7 +268,7 @@ function CDF_Parser(CDF_FilePath)
         for ii in 1:length(BusDataCard_Array)
 
                 push!(BusDataCard_DF,(parse(Int64,BusDataCard_Array[ii][1:4]),
-                                      BusDataCard_Array[ii][7:17],
+                                      BusDataCard_Array[ii][6:17],
                                       parse(Int64,BusDataCard_Array[ii][19:20]),
                                       parse(Int64,BusDataCard_Array[ii][21:23]),
                                       parse(Int64,BusDataCard_Array[ii][25:26]),
@@ -260,7 +308,7 @@ function CDF_Parser(CDF_FilePath)
                 push!(BranchDataCard_DF,(parse(Int64,BranchDataCard_Array[ii][1:4]),
                                       parse(Int64,BranchDataCard_Array[ii][6:9]),
                                       parse(Int64,BranchDataCard_Array[ii][11:12]),
-                                      parse(Int64,BranchDataCard_Array[ii][13:14]),
+                                      parse(Int64,BranchDataCard_Array[ii][13:15]),
                                       parse(Int64,BranchDataCard_Array[ii][17]),
                                       parse(Int64,BranchDataCard_Array[ii][19]),
                                       parse(Float64,BranchDataCard_Array[ii][20:29]),
@@ -276,8 +324,8 @@ function CDF_Parser(CDF_FilePath)
                                       parse(Float64,BranchDataCard_Array[ii][91:97]),
                                       parse(Float64,BranchDataCard_Array[ii][98:104]),
                                       parse(Float64,BranchDataCard_Array[ii][106:111]),
-                                      parse(Float64,BranchDataCard_Array[ii][113:119]),
-                                      parse(Float64,BranchDataCard_Array[ii][120:126]),
+                                      parse(Float64,BranchDataCard_Array[ii][113:118]),
+                                      parse(Float64,BranchDataCard_Array[ii][120:end]),
                                       0.0,
                                       0.0,
                                       -9999,
@@ -295,7 +343,7 @@ function CDF_Parser(CDF_FilePath)
         for ii in 1:length(LossZonesCard_Array)
 
                 push!(LossZonesCard_DF,(parse(Int64,LossZonesCard_Array[ii][1:3]),
-                                      LossZonesCard_Array[ii][5:16]))
+                                      LossZonesCard_Array[ii][5:end]))
 
         end
 
@@ -309,14 +357,14 @@ function CDF_Parser(CDF_FilePath)
                                       parse(Float64,InterchangeDataCard_Array[ii][21:28]),
                                       parse(Float64,InterchangeDataCard_Array[ii][30:35]),
                                       InterchangeDataCard_Array[ii][38:43],
-                                      InterchangeDataCard_Array[ii][46:75]))
+                                      InterchangeDataCard_Array[ii][46:end]))
 
         end
 
         # Filling up TieLinesDataCard_DF
         for ii in 1:length(TieLinesCard_Array)
 
-                push!(TieLinesCard_DF,(parse(Int64,TieLinesCard_Array[ii][1:4]),
+                push!(TieLinesDataCard_DF,(parse(Int64,TieLinesCard_Array[ii][1:4]),
                                       parse(Int64,TieLinesCard_Array[ii][7:8]),
                                       parse(Int64,TieLinesCard_Array[ii][11:14]),
                                       parse(Int64,TieLinesCard_Array[ii][17:18]),
@@ -324,7 +372,9 @@ function CDF_Parser(CDF_FilePath)
 
         end
 
-        return CDF_DF_List = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
+        CDF_DF_List = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
+
+        return CDF_DF_List
 
 end
 
@@ -446,6 +496,7 @@ function CDF_pu_Converter(CDF_DF_List)
 
         end
 
-        return CDF_DF_List_pu = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
+        CDF_DF_List_pu = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
 
+        return CDF_DF_List_pu
 end

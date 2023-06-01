@@ -37,28 +37,14 @@ export CDF_Parser,
        Compute_PQ_MismatchVector_CPF,
        Compute_Corrected_CorrectionVector_CPF,
        PowerFlow_MainFunction_CPF,
-       CDF_AddMeasurements_SE,
+       CDF_AddMeasurements_SE
 
 
-# Including component files
-include("IEEE_CDF_Parser.jl")
-
-include("Ybus_Builder.jl")
-
-include("BasicPowerFlow_Functions.jl")
-
-include("Jacobian_Builder.jl")
-
-include("LU_Factorization.jl")
-
-include("BasicContinuationPowerFlow_Functions.jl")
-
-include("BasicStateEstimation_Functions.jl")
 
 # Main Functions
 
 """
-    PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num))
+    PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
 
 Creates Ybus without taps for a power system network.
 
@@ -96,11 +82,11 @@ function PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tole
 
     # Number of Buses
     N_Bus = nrow(BusDataCard_DF)
-    N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF)
-    N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF)
-    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF)
+    N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+    N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
-    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF)
+    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
     # Create Ybus
     if (Ybus_Taps_Indicator == 1) # Without Taps
@@ -396,11 +382,11 @@ function PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Bus_Measurement_
 
         # Number of Buses and Branches
         N_Bus = nrow(BusDataCard_DF)
-        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF)
-        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF)
-        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
-        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF)
+        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
         N_Branch = nrow(BranchDataCard_DF)
 
@@ -417,4 +403,25 @@ function PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Bus_Measurement_
 
         end
 
+        # Add Further Code
+
 end
+
+# Including component files
+include("IEEE_CDF_Parser.jl")
+
+include("Ybus_Builder.jl")
+
+include("BasicPowerFlow_Functions.jl")
+
+include("Jacobian_Builder.jl")
+
+include("LU_Factorization.jl")
+
+include("BasicContinuationPowerFlow_Functions.jl")
+
+include("BasicStateEstimation_Functions.jl")
+
+
+end
+
