@@ -2,15 +2,21 @@
 module Ybus_Builder
 #This module requires DataFrames, CSV, DelimitedFiles
 using DataFrames 
+using CSV
 #For some reason, invoking it from the main file
 #throws off an error when trying to include/use this module
 #saying that it does not recognize 'any' DataFrame.
 
-export initializeVectors_pu
-export sortMatrixByBusTypes
-export ybusGenerator 
 export Create_Ybus_WithoutTaps
 export Create_Ybus_WithTaps
+
+#Following four functions were written by me and added at the top.
+#Their purpose can be found out by hovering your cursor over their names.
+export initializeVectors_pu
+export sortMatrixByBusTypes
+export extractSystemName
+export ybusGenerator 
+
 
 """
     Create_Ybus_WithoutTaps(CDF_DF_List)
@@ -426,10 +432,11 @@ Extracts the system name from a vector of DataFrames (assumed to be its CDF_DF_L
 """
 function extractSystemName(CDF_DF_List::Vector{DataFrame})
     header_CDF = CDF_DF_List[1]
-    vector_string = header_CDF.Case_ID
+    vector_encapsulating_string = header_CDF.Case_ID #A Vector of strings (size: 1x1)
+    fullString = vector_encapsulating_string[1]
     pattern = r"(\D+)\s*(\d+)"
 
-    match_obj = match(pattern, vector_string)
+    match_obj = match(pattern, fullString)
     if match_obj !== nothing
         prefix = strip(match_obj.captures[1])
         bus_number = match_obj.captures[2]
