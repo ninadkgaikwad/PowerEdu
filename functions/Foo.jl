@@ -137,24 +137,25 @@ function ybusGenerator(busData::DataFrame, branchData::DataFrame;
 
     for branch = 1:numBranch
         currentBranch = branchData[branch, :]
-        i = currentBranch.i
-        k = currentBranch.j
+        # vscodedisplay(currentBranch)
+        i = currentBranch.Tap_Bus_Num
+        k = currentBranch.Z_Bus_Num
         branchNames[branch] = "$(i) to $(k)"
         A[branch, i] = 1
         A[branch, k] = -1
-        b[branch, branch] = currentBranch.B
+        b[branch, branch] = currentBranch.B_pu
 
         if disableTaps
             a = 1
-        elseif currentBranch.a != 0
-            a = currentBranch.a
+        elseif currentBranch.Transformer_t != 0
+            a = currentBranch.Transformer_t
         else
             a = 1
         end
 
-        y_ik = 1/(currentBranch.R + im*currentBranch.X)
-        ybus[i, i] += y_ik/(a^2) + currentBranch.B / 2
-        ybus[k, k] += y_ik + currentBranch.B / 2
+        y_ik = 1/(currentBranch.R_pu + im*currentBranch.X_pu)
+        ybus[i, i] += y_ik/(a^2) + currentBranch.B_pu / 2
+        ybus[k, k] += y_ik + currentBranch.B_pu / 2
         ybus[i, k] = -y_ik/a
         ybus[k, i] = -y_ik/a
 
@@ -163,7 +164,7 @@ function ybusGenerator(busData::DataFrame, branchData::DataFrame;
     end
 
     for bus = 1:N
-        ybus[bus, bus] += busData.G[bus] + im*busData.B[bus]
+        ybus[bus, bus] += busData.G_pu[bus] + im*busData.B_pu[bus]
     end
 
     BMatrix = -imag(ybus)

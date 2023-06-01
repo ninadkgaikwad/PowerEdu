@@ -1,32 +1,30 @@
+using Pkg
+Pkg.instantiate()
 using CSV
 using DelimitedFiles
 using DataFrames
 
 
 include("functions/Foo.jl")
+include("src/IEEE_CDF_Parser.jl")
 
 
-folderInput = "rawData/";
-folder_processedData = "processedData/";
-systemName = "ieee14";
+# folderInput = "rawData/";
+folderInput = "data/"
+# folder_processedData = "processedData/";
+# systemName = "ieee14";
+systemName = "IEEE_14"
+fileType_CDFFile = ".txt"
 
-fileType_busData = ".csv";
-filename_busData = folder_processedData*systemName*"/busData"*fileType_busData;
-println(filename_busData)
+filename_CDFFile = folderInput*systemName*"_Data"*fileType_CDFFile
+CDF_DF_List = CDF_Parser(filename_CDFFile);
+CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List)
+busData_pu = CDF_DF_List_pu[2]
+# vscodedisplay(busData_pu)
+branchData_pu = CDF_DF_List_pu[3]
 
-fileType_branchData = ".csv";
-filename_branchData = folder_processedData*systemName*"/branchData"*fileType_branchData;
-println(filename_branchData)
 
-# Load busData into a DataFrame
-busData = CSV.read(filename_busData, DataFrame)
-
-# Load branchData into a DataFrame
-branchData = CSV.read(filename_branchData, DataFrame)
-
-# vscodedisplay(busData)
-# vscodedisplay(branchData)
-
-ybus,   = Foo.ybusGenerator(busData, branchData);
+ybus, BMatrix, b, A, branchNames, E   = Foo.ybusGenerator(busData_pu, branchData_pu);
+vscodedisplay(ybus)
 ybus, BMatrix, b, A, branchNames, E   = Foo.ybusGenerator(busData, branchData, saveTables=true, systemName=systemName);
 ybusByTypes= Foo.ybusGenerator(busData, branchData, sortBy="busTypes", verbose=true, saveTables=true, saveLocation=folder_processedData, systemName=systemName)   
