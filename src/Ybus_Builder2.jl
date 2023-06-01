@@ -1,6 +1,71 @@
 using DataFrames
 using CSV
 
+# function initializeVectors(busData; MVAb=100)
+function initializeVectors(CDF_DF_List_pu::Vector{DataFrame})
+
+    busData = CDF_DF_List_pu[2]
+    N = size(busData, 1)
+    PSpecified = zeros(N)
+    QSpecified = zeros(N)
+    V = zeros(N)
+    delta = zeros(N)
+    listOfPQBuses = zeros(Int64, N)
+    listOfPVBuses = zeros(Int64, N)
+    nPQ = 0
+    nPV = 0
+    n = 0
+    nSlack = 0
+    listOfNonSlackBuses = zeros(Int64, N)
+    listOfSlackBuses = zeros(Int64, N)
+
+    for i = 1:N
+        bus = busData.Bus_Num[i]
+        delta[bus] = 0.0000
+        if busData.busType[i] == 0
+            nPQ += 1
+            listOfPQBuses[nPQ] = bus
+            n += 1
+            listOfNonSlackBuses[n] = bus
+            V[bus] = 1.0000
+        elseif busData.busType[i] == 2
+            nPV += 1
+            listOfPVBuses[nPV] = bus
+            n += 1
+            listOfNonSlackBuses[n] = bus
+            V[bus] = busData.Vset[i]
+        elseif busData.busType[i] == 3
+            nSlack += 1
+            listOfSlackBuses[nSlack] = bus
+            V[bus] = busData.Vset[i]
+        end
+        PSpecified[bus] = busData.PG[i] / MVAb - busData.PL[i] / MVAb
+        QSpecified[bus] = busData.QG[i] / MVAb - busData.QL[i] / MVAb
+    end
+
+    listOfSlackBuses = reshape(listOfSlackBuses[1:nSlack], nSlack)
+    listOfPVBuses = reshape(listOfPVBuses[1:nPV], nPV)
+    listOfPQBuses = reshape(listOfPQBuses[1:nPQ], nPQ)
+
+    return [PSpecified, QSpecified, V, delta, listOfSlackBuses, listOfPVBuses, listOfPQBuses, listOfNonSlackBuses, nSlack, nPV, nPQ]
+end
+
+
+function sortMatrixByBusTypes(busData, ybus)
+
+    @show outputs  = initializeVectors(busData)
+    @show listOfSlackBuses, listOfPVBuses, listOfPQBuses = outputs[5], outputs[6], outputs[7]
+    # @show typeof(listOfPVBuses)
+    @show newOrder = vcat(listOfSlackBuses, listOfPVBuses, listOfPQBuses)
+    # @show newOrder = [listOfSlackBuses listOfPVBuses listOfPQBuses]
+    ybusByTypes = ybus[newOrder, newOrder]
+
+    @show typeof(newOrder)
+    @show rowNamesByTypes = [string(i) for i in newOrder]
+
+    return ybusByTypes, rowNamesByTypes
+end
+
 """
     Ybus_Builder(CDF_DF_List_pu; kwargs...)
 
@@ -108,6 +173,7 @@ function Ybus_Builder(CDF_DF_List_pu::Vector{DataFrame};
     end
 
     @show ybusTable = DataFrame(ybus, Symbol.(rowNames))
+    vscodedisplay(ybusTable)
     BMatrixTable = DataFrame(BMatrix, Symbol.(rowNames))
 
     if verbose

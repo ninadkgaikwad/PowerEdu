@@ -1,3 +1,80 @@
+# in file Foo.jl
+
+module Foo # Declare the module
+
+export initializeVectors
+export sortMatrixByBusTypes
+export ybusGenerator # write what will be accessible from outside
+
+# Write your functions...
+
+# function initializeVectors(busData; MVAb=100)
+function initializeVectors(busData; MVAb=100)
+
+
+    N = size(busData, 1)
+    PSpecified = zeros(N)
+    QSpecified = zeros(N)
+    V = zeros(N)
+    delta = zeros(N)
+    listOfPQBuses = zeros(Int64, N)
+    listOfPVBuses = zeros(Int64, N)
+    nPQ = 0
+    nPV = 0
+    n = 0
+    nSlack = 0
+    listOfNonSlackBuses = zeros(Int64, N)
+    listOfSlackBuses = zeros(Int64, N)
+
+    for i = 1:N
+        bus = busData.bus[i]
+        delta[bus] = 0.0000
+        if busData.busType[i] == 0
+            nPQ += 1
+            listOfPQBuses[nPQ] = bus
+            n += 1
+            listOfNonSlackBuses[n] = bus
+            V[bus] = 1.0000
+        elseif busData.busType[i] == 2
+            nPV += 1
+            listOfPVBuses[nPV] = bus
+            n += 1
+            listOfNonSlackBuses[n] = bus
+            V[bus] = busData.Vset[i]
+        elseif busData.busType[i] == 3
+            nSlack += 1
+            listOfSlackBuses[nSlack] = bus
+            V[bus] = busData.Vset[i]
+        end
+        PSpecified[bus] = busData.PG[i] / MVAb - busData.PL[i] / MVAb
+        QSpecified[bus] = busData.QG[i] / MVAb - busData.QL[i] / MVAb
+    end
+
+    listOfSlackBuses = reshape(listOfSlackBuses[1:nSlack], nSlack)
+    listOfSlackBuses = reshape(listOfSlackBuses[1:nSlack], nSlack)
+    listOfPVBuses = reshape(listOfPVBuses[1:nPV], nPV)
+    listOfPQBuses = reshape(listOfPQBuses[1:nPQ], nPQ)
+    # @show typeof(listOfPQBuses)
+
+    return [PSpecified, QSpecified, V, delta, listOfSlackBuses, listOfPVBuses, listOfPQBuses, listOfNonSlackBuses, nSlack, nPV, nPQ]
+end
+
+
+function sortMatrixByBusTypes(busData, ybus)
+
+    @show outputs  = initializeVectors(busData)
+    @show listOfSlackBuses, listOfPVBuses, listOfPQBuses = outputs[5], outputs[6], outputs[7]
+    # @show typeof(listOfPVBuses)
+    @show newOrder = vcat(listOfSlackBuses, listOfPVBuses, listOfPQBuses)
+    # @show newOrder = [listOfSlackBuses listOfPVBuses listOfPQBuses]
+    ybusByTypes = ybus[newOrder, newOrder]
+
+    @show typeof(newOrder)
+    @show rowNamesByTypes = [string(i) for i in newOrder]
+
+    return ybusByTypes, rowNamesByTypes
+end
+
 using DataFrames
 using CSV
 
@@ -137,3 +214,6 @@ end
 # busData = DataFrame(G=[0.1, 0.05, 0.2], B=[0.2, 0.15, 0.25])
 # branchData = DataFrame(i=[1, 2, 3], j=[2, 3, 1], R=[0.1, 0.2, 0.15], X=[0.2, 0.3, 0.25], B=[0.05, 0.1, 0.08])
 # ybus, BMatrix, b, A, branchNames, E = ybusGenerator(busData, branchData, verbose=true, saveTables=true)
+
+
+end # Foo
