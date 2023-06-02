@@ -1,4 +1,25 @@
-# PowerSystemsAnalysis
+# PowerEdu.jl
+## A Julia Package for Teaching Power Systems Courses
+
+being built by current PhD ECE (Power Systems) students at Washington State University, Pullman:
+- Aryan Ritwajeet Jha
+- Ninad Kiran Gaikwad
+- Sajjad Uddin Mahmud
+
+## Contents:
+- Power Flow
+- Sparse Power Flow
+- Continuation Power Flow
+- State Estimation in Power Systems
+- Optimal Power Flow
+- Small-Signal Stability Analysis
+- Transient Stability Analysis
+
+
+
+In-progress.
+
+Expected Release Date: 01 September 2023
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://ninadkgaikwad.github.io/PowerSystemsAnalysis.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://ninadkgaikwad.github.io/PowerSystemsAnalysis.jl/dev/)
