@@ -69,6 +69,7 @@ function CDF_Parser(CDF_FilePath)
                 # Gathering Data from Bus Data Card into a Array
                 if (!Bool(cmp("BUS DATA FOLLOWS",BusCard_Title_RegEx.match)))
 
+
                         for jj in ii+1:length(CDF_Text_Array)
 
                                 End_Card_RegEx = match(r"-999",CDF_Text_Array[jj])

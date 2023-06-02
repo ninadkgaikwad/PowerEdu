@@ -30,10 +30,10 @@ function Create_Initial_SolutionVector_NR(CDF_DF_List_pu)
         N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
         # Creating Initial_SolutionVector_NR Length
-        Initial_SolutionVector_NR_Len = 2*N_PQ_Bus+N_PV_Bus
+        Initial_SolutionVector_NR_Len = 2 * N_PQ_Bus + N_PV_Bus
 
         # Initializing Initial_SolutionVector_NR
-        Initial_SolutionVector_NR = Array{Float64}(undef, Initial_SolutionVector_NR_Len ,1)
+        Initial_SolutionVector_NR = Array{Float64}(undef,Initial_SolutionVector_NR_Len,1)
 
         # Creating Initial_SolutionVector_NR Delta part for both PQ and PV Buses
         Initial_SolutionVector_NR[1:(N_PQ_Bus+N_PV_Bus),1] = zeros((N_PQ_Bus+N_PV_Bus),1)

@@ -23,7 +23,8 @@ function Compute_PLU(A, Tol_Num)
     RowNum_A, ColNum_A = size(A)
 
     # Initializing P, L and U
-    U = A
+
+    U = copy(A)
     L = Matrix{Float64}(I, RowNum_A, ColNum_A)
     P = Matrix{Float64}(I, RowNum_A, ColNum_A)
 
@@ -34,7 +35,7 @@ function Compute_PLU(A, Tol_Num)
         for jj in ii+1:RowNum_A # Through all the rows
 
             # Checking if Pivot is near Zero
-            if (!isapprox(U[ii,ii],0.0; atol=Tol_Num))
+            if (abs(U[ii,ii]) > Tol_Num)
 
                 break
 
