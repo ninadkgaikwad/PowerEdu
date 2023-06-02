@@ -66,7 +66,7 @@ git-tree-sha1 = "3d5bf43e3e8b412656404ed9466f1dcbf7c50269"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 version = "2.4.0"
 
-[[deps.PowerSystemsAnalysis]]
+[[deps.PowerEdu]]
 path = ".."
 uuid = "c724488d-05f0-4cbe-a654-015ca373493b"
 version = "0.1.0"

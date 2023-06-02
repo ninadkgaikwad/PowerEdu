@@ -1,16 +1,16 @@
-using PowerSystemsAnalysis
+using PowerEdu
 using Documenter
 
-DocMeta.setdocmeta!(PowerSystemsAnalysis, :DocTestSetup, :(using PowerSystemsAnalysis); recursive=true)
+DocMeta.setdocmeta!(PowerEdu, :DocTestSetup, :(using PowerEdu); recursive=true)
 
 makedocs(;
-    modules=[PowerSystemsAnalysis],
+    modules=[PowerEdu],
     authors="Ninad Kiran Gaikwad",
-    repo="https://github.com/ninadkgaikwad/PowerSystemsAnalysis.jl/blob/{commit}{path}#{line}",
-    sitename="PowerSystemsAnalysis.jl",
+    repo="https://github.com/ninadkgaikwad/PowerEdu.jl/blob/{commit}{path}#{line}",
+    sitename="PowerEdu.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://ninadkgaikwad.github.io/PowerSystemsAnalysis.jl",
+        canonical="https://ninadkgaikwad.github.io/PowerEdu.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -20,6 +20,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/ninadkgaikwad/PowerSystemsAnalysis.jl",
+    repo="github.com/ninadkgaikwad/PowerEdu.jl",
     devbranch="main",
 )

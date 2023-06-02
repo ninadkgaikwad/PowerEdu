@@ -1,11 +1,5 @@
 # IEEE_CDF_Parser.jl
-module IEEE_CDF_Parser
 
-using DataFrames
-using CSV #Will be useful later when the csv files are saved.
-
-export CDF_Parser
-export CDF_pu_Converter
 """
     CDF_Parser(CDF_FilePath)
 
@@ -74,7 +68,6 @@ function CDF_Parser(CDF_FilePath)
 
                 # Gathering Data from Bus Data Card into a Array
                 if (!Bool(cmp("BUS DATA FOLLOWS",BusCard_Title_RegEx.match)))
-
 
                         for jj in ii+1:length(CDF_Text_Array)
 
@@ -505,6 +498,4 @@ function CDF_pu_Converter(CDF_DF_List)
         CDF_DF_List_pu = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
 
         return CDF_DF_List_pu
-end
-
 end
