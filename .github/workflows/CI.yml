@@ -55,6 +55,6 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
-            using PowerEdu
-            DocMeta.setdocmeta!(PowerEdu, :DocTestSetup, :(using PowerEdu); recursive=true)
-            doctest(PowerEdu)'
+            using PowerSystemsAnalysis
+            DocMeta.setdocmeta!(PowerSystemsAnalysis, :DocTestSetup, :(using PowerSystemsAnalysis); recursive=true)
+            doctest(PowerSystemsAnalysis)'

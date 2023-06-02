@@ -1,6 +1,6 @@
-using PowerEdu
+using PowerSystemsAnalysis
 using Test
 
-@testset "PowerEdu.jl" begin
+@testset "PowerSystemsAnalysis.jl" begin
     # Write your tests here.
 end

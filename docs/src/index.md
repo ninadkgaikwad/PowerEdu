@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = PowerEdu
+CurrentModule = PowerSystemsAnalysis
 ```
 
-# PowerEdu
+# PowerSystemsAnalysis
 
-Documentation for [PowerEdu](https://github.com/ninadkgaikwad/PowerEdu.jl).
+Documentation for [PowerSystemsAnalysis](https://github.com/ninadkgaikwad/PowerSystemsAnalysis.jl).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [PowerEdu]
+Modules = [PowerSystemsAnalysis]
 ```
