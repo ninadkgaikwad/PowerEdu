@@ -2,8 +2,10 @@ include("PowerSystemsAnalysis.jl")
 
 using .PowerSystemsAnalysis
 
+using DataFrames
+
 # Which Code to Debug
-Debug_Indicator = 2
+Debug_Indicator = 3
 
 if (Debug_Indicator == 1) # LU Factorization
 
@@ -34,6 +36,44 @@ elseif (Debug_Indicator == 2) # CDF Parser
 
     CDF_DF_List = PowerSystemsAnalysis.CDF_Parser(CDF_FilePath)
 
-    CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List)
+    CDF_DF_List_pu = PowerSystemsAnalysis.CDF_pu_Converter(CDF_DF_List)
+
+elseif (Debug_Indicator == 3) # YBus Ybus_Builder
+
+    # Debugging YBus Builder
+    CDF_FilePath = "C:/Users/ninad/Dropbox (Personal)/NinadGaikwad_PhD/Gaikwad_Research/Gaikwad_Research_Work/PowerSystemsAnalysis/data/IEEE_14_Data.txt"
+
+    Ybus_Taps_Indicator = 1
+
+    # Reading IEEE CDF File
+    CDF_DF_List = PowerSystemsAnalysis.CDF_Parser(CDF_FilePath)
+
+    # Converting CDF DataFrame to PU
+    CDF_DF_List_pu = PowerSystemsAnalysis.CDF_pu_Converter(CDF_DF_List)
+
+    # Getting required data from CDF_DF_List
+    BusDataCard_DF = CDF_DF_List_pu[2]
+ 
+    # Number of Buses
+    N_Bus = nrow(BusDataCard_DF)
+    N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+    N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
+
+    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
+  
+
+        # Create Ybus
+    if (Ybus_Taps_Indicator == 1) # Without Taps
+
+            Ybus = PowerSystemsAnalysis.Create_Ybus_WithoutTaps(CDF_DF_List_pu)
+
+    elseif (Ybus_Taps_Indicator == 2) # With Taps
+
+            Ybus_WithoutTaps = PowerSystemsAnalysis.Create_Ybus_WithoutTaps(CDF_DF_List_pu)
+
+            Ybus = PowerSystemsAnalysis.Create_Ybus_WithTaps(Ybus_WithoutTaps,CDF_DF_List_pu)
+
+    end
 
 end

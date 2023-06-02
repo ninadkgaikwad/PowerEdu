@@ -93,7 +93,7 @@ function LU_ForwardSubstitution(L, b)
     y = zeros(Row_L,1)
 
     # Initializing: Forward Substitution
-    y[0] = b[0]/L[0,0]
+    y[1] = b[1]/L[1,1]
 
     # Solving: Remaining Forward Substitution
     for ii in 2:Row_L
