@@ -30,9 +30,6 @@ busData_pu = CDF_DF_List_pu[2];
 # vscodedisplay(busData_pu)
 branchData_pu = CDF_DF_List_pu[3];
 
-
-# ybus, BMatrix, b, A, branchNames, E   = Ybus_Builder.ybusGenerator(CDF_DF_List_pu);
-ybus, BMatrix, b, A, branchNames, E   = ybusGenerator(CDF_DF_List_pu);
 # ybus, BMatrix, b, A, branchNames, E   = Ybus_Builder.ybusGenerator(CDF_DF_List_pu, saveTables=true);
 ybus, BMatrix, b, A, branchNames, E   = ybusGenerator(CDF_DF_List_pu, saveTables=true);
 
