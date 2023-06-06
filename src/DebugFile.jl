@@ -4,6 +4,8 @@ using .PowerSystemsAnalysis
 
 using DataFrames
 
+using DelimitedFiles
+
 # Which Code to Debug
 Debug_Indicator = 3
 
@@ -32,7 +34,7 @@ elseif (Debug_Indicator == 2) # CDF Parser
 
     ## Debugging CDF Parser
 
-    CDF_FilePath = "C:/Users/ninad/Dropbox (Personal)/NinadGaikwad_PhD/Gaikwad_Research/Gaikwad_Research_Work/PowerSystemsAnalysis/data/IEEE_14_Data.txt"
+    CDF_FilePath = "C:/Users/ninad/Dropbox (Personal)/NinadGaikwad_PhD/Gaikwad_Research/Gaikwad_Research_Work/PowerSystemsAnalysis/data/IEEE14/IEEE_14_Data.txt"
 
     CDF_DF_List = PowerSystemsAnalysis.CDF_Parser(CDF_FilePath)
 
@@ -41,9 +43,9 @@ elseif (Debug_Indicator == 2) # CDF Parser
 elseif (Debug_Indicator == 3) # YBus Ybus_Builder
 
     # Debugging YBus Builder
-    CDF_FilePath = "C:/Users/ninad/Dropbox (Personal)/NinadGaikwad_PhD/Gaikwad_Research/Gaikwad_Research_Work/PowerSystemsAnalysis/data/IEEE_14_Data.txt"
+    CDF_FilePath = "C:/Users/ninad/Dropbox (Personal)/NinadGaikwad_PhD/Gaikwad_Research/Gaikwad_Research_Work/PowerSystemsAnalysis/data/IEEE14/IEEE_14_Data.txt"
 
-    Ybus_Taps_Indicator = 1
+    Ybus_Taps_Indicator = 2
 
     # Reading IEEE CDF File
     CDF_DF_List = PowerSystemsAnalysis.CDF_Parser(CDF_FilePath)

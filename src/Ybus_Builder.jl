@@ -1,23 +1,4 @@
 # Ybus_Builder.jl
-module Ybus_Builder
-#This module requires DataFrames, CSV, DelimitedFiles
-using DataFrames 
-using CSV
-#For some reason, invoking it from the main file
-#throws off an error when trying to include/use this module
-#saying that it does not recognize 'any' DataFrame.
-
-export Create_Ybus_WithoutTaps
-export Create_Ybus_WithTaps
-
-#Following four functions were written by me and added at the top.
-#Their purpose can be found out by hovering your cursor over their names.
-export initializeVectors_pu
-export sortMatrixByBusTypes
-export extractSystemName
-export createFolderIfNotExisting
-export ybusGenerator 
-
 
 """
     Create_Ybus_WithoutTaps(CDF_DF_List)
@@ -167,14 +148,15 @@ function Create_Ybus_WithoutTaps(CDF_DF_List_pu)
 
     Ybus_WithoutTaps_2 = vcat(Ybus_WithoutTaps_Slack3,Ybus_WithoutTaps_Slack1)
 
-    Ybus_WithoutTaps = hcat(Ybus_WithoutTaps_1,Ybus_WithoutTaps_2)
+    Ybus_WithoutTaps = hcat(Ybus_WithoutTaps_2,Ybus_WithoutTaps_1)
 
     return Ybus_WithoutTaps
+
 
 end
 
 """
-    Create_Ybus_WithoutTaps(CDF_DF_List)
+    Create_Ybus_WithTaps(CDF_DF_List)
 
 Creates Ybus with taps for a power system network.
 
@@ -203,10 +185,10 @@ function Create_Ybus_WithTaps(Ybus_WithoutTaps,CDF_DF_List_pu)
     SlackBus_RowNumber = length(BusDataCard_DF.Bus_Num)
 
     # Initializing Ybus_WithTaps
-    Ybus_WithTaps = Ybus_WithoutTaps
+    Ybus_WithTaps = copy(Ybus_WithoutTaps)
 
     # Getting Subset of BranchDataCard_DFfor lines with Tap Changing Transformers
-    BranchDataCard_Filter = filter(row -> ((row.Transformer_t != 0) || (row.Transformer_ps != 0), BranchDataCard_DF))
+    BranchDataCard_Filter = filter(row -> ((row.Transformer_t != 0) || (row.Transformer_ps != 0)), BranchDataCard_DF)
 
     BranchDataCard_Filter_Num = nrow(BranchDataCard_Filter)
 
@@ -260,6 +242,10 @@ function Create_Ybus_WithTaps(Ybus_WithoutTaps,CDF_DF_List_pu)
                 end
 
             end
+
+            # For a weird undeferror
+            Bus_i_Index = Bus_i_Index
+            Bus_j_Index = Bus_j_Index
 
             # Changing the [Bus_i_Index, Bus_j_Index] in Ybus_WithTaps based on 'a'
 
@@ -606,4 +592,4 @@ function ybusGenerator(CDF_DF_List_pu::Vector{DataFrame};
 
 end
 
-end
+
