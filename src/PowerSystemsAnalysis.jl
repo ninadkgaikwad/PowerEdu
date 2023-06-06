@@ -4,12 +4,18 @@ module PowerSystemsAnalysis
 using DataFrames
 using LinearAlgebra
 using TickTock
+using CSV
 
 # Export Functions from Included Files
 export CDF_Parser,
        CDF_pu_Converter,
        Create_Ybus_WithoutTaps,
        Create_Ybus_WithTaps,
+       initializeVectors_pu,
+       sortMatrixByBusTypes,
+       extractSystemName,
+       createFolderIfNotExisting,
+       ybusGenerator ,
        Create_Initial_SolutionVector_NR,
        Create_SolutionVector_VDelta_NR,
        Create_SolutionVector_NR,
@@ -26,6 +32,7 @@ export CDF_Parser,
        LU_ForwardSubstitution,
        LU_BackwardSubstitution,
        PLU_Solve,
+       PowerFlow_MainFunction,
        Create_Initial_SolutionVector_CPF,
        Create_SolutionVector_VDelta_CPF,
        Create_SolutionVector_CPF,
@@ -38,7 +45,6 @@ export CDF_Parser,
        Compute_Corrected_CorrectionVector_CPF,
        PowerFlow_MainFunction_CPF,
        CDF_AddMeasurements_SE
-
 
 
 # Main Functions
