@@ -15,8 +15,8 @@ systemName = "IEEE_14";
 createFolderIfNotExisting(systemName, folder_processedData)
 
 fileType_CDFFile = ".txt";
-systemName1 = replace(systemName, "_" => "")
-filename_CDFFile = folderInput*systemName1*"/"*systemName*"_Data"*fileType_CDFFile
+# systemName1 = replace(systemName, "_" => "")
+filename_CDFFile = folderInput*systemName*"/"*systemName*"_Data"*fileType_CDFFile
 # CDF_DF_List = IEEE_CDF_Parser.CDF_Parser(filename_CDFFile);
 CDF_DF_List = CDF_Parser(filename_CDFFile);
 
