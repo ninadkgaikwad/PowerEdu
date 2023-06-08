@@ -13,14 +13,20 @@ using LinearAlgebra
 # ╔═╡ 3e99b6c8-a1c9-43d5-9b54-06d0aaa49147
 using PlutoUI
 
+# ╔═╡ 29a33d0a-c5b9-4c85-9267-c8362de58b7f
+include("src/SparseTechniques_Functions.jl");
+
 # ╔═╡ 8ccc68a2-302c-4607-9622-318c523897cc
 md"# Sparse Matrix Solution Techniques for Power Systems"
 
 # ╔═╡ 37dfb22b-a604-45ef-8b78-6bcb192e5883
-md" Julia implementations from Chapter 04: Sparse Matrix Solution Tenchniques from Mariesa L. Crow's book [Computational Methods for Electric Power Systems](https://www.amazon.com/Computational-Methods-Electric-Systems-Engineering/dp/1032098228#customerReviews)"
+md" Julia implementations from Chapter 04: Sparse Matrix Solution Techniques from [Mariesa L. Crow's](https://www.linkedin.com/in/mariesa-crow-17a72895/) book [Computational Methods for Electric Power Systems](https://www.amazon.com/Computational-Methods-Electric-Systems-Engineering/dp/1032098228#customerReviews)"
 
 # ╔═╡ 6fdad9d2-50de-4b55-bbeb-3bd3b431dff5
 md"## Using Packages"
+
+# ╔═╡ 2d8e35ff-8880-4237-a25e-4c4d0c07bbaa
+md" Test Case Compressed Format Matrix (Elements are in order, sorted by row, then column)"
 
 # ╔═╡ 4e923321-2836-4518-b3e6-0c28d838c45a
 N = 5;
@@ -42,6 +48,12 @@ begin
 	mat1 = DataFrame(val = values, i = rows, j = cols)
 end
 
+# ╔═╡ cabfd17c-3c44-4bfe-8212-26452b09cdbc
+compressed2Full(mat1)
+
+# ╔═╡ bcb71067-a9fe-49e6-b6ab-88895b93fa33
+md"### Instantiate the $N$ vector"
+
 # ╔═╡ 249d66ac-772f-44fb-a2f5-a00e95eefde8
 firs, fics = [nnz′ * ones(Int64, N) for _ = 1:2];
 
@@ -56,6 +68,9 @@ nrows, ncols = [N′ * ones(Int64, nnz) for _ in 1:2];
 
 # ╔═╡ a047a9a6-7c8b-460f-af9d-6ab534f54e0f
 nirs, nics = [nnz′ * ones(Int64, nnz) for _ in 1:2];
+
+# ╔═╡ 93e59698-3702-4447-bf75-819f606e1f47
+md"### Instantiate the $nnz$ vector"
 
 # ╔═╡ e6692a0a-e39d-431f-8b82-abd1f5568bfb
 nnzVec = DataFrame(idx = indices, VALUE = values, NROW = nrows, NCOL = ncols, NIR = nirs, NIC = nics)
@@ -566,16 +581,21 @@ version = "17.4.0+0"
 # ╠═e2787ca2-f3fa-41bc-bc73-3adc1de1652a
 # ╠═c2d09de5-f6a6-4de8-8cff-b95932e38923
 # ╠═3e99b6c8-a1c9-43d5-9b54-06d0aaa49147
+# ╠═29a33d0a-c5b9-4c85-9267-c8362de58b7f
+# ╟─2d8e35ff-8880-4237-a25e-4c4d0c07bbaa
 # ╠═4e923321-2836-4518-b3e6-0c28d838c45a
 # ╠═a1ca6ce6-57ee-4994-aa12-4a437d0f064e
 # ╠═8618c265-de20-4385-8173-12c23faf7b20
 # ╠═b4f4f208-6bf4-4194-a3a7-f7712d5cb38a
 # ╠═538bdf8c-6057-46fe-a802-475a816472e3
+# ╠═cabfd17c-3c44-4bfe-8212-26452b09cdbc
+# ╠═bcb71067-a9fe-49e6-b6ab-88895b93fa33
 # ╠═249d66ac-772f-44fb-a2f5-a00e95eefde8
 # ╠═daef88a8-db44-4a7d-be70-a25920b18726
 # ╠═42db1323-6675-4119-a0c7-c477e7c0e676
 # ╠═b25d3b4c-9b74-4e23-af1c-4c189624d375
 # ╠═a047a9a6-7c8b-460f-af9d-6ab534f54e0f
+# ╠═93e59698-3702-4447-bf75-819f606e1f47
 # ╠═e6692a0a-e39d-431f-8b82-abd1f5568bfb
 # ╠═dac8ab02-4334-455e-8702-0db4e31a5f61
 # ╠═3d75f29b-d927-4459-8497-3e8d13c4799a
