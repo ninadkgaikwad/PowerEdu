@@ -39,17 +39,26 @@ begin
 	values = vec([-1, -2, 2, 8, 1, 3, -2, -3, 2, 1, 2, -4]);
 	rows = vec([1 1 2 2 2 3 3 4 4 5 5 5]);
 	cols = vec([1 3 1 2 4 3 5 2 3 1 2 5]);
-	mat1 = DataFrame(val = values, row = rows, col = cols)
+	mat1 = DataFrame(val = values, i = rows, j = cols)
 end
 
 # ╔═╡ 249d66ac-772f-44fb-a2f5-a00e95eefde8
-firs, fics = [nnz′ * ones(Int64, N) for _ = 1:2]
+firs, fics = [nnz′ * ones(Int64, N) for _ = 1:2];
 
 # ╔═╡ daef88a8-db44-4a7d-be70-a25920b18726
+NVec = DataFrame(FIR = firs, FIC = fics)
 
+# ╔═╡ 42db1323-6675-4119-a0c7-c477e7c0e676
+indices = vec(1:1:nnz);
+
+# ╔═╡ b25d3b4c-9b74-4e23-af1c-4c189624d375
+nrows, ncols = [N′ * ones(Int64, nnz) for _ in 1:2];
+
+# ╔═╡ a047a9a6-7c8b-460f-af9d-6ab534f54e0f
+nirs, nics = [nnz′ * ones(Int64, nnz) for _ in 1:2];
 
 # ╔═╡ e6692a0a-e39d-431f-8b82-abd1f5568bfb
-
+nnzVec = DataFrame(idx = indices, VALUE = values, NROW = nrows, NCOL = ncols, NIR = nirs, NIC = nics)
 
 # ╔═╡ dac8ab02-4334-455e-8702-0db4e31a5f61
 
@@ -564,6 +573,9 @@ version = "17.4.0+0"
 # ╠═538bdf8c-6057-46fe-a802-475a816472e3
 # ╠═249d66ac-772f-44fb-a2f5-a00e95eefde8
 # ╠═daef88a8-db44-4a7d-be70-a25920b18726
+# ╠═42db1323-6675-4119-a0c7-c477e7c0e676
+# ╠═b25d3b4c-9b74-4e23-af1c-4c189624d375
+# ╠═a047a9a6-7c8b-460f-af9d-6ab534f54e0f
 # ╠═e6692a0a-e39d-431f-8b82-abd1f5568bfb
 # ╠═dac8ab02-4334-455e-8702-0db4e31a5f61
 # ╠═3d75f29b-d927-4459-8497-3e8d13c4799a
