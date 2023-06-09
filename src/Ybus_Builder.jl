@@ -523,7 +523,7 @@ function ybusGenerator(CDF_DF_List_pu::Vector{DataFrame};
         branchNames[branch] = "$(i) to $(k)"
         A[branch, i] = 1
         A[branch, k] = -1
-        b[branch, branch] = currentBranch.B_pu
+        b[branch, branch] = 1/currentBranch.X_pu
 
         if disableTaps
             a = 1
