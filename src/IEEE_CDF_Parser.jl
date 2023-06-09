@@ -1,5 +1,10 @@
 # IEEE_CDF_Parser.jl
 
+#Uncomment next lines if you want to test the parser here itself.
+# using CSV
+# using DataFrames
+# include("Ybus_Builder.jl")
+
 """
     CDF_Parser(CDF_FilePath)
 
@@ -18,7 +23,7 @@ TieLinesDataCard_DF].
 '''
 """
 function CDF_Parser(CDF_FilePath)
-
+        
         # Read lines of IEEE CDF File in an Array
         CDF_Text_File = open(CDF_FilePath)
 
@@ -398,7 +403,9 @@ BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
 TieLinesDataCard_DF].
 '''
 """
-function CDF_pu_Converter(CDF_DF_List)
+function CDF_pu_Converter(CDF_DF_List;
+        saveTables::Bool=false, 
+        saveLocation = "processedData/")
 
         # Getting required data from CDF_DF_List
         TitleCard_DF = CDF_DF_List[1]
@@ -407,6 +414,8 @@ function CDF_pu_Converter(CDF_DF_List)
         LossZonesCard_DF = CDF_DF_List[4]
         InterchangeDataCard_DF = CDF_DF_List[5]
         TieLinesDataCard_DF = CDF_DF_List[6]
+
+        systemName = extractSystemName(CDF_DF_List)
 
         # Getting Base MVA
         Base_MVA = TitleCard_DF.MVA_Base[1]
@@ -498,6 +507,17 @@ function CDF_pu_Converter(CDF_DF_List)
 
         CDF_DF_List_pu = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
 
+        filenames = ["TitleCard.csv", "BusDataCard_pu.csv", "BranchDataCard_pu.csv", "LossZonesCard_pu.csv", "InterchangeDataCard_pu.csv", "TieLinesDataCard_pu.csv"]
+
+        if saveTables
+                for (df, filename) in zip(CDF_DF_List_pu, filenames)
+                        CSV.write(saveLocation*systemName*"/"*filename, df)
+                end
+        end
+
         return CDF_DF_List_pu
 end
 
+# test the parser
+# CDF_DF_List = CDF_Parser("data/IEEE_14/IEEE_14_Data.txt")
+# CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List, saveTables = true)

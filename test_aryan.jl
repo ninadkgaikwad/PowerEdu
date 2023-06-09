@@ -21,6 +21,7 @@ filename_CDFFile = folderInput*systemName*"/"*systemName*"_Data"*fileType_CDFFil
 CDF_DF_List = CDF_Parser(filename_CDFFile);
 
 # CDF_DF_List_pu = IEEE_CDF_Parser.CDF_pu_Converter(CDF_DF_List);
+CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List, saveTables = true, saveLocation = folder_processedData);
 CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List);
 
 # systemName = Ybus_Builder.extractSystemName(CDF_DF_List)
