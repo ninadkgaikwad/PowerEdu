@@ -3,18 +3,24 @@
 """
     compressed2Full(compMatrix::DataFrame)
 
-Converts a compressed matrix representation stored in a DataFrame into a full matrix.
+Converts a compressed matrix representation stored in a DataFrame into a full 
+matrix.
 
 ## Arguments
-- `compMatrix::DataFrame`: A DataFrame representing the compressed matrix. It should have three columns: `i`, `j`, and `val`. Column `i` contains the row indices, column `j` contains the column indices, and column `val` contains the corresponding values.
+- `compMatrix::DataFrame`: A DataFrame representing the compressed matrix. 
+It should have three columns: `i`, `j`, and `val`. Column `i` contains the 
+row indices, column `j` contains the column indices, and column `val` contains 
+the corresponding values.
 
 ## Returns
-- `fullMatrix::Matrix`: A full matrix representation of the input compressed matrix.
+- `fullMatrix::Matrix`: A full matrix representation of the input compressed 
+matrix.
 
 ## Dependencies
 This function requires the following packages to be imported:
 - `SparseArrays`: Provides support for sparse matrix operations.
-- `DataFrames`: Provides support for working with tabular data in a DataFrame format.
+- `DataFrames`: Provides support for working with tabular data in a 
+DataFrame format.
 
 ## Example
 ```julia
@@ -31,10 +37,11 @@ compMatrix = DataFrame(val = values, i = rows, j = cols)
 matFull = compressed2Full(compMatrix)
 """
 function compressed2Full(compMatrix::DataFrame)
-	#Use SparseArrays sparse function to conveniently convert the compressed matrix (i, j, val) into CSC format
-	#I don't care how it does it. 
-	#This function is only to be called for testing purposes anyway.
+	# Use SparseArrays's sparse function to conveniently convert the compressed 
+	# matrix (i, j, val) into Compressed Storage Column CSC format
+	# I don't care how it does it. 
+	# This function is only to be called for testing purposes anyway.
     sparseMatrix = sparse(compMatrix.i, compMatrix.j, compMatrix.val)
-	#Convert the sparse matrix into the full matrix.
+	# Convert the sparse matrix into the full matrix.
     fullMatrix = Matrix(sparseMatrix)
 end
