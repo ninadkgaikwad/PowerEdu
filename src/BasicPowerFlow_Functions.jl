@@ -38,6 +38,8 @@ function Create_Initial_SolutionVector_NR(CDF_DF_List_pu)
         # Creating Initial_SolutionVector_NR Delta part for both PQ and PV Buses
         Initial_SolutionVector_NR[1:(N_PQ_Bus+N_PV_Bus),1] = zeros((N_PQ_Bus+N_PV_Bus),1)
 
+
+
         # Creating Initial_SolutionVector_NR V part for PQ Buses
         Initial_SolutionVector_NR[(N_PQ_Bus+N_PV_Bus+1):end,1] = ones(N_PQ_Bus,1)
 
@@ -84,7 +86,7 @@ function Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_NR)
 
         # Creating SolutionVector_V, SolutionVector_Delta
         SolutionVector_Delta =  vcat([0.0], SolutionVector_NR[1:(N_Bus-1),1])
-        SolutionVector_V[1:(N_PQ_Bus+1),1] =  vcat([1], SolutionVector_NR[(N_Bus-1)+1:end,1])
+        SolutionVector_V[1:(N_PQ_Bus+1),1] =  vcat([BusDataCard_DF.Final_V_pu_Original[N_Bus]], SolutionVector_NR[(N_Bus-1)+1:end,1])
 
         for ii in N_PQ_Bus+1+1:N_Bus # For each current PV Bus
 
@@ -141,7 +143,7 @@ function Create_SolutionVector_NR(CDF_DF_List_pu, SolutionVector_V, SolutionVect
         SolutionVector_NR_Len = 2*N_PQ_Bus+N_PV_Bus
 
         # Initializing SolutionVector_NR
-        SolutionVector_NR = Array{Float64}(undef, Initial_SolutionVector_NR_Len ,1)
+        SolutionVector_NR = Array{Float64}(undef, SolutionVector_NR_Len ,1)
 
         # Creating SolutionVector_NR Delta part for both PQ and PV Buses
         SolutionVector_NR[1:(N_PQ_Bus+N_PV_Bus),1] = SolutionVector_Delta[2:end,1]
