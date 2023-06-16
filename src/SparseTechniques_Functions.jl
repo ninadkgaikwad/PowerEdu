@@ -3,13 +3,16 @@
 using SparseArrays
 using DataFrames
 
-function nnzRowConstructor(compElem::DataFrameRow, elemNum::Int64)
-	nnzElem = DataFrame(ID = elemNum, Val = compElem.Val, NROW = compElem.i, NCOL = compElem.j, NIR = -1, NIC = -1)
-	@show typeof(nnzElem)
-	return first(nnzElem)
+include("Helper_Functions.jl")
+
+function nnzRowConstructor(compElem::DataFrameRow)
+	nnzElem = DataFrame(ID = -1, Val = compElem.Val, NROW = compElem.i, NCOL = compElem.j, NIR = -1, NIC = -1)
+	return first(nnzElem) # Otherwise, Julia will interpret it as a DataFrame and NOT a DataFrameRow
+	# The reason we want a DataFrameRow is that when we invoke nnzElem.NROW, it extracts the inner element, instead of a 1-vector
 end
 
-function sparmat(compMatrix::DataFrame)
+function sparmat(compMatrix::DataFrame;
+	verbose::Bool = false)
 	N = maximum([compMatrix.i compMatrix.j])
 	(firs, fics) = (repeat([-1], N), repeat([-1], N))
 
@@ -21,8 +24,9 @@ function sparmat(compMatrix::DataFrame)
 	for elemNum in 1:numElems
 		compElem = compMatrix[elemNum, :]
 
-		nnzElem = nnzRowConstructor(compElem, elemNum)
-		NVec, nnzVec = updateSparse(NVec, nnzVec, nnzElem, type="replace")
+		nnzElem = nnzRowConstructor(compElem)
+
+		NVec, nnzVec = updateSparse(NVec, nnzVec, nnzElem, type="replace", verbose=verbose)
 	end
 
 	return NVec, nnzVec
@@ -31,72 +35,88 @@ end
 
 
 function updateSparse(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
-	type::String = "replace")
+	type::String = "replace",
+	verbose::Bool = false)
 
 	updateFlag = false #Check if the value is actually updated instead of added the sparse matrix
-	numExistingElems = size(nnzElem, 1)
+	numExistingElems = size(nnzVec, 1)
+	myprintln(verbose, "Currently the Sparse Matrix has $numExistingElems elements.")
+
+	elID = numExistingElems + 1
 	FIR = NVec.FIR
 	FIC = NVec.FIC
 	row = nnzElem.NROW
 	col = nnzElem.NCOL
-	elID = nnzElem.ID
+	# elID = nnzElem.ID
 	elVal = nnzElem.Val
 
 	# Check for row placement
 	if FIR[row] == -1 # First element to be inserted into that row
-		println("First Element!")
+		myprintln(verbose, "This elem is the first in row $row !")
 		FIR[row] = elID
 		nnzElem.NIR = -1 #auto, unneeded
 	else # There exists at least one element already inserted into that row
-		x = FIR[row]
-		println("NOOO! $x is NOT equal to $(-1)")
-		@show incumbentID = FIR[row]
+		incumbentID = FIR[row]
+		myprintln(verbose, "Row $row already has an element, with ID: $incumbentID")
+		
 		incumbent = nnzVec[incumbentID, :]
-		@show typeof(incumbent)
 
 		if col < incumbent.NCOL # New elem comes before incumbent in that row => replace it in FIR and shift incumbent in the nnzVec
+			myprintln(verbose, "Our elem comes before element $incumbentID, can topple it!")
 			FIR[row] = elID
 			el.NIR = incumbentID
 		elseif col == incumbent.NCOL # Same-same? Replace or add?
+			myprintln(verbose, "Stand down. It's a draw between our elem and element $incumbentID.")
 			if type == "replace"
 				nnzVec.Val[incumbentID] = elVal
+				myprintln(verbose, "Replacing/Updating the element's previous value with the new elem's value.")
 				updateFlag = true
 			elseif type == "add"
 				nnzVec.Val[incumbentID] += elVal
+				myprintln(verbose, "Added the the new elem's value to the incumbent's value.")
 			else
 				error("Not prepared for this scenario.")
 			end
 		elseif col > incumbent.NCOL # elem comes only after the incumbent, check for next element in line
+			myprintln(verbose, "Our elem will come after the incumbent element $incumbentID. Continue Searching.")
 			prevIncumbentID = incumbentID
 			incumbentID = incumbent.NIR # going to the next element in the row
-			incumbent = nnzVec[incumbentID, :]
 
 			StillFindingAPlace = true # Initalizer for a loop, which will keep checking the next element in the row until elem gets its own place
 			while StillFindingAPlace
 				if incumbentID == -1 # elem is the last in the row
+					myprintln(verbose, "Our elem will sit right after the FIR element $prevIncumbentID !")
 					nnzVec.NIR[prevIncumbentID] = elID
-					nnzElem.NIR[prevIncumbentID] = -1 # auto
+					nnzElem.NIR = -1 # auto
 					StillFindingAPlace = false
 				else # more elements to check in the row
 					incumbent = nnzVec[incumbentID, :]
-
+					myprintln(verbose, "Not the second element to be added to this row either. Keep searching.")
 					if col < incumbent.NCOL
+						myprintln(verbose, "Our element can topple the incumbent element $incumbentID.")
 						nnzElem.NIR = incumbentID
 						nnzVec[prevIncumbentID] = elID
+						StillFindingAPlace = false
+
 					elseif col == incumbent.NCOL # Same-same? Either replace or add
+						myprintln(verbose, "Stand down. It's a draw between our elem and element $incumbentID.")
 						if type == "replace"
 							nnzVec.Val[incumbentID] = elVal
+							myprintln(verbose, "Replacing/Updating the element's previous value with the new elem's value.")
 							updateFlag = true
-							StillFindingAPlace = false
 						elseif type == "add"
 							nnzVec.Val[incumbentID] += elVal
+							myprintln(verbose, "Added the the new elem's value to the incumbent's value.")
 						else
 							error("Not prepared for this scenario")
 						end
-					elseif col < incumbent.NCOL
+						StillFindingAPlace = false
+
+					elseif col > incumbent.NCOL
+						myprintln(verbose, "Not coming before incumbent element $incumbentID. Keep searching.")
 						prevIncumbentID = incumbentID
 						incumbentID = incumbent.NIR
-						incumbent = nnzVec[incumbentID, :]
+
 					else
 						error("Shouldn't be possible.")
 					end
@@ -109,8 +129,14 @@ function updateSparse(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
 	end
 
 	if updateFlag == false
+		myprintln(verbose, "Another element to be added to the sparse matrix.")
+		myprintln(verbose, "The element:")
+		myprintln(verbose, nnzElem)
+		myprintln(verbose, "nnzVec before:")
+		myprintln(verbose, nnzVec)
 		push!(nnzVec, nnzElem)
-		println("Another element added to the sparse matrix.")
+		myprintln(verbose, "nnzVec after:")
+		myprintln(verbose, nnzVec)
 	end
 
 	return NVec, nnzVec
@@ -122,7 +148,7 @@ rows = vec([1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5]);
 cols = vec([1, 3, 1, 2, 4, 3, 5, 2, 3, 1, 2, 5]);
 compMatrix = DataFrame(Val = values, i = rows, j = cols);
 
-NVec, nnzVec = sparmat(compMatrix)
+NVec, nnzVec = sparmat(compMatrix, verbose = false)
 
 """
     compressed2Full(compMatrix::DataFrame)
