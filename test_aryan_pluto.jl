@@ -57,7 +57,7 @@ begin
 	values = vec([-1, -2, 2, 8, 1, 3, -2, -3, 2, 1, 2, -4]);
 	rows = vec([1 1 2 2 2 3 3 4 4 5 5 5]);
 	cols = vec([1 3 1 2 4 3 5 2 3 1 2 5]);
-	mat1 = DataFrame(val = values, i = rows, j = cols)
+	mat1 = DataFrame(Val = values, i = rows, j = cols)
 end
 
 # ╔═╡ cabfd17c-3c44-4bfe-8212-26452b09cdbc
@@ -85,7 +85,7 @@ nirs, nics = [nnz′ * ones(Int64, nnz) for _ in 1:2];
 md"### Instantiate the $nnz$ vector"
 
 # ╔═╡ e6692a0a-e39d-431f-8b82-abd1f5568bfb
-nnzVec = DataFrame(idx = indices, VALUE = values, NROW = nrows, NCOL = ncols, NIR = nirs, NIC = nics)
+nnzVec = DataFrame(idx = indices, Val = values, NROW = nrows, NCOL = ncols, NIR = nirs, NIC = nics)
 
 # ╔═╡ dac8ab02-4334-455e-8702-0db4e31a5f61
 
