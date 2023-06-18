@@ -98,7 +98,8 @@ function updateSparse(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
 	numExistingElems = size(nnzVec, 1)
 	myprintln(verbose, "Currently the Sparse Matrix has $numExistingElems elements.")
 
-	elID = numExistingElems + 1
+	nnzElem.ID = numExistingElems + 1
+	elID = nnzElem.ID
 	FIR = NVec.FIR
 	FIC = NVec.FIC
 	row = nnzElem.NROW
@@ -169,6 +170,9 @@ function updateSparse(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
 		end
 	end
 
+	NVec.FIR = FIR
+	NVec.FIC = FIC
+
 	if updateFlag == false
 		myprintln(verbose, "Another element to be added to the sparse matrix.")
 		myprintln(verbose, "The element:")
@@ -178,10 +182,20 @@ function updateSparse(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
 		push!(nnzVec, nnzElem)
 		myprintln(verbose, "nnzVec after:")
 		myprintln(verbose, nnzVec)
+	else
+		myprintln(verbose, "An element was updated, but not added to the sparse matrix.")
 	end
 
 	return NVec, nnzVec
 end
+
+# values1 = complex.(Float64.(vec([8])), 0)
+# rows1 = vec([2]);
+# cols1 = vec([2]);
+# compMatrix1 = DataFrame(Val = values1, i = rows1, j = cols1);
+# NVec1, nnzVec1 = sparmat(compMatrix1, verbose = true)
+# vscodedisplay(NVec1)
+# vscodedisplay(nnzVec1)
 
 values1 = complex.(Float64.(vec([1 2 3 4 5 6 7 8])), 0)
 rows1 = vec([1 2 2 3 2 2 3 1]);
