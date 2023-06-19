@@ -1,6 +1,6 @@
 # SparseTechniquesInPowerSystems.jl
 
-using SparseArrays 
+using SparseArrays
 using DataFrames
 
 include("Helper_Functions.jl")
@@ -106,67 +106,68 @@ function updateSparse(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
 	col = nnzElem.NCOL
 	elVal = nnzElem.Val
 
-	# Check for row placement
+	stillFindingAPlace = true
+
+	# Check if our elem is the very first element to be inserted for that row
 	if FIR[row] == -1 # First element to be inserted into that row
 		myprintln(verbose, "This elem is the first in row $row !")
 		FIR[row] = elID
 		nnzElem.NIR = -1 #auto, unneeded
-	else # There exists at least one element already inserted into that row
+		stillFindingAPlace = false
+	else
 		incumbentID = FIR[row]
 		myprintln(verbose, "Row $row already has an element, with ID: $incumbentID")
-		
 		incumbent = nnzVec[incumbentID, :]
+	end
 
+	# There exists at least one element already inserted into that row
+	# Check if it can topple the incumbent
+	if stillFindingAPlace
 		if col < incumbent.NCOL # New elem comes before incumbent in that row => replace it in FIR and shift incumbent in the nnzVec
 			myprintln(verbose, "Our elem comes before element $incumbentID, can topple it!")
 			FIR[row] = elID
 			nnzElem.NIR = incumbentID
-
+			stillFindingAPlace = false
 		elseif col == incumbent.NCOL # Same-same? Replace or add?
 			myprintln(verbose, "Stand down. It's a draw between our elem and element $incumbentID.")
 			nnzVec = resolveTie(nnzVec, incumbentID, elVal, type=type, verbose=verbose)
 			updateFlag = true
-
-		elseif col > incumbent.NCOL # elem comes only after the incumbent, check for next element in line
+			stillFindingAPlace = false
+		else # col > incumbent.NCOL
 			myprintln(verbose, "Our elem will come after the incumbent element $incumbentID. Continue Searching.")
 			prevIncumbentID = incumbentID
 			incumbentID = incumbent.NIR # going to the next element in the row
+		end
+	end
+			
 
-			StillFindingAPlace = true # Initalizer for a loop, which will keep checking the next element in the row until elem gets its own place
-			while StillFindingAPlace
-				if incumbentID == -1 # elem is the last in the row
-					myprintln(verbose, "Our elem will sit right after the FIR element $prevIncumbentID !")
-					nnzVec.NIR[prevIncumbentID] = elID
-					nnzElem.NIR = -1 # auto
-					StillFindingAPlace = false
-				else # more elements to check in the row
-					incumbent = nnzVec[incumbentID, :]
-					myprintln(verbose, "Not the second element to be added to this row either. Keep searching.")
-					if col < incumbent.NCOL
-						myprintln(verbose, "Our element can topple the incumbent element $incumbentID.")
-						nnzElem.NIR = incumbentID
-						nnzVec.NIR[prevIncumbentID] = elID
-						StillFindingAPlace = false
+	while stillFindingAPlace
+		if incumbentID == -1 # elem is the last in the row
+			myprintln(verbose, "Our elem will sit right after the FIR element $prevIncumbentID !")
+			nnzVec.NIR[prevIncumbentID] = elID
+			nnzElem.NIR = -1 # auto
+			stillFindingAPlace = false
+		else # more elements to check in the row
+			incumbent = nnzVec[incumbentID, :]
+			myprintln(verbose, "Not the second element to be added to this row either. Keep searching.")
+		end
 
-					elseif col == incumbent.NCOL # Same-same? Either replace or add
-						myprintln(verbose, "Stand down. It's a draw between our elem and element $incumbentID.")
-						nnzVec = resolveTie(nnzVec, incumbentID, elVal, type=type, verbose=verbose)
-						updateFlag = true
-						StillFindingAPlace = false
-
-					elseif col > incumbent.NCOL
-						myprintln(verbose, "Not coming before incumbent element $incumbentID. Keep searching.")
-						prevIncumbentID = incumbentID
-						incumbentID = incumbent.NIR
-
-					else
-						error("Shouldn't be possible.")
-					end
-				end
+		if stillFindingAPlace
+			if col < incumbent.NCOL
+				myprintln(verbose, "Our element can topple the incumbent element $incumbentID.")
+				nnzElem.NIR = incumbentID
+				nnzVec.NIR[prevIncumbentID] = elID
+				stillFindingAPlace = false
+			elseif col == incumbent.NCOL # Same-same? Either replace or add
+				myprintln(verbose, "Stand down. It's a draw between our elem and element $incumbentID.")
+				nnzVec = resolveTie(nnzVec, incumbentID, elVal, type=type, verbose=verbose)
+				updateFlag = true
+				stillFindingAPlace = false
+			else # col > incumbent.NCOL
+				myprintln(verbose, "Not coming before incumbent element $incumbentID. Keep searching.")
+				prevIncumbentID = incumbentID
+				incumbentID = incumbent.NIR
 			end
-		
-		else
-			error("Shouldn't be possible!")
 		end
 	end
 
@@ -205,12 +206,12 @@ NVec1, nnzVec1 = sparmat(compMatrix1, verbose = false)
 vscodedisplay(NVec1)
 vscodedisplay(nnzVec1)
 
-# values = vec([-1, -2, 2, 8, 1, 3, -2, -3, 2, 1, 2, -4]);
-# rows = vec([1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5]);
-# cols = vec([1, 3, 1, 2, 4, 3, 5, 2, 3, 1, 2, 5]);
-# compMatrix = DataFrame(Val = values, i = rows, j = cols);
+values = vec([-1, -2, 2, 8, 1, 3, -2, -3, 2, 1, 2, -4]);
+rows = vec([1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5]);
+cols = vec([1, 3, 1, 2, 4, 3, 5, 2, 3, 1, 2, 5]);
+compMatrix = DataFrame(Val = values, i = rows, j = cols);
 
-# NVec, nnzVec = sparmat(compMatrix, verbose = false)
+NVec, nnzVec = sparmat(compMatrix, verbose = false)
 
 """
     compressed2Full(compMatrix::DataFrame)
