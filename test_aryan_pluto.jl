@@ -28,9 +28,6 @@ using SparseArrays;
 # ╔═╡ 29a33d0a-c5b9-4c85-9267-c8362de58b7f
 include("src/SparseTechniques_Functions.jl");
 
-# ╔═╡ 0d452297-9850-45d2-93f3-759b2f0f5fb9
-include("src/Helper_Functions.jl");
-
 # ╔═╡ 8ccc68a2-302c-4607-9622-318c523897cc
 md"# Sparse Matrix Solution Techniques for Power Systems"
 
@@ -39,6 +36,9 @@ md" Julia implementations from Chapter 04: Sparse Matrix Solution Techniques fro
 
 # ╔═╡ 6fdad9d2-50de-4b55-bbeb-3bd3b431dff5
 md"## Using Packages"
+
+# ╔═╡ 0d452297-9850-45d2-93f3-759b2f0f5fb9
+#include("src/Helper_Functions.jl");
 
 # ╔═╡ 2d8e35ff-8880-4237-a25e-4c4d0c07bbaa
 md" Test Case Compressed Format Matrix (Elements are in order, sorted by row, then column)"
