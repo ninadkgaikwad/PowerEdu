@@ -1,5 +1,10 @@
 # IEEE_CDF_Parser.jl
 
+#Uncomment next lines if you want to test the parser here itself.
+# using CSV
+# using DataFrames
+# include("Ybus_Builder.jl")
+
 """
     CDF_Parser(CDF_FilePath)
 
@@ -17,8 +22,10 @@ BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
 TieLinesDataCard_DF].
 '''
 """
-function CDF_Parser(CDF_FilePath)
-
+function CDF_Parser(CDF_FilePath;
+        saveTables::Bool=false, 
+        saveLocation = "processedData/")
+        
         # Read lines of IEEE CDF File in an Array
         CDF_Text_File = open(CDF_FilePath)
 
@@ -373,32 +380,55 @@ function CDF_Parser(CDF_FilePath)
         end
 
         CDF_DF_List = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
+        systemName = extractSystemName(CDF_DF_List)
+
+        filenames = ["TitleCard.csv", "BusDataCard_MVA.csv", "BranchDataCard_MVA.csv", "LossZonesCard_MVA.csv", "InterchangeDataCard_MVA.csv", "TieLinesDataCard_MVA.csv"]
+
+        if saveTables
+                for (df, filename) in zip(CDF_DF_List, filenames)
+                        CSV.write(saveLocation*systemName*"/"*filename, df)
+                end
+        end
 
         return CDF_DF_List
 
 end
 
 """
-    CDF_pu_Converter(CDF_DF_List)
+    CDF_pu_Converter(CDF_DF_List; saveTables::Bool=false, saveLocation="processedData/")
 
-Converts CDF_DF_List objects to per unit (pu).
+Converts the actual value columns of a Common Data Format (CDF) DataFrame list to per unit (pu) values.
 
-'''
-# Arguments
-- 'CDF_DF_List': IEEE CDF file in List of Dataframe format according to
-Data Card types in IEEE CDF file : [TitleCard_DF, BusDataCard_DF,
-BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
-TieLinesDataCard_DF].
-'''
-'''
-# Output
-- 'CDF_DF_List_pu': IEEE CDF file in List of Dataframe format according to
-Data Card types in IEEE CDF file coverted to pu: [TitleCard_DF, BusDataCard_DF,
-BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
-TieLinesDataCard_DF].
-'''
+## Arguments
+- `CDF_DF_List`: A list of DataFrames representing the CDF data. The list should contain the following DataFrames in the specified order:
+    - `TitleCard_DF`: DataFrame representing the title card data.
+    - `BusDataCard_DF`: DataFrame representing the bus data card.
+    - `BranchDataCard_DF`: DataFrame representing the branch data card.
+    - `LossZonesCard_DF`: DataFrame representing the loss zones card.
+    - `InterchangeDataCard_DF`: DataFrame representing the interchange data card.
+    - `TieLinesDataCard_DF`: DataFrame representing the tie lines data card.
+- `saveTables::Bool` (optional, default=false): A flag indicating whether to save the converted DataFrames as CSV files.
+- `saveLocation` (optional, default="processedData/"): The directory path where the converted CSV files will be saved.
+
+## Returns
+- `CDF_DF_List_pu`: A list of DataFrames with the actual value columns converted to per unit (pu) values.
+
+## Note
+This function assumes that the input DataFrames have specific column names and structures. Make sure the input DataFrames match the expected format.
+
+## Example
+```julia
+# Assuming you have loaded the CDF data into the CDF_DF_List
+
+# Convert the actual value columns to per unit (pu) values
+CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List, saveTables=true, saveLocation="processedData/")
+
+# CDF_DF_List_pu contains the converted DataFrames
+# The converted DataFrames are also saved as CSV files in the "processedData" directory
 """
-function CDF_pu_Converter(CDF_DF_List)
+function CDF_pu_Converter(CDF_DF_List;
+        saveTables::Bool=false, 
+        saveLocation = "processedData/")
 
         # Getting required data from CDF_DF_List
         TitleCard_DF = CDF_DF_List[1]
@@ -407,6 +437,8 @@ function CDF_pu_Converter(CDF_DF_List)
         LossZonesCard_DF = CDF_DF_List[4]
         InterchangeDataCard_DF = CDF_DF_List[5]
         TieLinesDataCard_DF = CDF_DF_List[6]
+
+        systemName = extractSystemName(CDF_DF_List)
 
         # Getting Base MVA
         Base_MVA = TitleCard_DF.MVA_Base[1]
@@ -498,6 +530,17 @@ function CDF_pu_Converter(CDF_DF_List)
 
         CDF_DF_List_pu = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
 
+        filenames = ["TitleCard.csv", "BusDataCard_pu.csv", "BranchDataCard_pu.csv", "LossZonesCard_pu.csv", "InterchangeDataCard_pu.csv", "TieLinesDataCard_pu.csv"]
+
+        if saveTables
+                for (df, filename) in zip(CDF_DF_List_pu, filenames)
+                        CSV.write(saveLocation*systemName*"/"*filename, df)
+                end
+        end
+
         return CDF_DF_List_pu
 end
 
+# test the parser
+# CDF_DF_List = CDF_Parser("data/IEEE_14/IEEE_14_Data.txt")
+# CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List, saveTables = true)
