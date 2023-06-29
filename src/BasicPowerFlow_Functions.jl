@@ -48,7 +48,7 @@ end
 """
     Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_NR)
 
-Creates Initial Solution Vector for the Newton-Raphson Method.
+Creates separate V and Delta vectors from the solution vector computed by the NR Method and data in the CDF file.
 
 '''
 # Arguments
@@ -84,7 +84,7 @@ function Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_NR)
 
         # Creating SolutionVector_V, SolutionVector_Delta
         SolutionVector_Delta =  vcat([0.0], SolutionVector_NR[1:(N_Bus-1),1])
-        SolutionVector_V[1:(N_PQ_Bus+1),1] =  vcat([1], SolutionVector_NR[(N_Bus-1)+1:end,1])
+        SolutionVector_V[1:(N_PQ_Bus+1),1] =  vcat([BusDataCard_DF.Final_V_pu_Original[end]], SolutionVector_NR[(N_Bus-1)+1:end,1])
 
         for ii in N_PQ_Bus+1+1:N_Bus # For each current PV Bus
 
@@ -141,13 +141,13 @@ function Create_SolutionVector_NR(CDF_DF_List_pu, SolutionVector_V, SolutionVect
         SolutionVector_NR_Len = 2*N_PQ_Bus+N_PV_Bus
 
         # Initializing SolutionVector_NR
-        SolutionVector_NR = Array{Float64}(undef, Initial_SolutionVector_NR_Len ,1)
+        SolutionVector_NR = Array{Float64}(undef, SolutionVector_NR_Len ,1)
 
         # Creating SolutionVector_NR Delta part for both PQ and PV Buses
         SolutionVector_NR[1:(N_PQ_Bus+N_PV_Bus),1] = SolutionVector_Delta[2:end,1]
 
         # Creating Initial_SolutionVector_NR V part for PQ Buses
-        SolutionVector_NR = vcat(SolutionVector_NR, SolutionVector_V[2:N_PQ_Bus+1,1])
+        SolutionVector_NR = vcat(SolutionVector_NR[1:(N_PQ_Bus+N_PV_Bus),1], SolutionVector_V[2:N_PQ_Bus+1,1])
 
         return SolutionVector_NR
 
@@ -758,23 +758,34 @@ function Compute_Corrected_CorrectionVector(CDF_DF_List_pu, Correction_Vector_NR
         N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
         N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
-        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
-
         # Initializing Correction_Vector_NR_Corrected
         Correction_Vector_NR_Corrected = Correction_Vector_NR
 
         # If Else Loop: For NR_Type
         if ((NR_Type == 1) || (NR_Type == 2)) # Full NR Decoupled NR
 
+                for ii in 1 : (N_PQ_Bus + N_PV_Bus)
+
+                        Correction_Vector_NR_Corrected[ii] = rad2deg(Correction_Vector_NR_Corrected[ii])
+
+                end
+ 
+ 
                 for ii in (N_PQ_Bus + N_PV_Bus + 1) : length(SolutionVector_NR)
 
-                        Correction_Vector_NR_Corrected[ii] = Correction_Vector_NR_Corrected[ii]/SolutionVector_NR[ii]
+                        Correction_Vector_NR_Corrected[ii] = Correction_Vector_NR_Corrected[ii]*SolutionVector_NR[ii]
 
                 end
 
         elseif (NR_Type == 3) # Fast Decoupled NR
 
                 Correction_Vector_NR_Corrected = Correction_Vector_NR
+
+                for ii in 1 : (N_PQ_Bus + N_PV_Bus)
+
+                        Correction_Vector_NR_Corrected[ii] = rad2deg(Correction_Vector_NR_Corrected[ii])
+
+                end
 
         end
 

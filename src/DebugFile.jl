@@ -7,7 +7,7 @@ using DataFrames
 using DelimitedFiles
 
 # Which Code to Debug
-Debug_Indicator = 3
+Debug_Indicator = 4
 
 if (Debug_Indicator == 1) # LU Factorization
 
@@ -77,5 +77,20 @@ elseif (Debug_Indicator == 3) # YBus Ybus_Builder
             Ybus = PowerSystemsAnalysis.Create_Ybus_WithTaps(Ybus_WithoutTaps,CDF_DF_List_pu)
 
     end
+
+elseif (Debug_Indicator == 4) # Create Initial Solution Vector
+
+     # Debugging YBus Builder
+     CDF_FilePath = "D:/Sajjad_Work/Projects/Project_PowerEdu/PowerEdu/data/IEEE_14/IEEE_14_Data.txt"
+
+     Ybus_Taps_Indicator = 1
+
+     NR_Type = 1
+
+     Tolerance = 0.1
+
+     Tol_Num = 0
+     
+     PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
 
 end
