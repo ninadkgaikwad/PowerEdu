@@ -126,18 +126,18 @@ function PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tole
             WhileLoop_Counter = WhileLoop_Counter + 1
 
             # Starting Timer
-            tick()
+            TickTock.tick()
 
             # If Else Loop: For checking First Iteration
             if (WhileLoop_Counter == 1)
 
                     # Compute Mismatch
-                    CDF_DF_List_pu, Ybus, PQ_BusArray, PQ_MismatchVector, SolutionVector_V, SolutionVector_Delta = PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Type, NR_Type, Initial_SolutionVector_NR)
+                    CDF_DF_List_pu, Ybus, PQ_BusArray, PQ_MismatchVector, SolutionVector_V, SolutionVector_Delta = PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Taps_Indicator, NR_Type, Initial_SolutionVector_NR)
 
             else
 
                     # Compute Mismatch
-                    CDF_DF_List_pu, Ybus, PQ_BusArray, PQ_MismatchVector, SolutionVector_V, SolutionVector_Delta = PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Type, NR_Type, SolutionVector_NR)
+                    CDF_DF_List_pu, Ybus, PQ_BusArray, PQ_MismatchVector, SolutionVector_V, SolutionVector_Delta = PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Taps_Indicator, NR_Type, SolutionVector_NR)
 
                     # Increasing  PowerFlow_IterationTimeInfo_Array Size
                     PowerFlow_IterationTimeInfo_Array = vcat(PowerFlow_IterationTimeInfo_Array, zeros(1,2))
@@ -155,6 +155,8 @@ function PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tole
 
                     Correction_Vector_NR = PLU_Solve(Jacobian_NR, PQ_MismatchVector, Tol_Num)
 
+                    Correction_Vector_NR_1 = copy(Correction_Vector_NR)
+
                     # Correcting Correction_Vector_NR
                     Correction_Vector_NR = Compute_Corrected_CorrectionVector(CDF_DF_List_pu, Correction_Vector_NR, SolutionVector_NR, NR_Type)
 
@@ -167,27 +169,30 @@ function PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tole
                     # Creating Correction_Vector_NR
                     Correction_Vector_NR = vcat(Correction_Vector_NR_Delta, Correction_Vector_NR_V)
 
+                    #
+                    Correction_Vector_NR_1 = copy(Correction_Vector_NR)
+
                     # Correcting Corrections Vector
                     if (NR_Type == 2) # Decoupled NR
 
-                            Correction_Vector_NR = Compute_Corrected_CorrectionVector(CDF_DF_List_pu, Correction_Vector_NR, SolutionVector_NR, NR_Type)
+                        Correction_Vector_NR = Compute_Corrected_CorrectionVector(CDF_DF_List_pu, Correction_Vector_NR, SolutionVector_NR, NR_Type)
 
                     elseif (NR_Type == 3) # Fast Decoupled NR
-
-                            Correction_Vector_NR =  Correction_Vector_NR
+                        
+                        Correction_Vector_NR = Compute_Corrected_CorrectionVector(CDF_DF_List_pu, Correction_Vector_NR, SolutionVector_NR, NR_Type)
 
                     end
 
             end
 
             # Compute Tolerance Satisfaction
-            Tolerance_Satisfaction = Compute_ToleranceSatisfaction(Tolerance, Correction_Vector_NR)
+            Tolerance_Satisfaction = Compute_ToleranceSatisfaction(Tolerance, Correction_Vector_NR_1)
 
             # Computing New SolutionVector_NR
             SolutionVector_NR = SolutionVector_NR + Correction_Vector_NR
 
             # Stopping Timer
-            IterationTime = tok()
+            IterationTime = TickTock.tok()
 
             # Filling-up PowerFlow_IterationTimeInfo_Array
             PowerFlow_IterationTimeInfo_Array[WhileLoop_Counter,1:2] = [WhileLoop_Counter , IterationTime]
@@ -278,7 +283,7 @@ function ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus
            WhileLoop_Counter = WhileLoop_Counter + 1
 
            # Starting Timer
-           tick()
+           TickTock.tick()
 
            # If Else Loop: For checking first iteration
            if (WhileLoop_Counter == 1)
@@ -328,7 +333,7 @@ function ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus
            Tangent_Vector_History = hcat(Tangent_Vector_History, Tangent_Vector)
 
            # Stopping Timer
-           IterationTime = tok()
+           IterationTime = TickTock.tok()
 
            # Filling-up PowerFlow_IterationTimeInfo_Array
            PowerFlow_IterationTimeInfo_Array[WhileLoop_Counter,1:2] = [WhileLoop_Counter , IterationTime]
@@ -427,6 +432,8 @@ include("LU_Factorization.jl")
 include("BasicContinuationPowerFlow_Functions.jl")
 
 include("BasicStateEstimation_Functions.jl")
+
+include("Helper_Functions.jl")
 
 
 end
