@@ -185,11 +185,11 @@ function PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tole
 
             end
 
-            # Compute Tolerance Satisfaction
-            Tolerance_Satisfaction = Compute_ToleranceSatisfaction(Tolerance, Correction_Vector_NR_1)
-
             # Computing New SolutionVector_NR
             SolutionVector_NR = SolutionVector_NR + Correction_Vector_NR
+
+            # Compute Tolerance Satisfaction
+            Tolerance_Satisfaction = Compute_ToleranceSatisfaction(CDF_DF_List_pu, Ybus, NR_Type, Tolerance, SolutionVector_NR)
 
             # Stopping Timer
             IterationTime = TickTock.tok()

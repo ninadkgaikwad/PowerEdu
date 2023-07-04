@@ -87,7 +87,7 @@ elseif (Debug_Indicator == 4) # Create Initial Solution Vector
 
      NR_Type = 1
 
-     Tolerance = 0.1
+     Tolerance = 0.001
 
      Tol_Num = 0
      
