@@ -415,6 +415,76 @@ compMatrix = DataFrame(Val = values, i = rows, j = cols);
 
 NVec, nnzVec = sparmat(compMatrix, verbose = false)
 
+function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
+    disableTaps::Bool = false,
+    sortBy::String = "busNumbers",
+    verbose::Bool = false,
+    saveTables::Bool = false,
+    saveLocation::String = "processedData/")
+
+    systemName = extractSystemName(CDF_DF_List_pu)
+    busData_pu = CDF_DF_List_pu[2]
+    branchData_pu = CDF_DF_List_pu[3]
+    N = size(busData_pu, 1)
+    numBranch = size(branchData_pu, 1)
+
+    (firs, fics) = (repeat([-1], N), repeat([-1], N))
+
+	NVec = DataFrame(FIR = firs, FIC = fics)
+	nnzVec = DataFrame(ID = Int64[], Val = ComplexF64[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
+
+    for branch = 1:numBranch
+        currentBranch = branchData_pu[branch, :]
+        i = currentBranch.Tap_Bus_Num
+        k = currentBranch.Z_Bus_Num
+
+        if disableTaps
+            a = 1
+        elseif currentBranch.Transformer_t != 0
+            a = currentBranch.Transformer_t
+        else
+            a = 1
+        end
+
+        y_ik = 1/(currentBranch.R_pu + im*currentBranch.X_pu)
+        
+        ybus_ii = y_ik/(a^2) + im*currentBranch.B_pu / 2
+        ybus_kk = y_ik + im*currentBranch.B_pu / 2
+        ybus_ik = -y_ik/a
+        ybus_ki = -y_ik/a
+
+        cases = ["ii", "kk", "ik", "ki"]
+
+        for case in cases
+            if case == "ii"
+                compElem = DataFrame(ID = -1, Val = ybus_ii, i = i, j = i)
+            elseif case == "kk"
+                compElem = DataFrame(ID = -1, Val = ybus_kk, i = k, j = k)
+            elseif case == "ik"
+                compElem = DataFrame(ID = -1, Val = ybus_ik, i = i, j = k)
+            elseif case == "ki"
+                compElem = DataFrame(ID = -1, Val = ybus_ki, i = k, j = i)
+            end
+            
+            compElem = compElem[1, :] # I don't know how to directly initialize a DataFrameRow
+            # so I awkwardly extract a row from the DataFrame
+            nnzElem = nnzRowConstructor(compElem)
+            NVec, nnzVec = updateSparse(NVec, nnzVec, nnzElem, type="add", verbose=false)
+        end
+    
+    end
+
+    for bus = 1:N
+        ybus_ii = busData_pu.G_pu[bus] + im*busData_pu.B_pu[bus]
+        compElem = DataFrame(ID = -1, Val = ybus_ii, i = bus, j = bus)
+        compElem = compElem[1, :]
+        nnzElem = nnzRowConstructor(compElem)
+        NVec, nnzVec = updateSparse(NVec, nnzVec, nnzElem, type="add", verbose=true)
+    end
+
+    return NVec, nnzVec
+end
+
 """
     compressed2Full(compMatrix::DataFrame)
 
