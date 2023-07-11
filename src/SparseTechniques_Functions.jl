@@ -72,16 +72,21 @@ function sparmat(compMatrix::DataFrame;
 	return NVec, nnzVec
 end
 
+
 """
     resolveTie(nnzVec::DataFrame, incumbentID::Int64, elVal::ComplexF64; type="replace", verbose=false)
 
 Resolves a tie between an incumbent element and a new element by either replacing the incumbent's value or adding the new element's value to it.
 
+## Note
+If `type` is set to `"maintain"`, the `nnzElem` value will not be updated. 
+Only the other parameter values of `NVec` and `nnzVec` vectors will be changed.
+
 ## Arguments
 - `nnzVec::DataFrame`: The DataFrame representing the sparse matrix.
 - `incumbentID::Int64`: The ID of the incumbent element.
 - `elVal::ComplexF64`: The value of the new element.
-- `type::String`: (optional) The tie resolution strategy. Valid options are "replace" (default) and "add".
+- `type::String`: (optional) The tie resolution strategy. Valid options are "replace" (default), "add", and "maintain".
 - `verbose::Bool`: (optional) Whether to print verbose output. Default is `false`.
 
 ## Returns
@@ -91,6 +96,10 @@ The updated `nnzVec` DataFrame after resolving the tie.
 ```julia
 nnzVec = DataFrame(ID = 1:5, NROW = [1, 1, 2, 2, 3], NCOL = [1, 2, 1, 2, 1], Val = [1.0, 2.0, 3.0, 4.0, 5.0], NIR = [2, -1, 4, -1, -1], NIC = [-1, -1, -1, -1, -1])
 nnzVec = resolveTie(nnzVec, 3, 2.0 + 1.5im, type="add", verbose=true)
+
+
+```julia 
+nnzVec = resolveTie(nnzVec, 3, 2.0 + 1.5im, type="maintain", verbose=true)
 """
 function resolveTie(nnzVec::DataFrame, incumbentID::Int64, elVal::ComplexF64;
 	type::String = "replace",
@@ -103,7 +112,9 @@ function resolveTie(nnzVec::DataFrame, incumbentID::Int64, elVal::ComplexF64;
         nnzVec.Val[incumbentID] += elVal
         myprintln(verbose, "Added the new elem's value to the incumbent's value.")
     else
-        error("Not prepared for this scenario.")
+        if type != "maintain"
+            error("Not prepared for this scenario.")
+        end
     end
     
     return nnzVec
@@ -374,7 +385,7 @@ function updateSparse(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
 	verbose::Bool = false)
 
 	NVec, nnzVec, nnzElem, updateFlag = checkElementIntoRow(NVec, nnzVec, nnzElem, type=type, verbose=verbose)
-    NVec, nnzVec, nnzElem, updateFlag = checkElementIntoColumn(NVec, nnzVec, nnzElem, type=type, verbose=verbose)
+    NVec, nnzVec, nnzElem, updateFlag = checkElementIntoColumn(NVec, nnzVec, nnzElem, type="maintain", verbose=verbose)
 
 	if updateFlag == false
 		myprintln(verbose, "Another element to be added to the sparse matrix.")
@@ -392,28 +403,98 @@ function updateSparse(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
 	return NVec, nnzVec
 end
 
-# values1 = complex.(Float64.(vec([8])), 0)
-# rows1 = vec([2]);
-# cols1 = vec([2]);
-# compMatrix1 = DataFrame(Val = values1, i = rows1, j = cols1);
-# NVec1, nnzVec1 = sparmat(compMatrix1, verbose = true)
-# vscodedisplay(NVec1)
-# vscodedisplay(nnzVec1)
+"""
+    constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
+    disableTaps::Bool = false,
+    sortBy::String = "busNumbers",
+    verbose::Bool = false,
+    saveTables::Bool = false,
+    saveLocation::String = "processedData/")
 
-values1 = complex.(Float64.(vec([1 2 3 4 5 6 7 8])), 0);
-rows1 = vec([1 2 2 3 2 2 3 1]);
-cols1 = vec([2 1 3 2 2 2 1 1]);
-compMatrix1 = DataFrame(Val = values1, i = rows1, j = cols1);
-NVec1, nnzVec1 = sparmat(compMatrix1, verbose = false)
-# vscodedisplay(NVec1)
-# vscodedisplay(nnzVec1)
+This function constructs a sparse YBus representation from the provided 
+    `busData` and `branchData` extracted from `CDF_DF_List_pu`.
 
-values = vec([-1, -2, 2, 8, 1, 3, -2, -3, 2, 1, 2, -4]);
-rows = vec([1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5]);
-cols = vec([1, 3, 1, 2, 4, 3, 5, 2, 3, 1, 2, 5]);
-compMatrix = DataFrame(Val = values, i = rows, j = cols);
+## Arguments:
+- `CDF_DF_List_pu::Vector{DataFrame}`: A vector of DataFrames containing `busData` and `branchData`.
+- `disableTaps::Bool`: A boolean flag indicating whether to disable taps. Default is `false`.
+- `sortBy::String`: A string indicating the sorting order. Default is `"busNumbers"`.
+- `verbose::Bool`: A boolean flag indicating whether to print verbose output. Default is `false`.
+- `saveTables::Bool`: A boolean flag indicating whether to save tables. Default is `false`.
+- `saveLocation::String`: A string indicating the location to save the tables. Default is `"processedData/".
 
-NVec, nnzVec = sparmat(compMatrix, verbose = false)
+## Returns:
+- `NVec::DataFrame`: A `DataFrame` representing the N vector of the YBus matrix.
+- `nnzVec::DataFrame`: A `DataFrame` representing the non-zero values of the YBus matrix.
+"""
+function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
+    disableTaps::Bool = false,
+    sortBy::String = "busNumbers",
+    verbose::Bool = false,
+    saveTables::Bool = false,
+    saveLocation::String = "processedData/")
+
+    systemName = extractSystemName(CDF_DF_List_pu)
+    busData_pu = CDF_DF_List_pu[2]
+    branchData_pu = CDF_DF_List_pu[3]
+    N = size(busData_pu, 1)
+    numBranch = size(branchData_pu, 1)
+
+    (firs, fics) = (repeat([-1], N), repeat([-1], N))
+
+	NVec = DataFrame(FIR = firs, FIC = fics)
+	nnzVec = DataFrame(ID = Int64[], Val = ComplexF64[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
+
+    for branch = 1:numBranch
+        currentBranch = branchData_pu[branch, :]
+        i = currentBranch.Tap_Bus_Num
+        k = currentBranch.Z_Bus_Num
+
+        if disableTaps
+            a = 1
+        elseif currentBranch.Transformer_t != 0
+            a = currentBranch.Transformer_t
+        else
+            a = 1
+        end
+
+        y_ik = 1/(currentBranch.R_pu + im*currentBranch.X_pu)
+        
+        ybus_ii = y_ik/(a^2) + im*currentBranch.B_pu / 2
+        ybus_kk = y_ik + im*currentBranch.B_pu / 2
+        ybus_ik = -y_ik/a
+        ybus_ki = -y_ik/a
+
+        cases = ["ii", "kk", "ik", "ki"]
+
+        for case in cases
+            if case == "ii"
+                compElem = DataFrame(ID = -1, Val = ybus_ii, i = i, j = i)
+            elseif case == "kk"
+                compElem = DataFrame(ID = -1, Val = ybus_kk, i = k, j = k)
+            elseif case == "ik"
+                compElem = DataFrame(ID = -1, Val = ybus_ik, i = i, j = k)
+            elseif case == "ki"
+                compElem = DataFrame(ID = -1, Val = ybus_ki, i = k, j = i)
+            end
+            
+            compElem = compElem[1, :] # I don't know how to directly initialize a DataFrameRow
+            # so I awkwardly extract a row from the DataFrame
+            nnzElem = nnzRowConstructor(compElem)
+            NVec, nnzVec = updateSparse(NVec, nnzVec, nnzElem, type="add", verbose=false)
+        end
+    
+    end
+
+    for bus = 1:N
+        ybus_ii = busData_pu.G_pu[bus] + im*busData_pu.B_pu[bus]
+        compElem = DataFrame(ID = -1, Val = ybus_ii, i = bus, j = bus)
+        compElem = compElem[1, :]
+        nnzElem = nnzRowConstructor(compElem)
+        NVec, nnzVec = updateSparse(NVec, nnzVec, nnzElem, type="add", verbose=false)
+    end
+
+    return NVec, nnzVec
+end
 
 """
     compressed2Full(compMatrix::DataFrame)

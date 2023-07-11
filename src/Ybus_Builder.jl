@@ -380,8 +380,8 @@ function ybusGenerator(CDF_DF_List_pu::Vector{DataFrame};
         end
 
         y_ik = 1/(currentBranch.R_pu + im*currentBranch.X_pu)
-        ybus[i, i] += y_ik/(a^2) + currentBranch.B_pu / 2
-        ybus[k, k] += y_ik + currentBranch.B_pu / 2
+        ybus[i, i] += y_ik/(a^2) + im*currentBranch.B_pu / 2
+        ybus[k, k] += y_ik + im*currentBranch.B_pu / 2
         ybus[i, k] = -y_ik/a
         ybus[k, i] = -y_ik/a
 
