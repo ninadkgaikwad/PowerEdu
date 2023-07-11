@@ -1,5 +1,4 @@
 using Pkg
-Pkg.instantiate()
 using CSV
 using DataFrames
 
