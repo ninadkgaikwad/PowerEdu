@@ -82,17 +82,17 @@ This function initializes various vectors and variables based on the input `CDF_
 
 # Returns
 - A list containing the following vectors and variables:
-  - `PSpecified`: An array of size `N` representing the specified active power injections (in MW) for each bus.
-  - `QSpecified`: An array of size `N` representing the specified reactive power injections (in MVAR) for each bus.
-  - `V`: An array of size `N` representing the initial voltage magnitudes (in pu) for each bus.
-  - `delta`: An array of size `N` representing the initial voltage phase angles (in radians) for each bus.
-  - `listOfSlackBuses`: An array containing the bus numbers of the slack buses in the system.
-  - `listOfPVBuses`: An array containing the bus numbers of the PV buses in the system.
-  - `listOfPQBuses`: An array containing the bus numbers of the PQ buses in the system.
-  - `listOfNonSlackBuses`: An array containing the bus numbers of the non-slack buses in the system.
-  - `nSlack`: The number of slack buses in the system.
-  - `nPV`: The number of PV buses in the system.
-  - `nPQ`: The number of PQ buses in the system.
+- `PSpecified`: An array of size `N` representing the specified active power injections (in MW) for each bus.
+- `QSpecified`: An array of size `N` representing the specified reactive power injections (in MVAR) for each bus.
+- `V`: An array of size `N` representing the initial voltage magnitudes (in pu) for each bus.
+- `delta`: An array of size `N` representing the initial voltage phase angles (in radians) for each bus.
+- `listOfSlackBuses`: An array containing the bus numbers of the slack buses in the system.
+- `listOfPVBuses`: An array containing the bus numbers of the PV buses in the system.
+- `listOfPQBuses`: An array containing the bus numbers of the PQ buses in the system.
+- `listOfNonSlackBuses`: An array containing the bus numbers of the non-slack buses in the system.
+- `nSlack`: The number of slack buses in the system.
+- `nPV`: The number of PV buses in the system.
+- `nPQ`: The number of PQ buses in the system.
 
 # Description
 The `initializeVectors_pu` function takes the input `CDF_DF_List_pu`, which represents the data for power system buses in the per unit (pu) system, and initializes various vectors and variables based on this data. The function iterates over each bus in the system and performs the following steps:
@@ -100,20 +100,20 @@ The `initializeVectors_pu` function takes the input `CDF_DF_List_pu`, which repr
 1. Retrieves the bus data for the current bus from `busData_pu`.
 2. Sets the initial value of `delta` (voltage phase angle) for the current bus to zero.
 3. Checks the type of the current bus:
-   - If the bus type is 0, it is a PQ bus.
-     - Increments the count of PQ buses (`nPQ`).
-     - Adds the bus number to the `listOfPQBuses`.
-     - Adds the bus number to the `listOfNonSlackBuses`.
-     - Sets the initial value of voltage magnitude `V` for the bus to 1.0000 pu.
-   - If the bus type is 2, it is a PV bus.
-     - Increments the count of PV buses (`nPV`).
-     - Adds the bus number to the `listOfPVBuses`.
-     - Adds the bus number to the `listOfNonSlackBuses`.
-     - Sets the initial value of voltage magnitude `V` for the bus to the desired voltage magnitude specified in `busData_pu`.
-   - If the bus type is 3, it is a slack bus.
-     - Increments the count of slack buses (`nSlack`).
-     - Adds the bus number to the `listOfSlackBuses`.
-     - Sets the initial value of voltage magnitude `V` for the bus to the desired voltage magnitude specified in `busData_pu`.
+- If the bus type is 0, it is a PQ bus.
+    - Increments the count of PQ buses (`nPQ`).
+    - Adds the bus number to the `listOfPQBuses`.
+    - Adds the bus number to the `listOfNonSlackBuses`.
+    - Sets the initial value of voltage magnitude `V` for the bus to 1.0000 pu.
+- If the bus type is 2, it is a PV bus.
+    - Increments the count of PV buses (`nPV`).
+    - Adds the bus number to the `listOfPVBuses`.
+    - Adds the bus number to the `listOfNonSlackBuses`.
+    - Sets the initial value of voltage magnitude `V` for the bus to the desired voltage magnitude specified in `busData_pu`.
+- If the bus type is 3, it is a slack bus.
+    - Increments the count of slack buses (`nSlack`).
+    - Adds the bus number to the `listOfSlackBuses`.
+    - Sets the initial value of voltage magnitude `V` for the bus to the desired voltage magnitude specified in `busData_pu`.
 4. Calculates the specified active power injection `PSpecified` for the bus by subtracting the load active power from the generator active power specified in `busData_pu`.
 5. Calculates the specified reactive power injection `QSpecified` for the bus by subtracting the load reactive power from the generator reactive power specified in `busData_pu`.
 
@@ -166,10 +166,15 @@ function initializeVectors_pu(CDF_DF_List_pu)
         QSpecified[bus] = busData_pu.Gen_MVAR[i] - busData_pu.Load_MVAR[i]
     end
 
-    listOfSlackBuses = reshape(listOfSlackBuses[1:nSlack], nSlack)
-    listOfSlackBuses = reshape(listOfSlackBuses[1:nSlack], nSlack)
-    listOfPVBuses = reshape(listOfPVBuses[1:nPV], nPV)
-    listOfPQBuses = reshape(listOfPQBuses[1:nPQ], nPQ)
+    listOfSlackBuses = sort!(reshape(listOfSlackBuses[1:nSlack], nSlack))
+    listOfNonSlackBuses = sort!(reshape(listOfNonSlackBuses[1:n], n))
+    listOfPVBuses = sort!(reshape(listOfPVBuses[1:nPV], nPV))
+    listOfPQBuses = sort!(reshape(listOfPQBuses[1:nPQ], nPQ))
 
-    return [PSpecified, QSpecified, V, delta, listOfSlackBuses, listOfPVBuses, listOfPQBuses, listOfNonSlackBuses, nSlack, nPV, nPQ]
+    return PSpecified, QSpecified, V, delta, listOfSlackBuses, listOfPVBuses, 
+    listOfPQBuses, listOfNonSlackBuses, nSlack, nPV, nPQ
 end
+
+# PSpecified, QSpecified, V, delta, listOfSlackBuses, listOfPVBuses, 
+#     listOfPQBuses, listOfNonSlackBuses, 
+#     nSlack, nPV, nPQ = initializeVectors_pu(CDF_DF_List_pu)
