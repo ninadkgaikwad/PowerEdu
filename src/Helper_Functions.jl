@@ -175,6 +175,6 @@ function initializeVectors_pu(CDF_DF_List_pu)
     listOfPQBuses, listOfNonSlackBuses, nSlack, nPV, nPQ
 end
 
-PSpecified, QSpecified, V, delta, listOfSlackBuses, listOfPVBuses, 
-    listOfPQBuses, listOfNonSlackBuses, 
-    nSlack, nPV, nPQ = initializeVectors_pu(CDF_DF_List_pu)
+# PSpecified, QSpecified, V, delta, listOfSlackBuses, listOfPVBuses, 
+#     listOfPQBuses, listOfNonSlackBuses, 
+#     nSlack, nPV, nPQ = initializeVectors_pu(CDF_DF_List_pu)
