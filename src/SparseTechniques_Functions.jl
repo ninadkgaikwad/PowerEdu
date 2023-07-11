@@ -497,6 +497,72 @@ function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
 end
 
 """
+    computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, delta, NYBus, nnzYBus)
+
+The `computeMismatchesViaSparseYBus` function calculates the mismatches between specified active and reactive power values and the computed power values using the sparse YBus matrix.
+
+# Arguments
+- `PSpecified::Vector{Float64}`: A vector of specified active power values for each bus.
+- `QSpecified::Vector{Float64}`: A vector of specified reactive power values for each bus.
+- `V::Vector{Float64}`: A vector of voltage magnitudes for each bus.
+- `delta::Vector{Float64}`: A vector of voltage phase angles for each bus.
+- `NYBus::DataFrame`: A DataFrame representing the non-zero elements of the YBus matrix, with columns `FIR`, `NIR`, and `Val`.
+- `nnzYBus::DataFrame`: A DataFrame containing the non-zero elements of the YBus matrix, with columns `NCOL` and `Val`.
+
+# Returns
+- `deltaP::Vector{Float64}`: A vector representing the mismatches between specified and computed active power values.
+- `deltaQ::Vector{Float64}`: A vector representing the mismatches between specified and computed reactive power values.
+
+# Details
+The function iterates over each bus in the system and calculates the active and reactive power mismatches using the specified power values, voltage magnitudes, voltage phase angles, and the non-zero elements of the YBus matrix.
+
+The active power mismatch `deltaP` is computed as the difference between the specified active power (`PSpecified`) and the computed active power (`P`) for each bus.
+
+The reactive power mismatch `deltaQ` is computed as the difference between the specified reactive power (`QSpecified`) and the computed reactive power (`Q`) for each bus.
+
+The function assumes that the `NYBus` and `nnzYBus` DataFrames contain the necessary information for building the sparse YBus matrix.
+
+# Example
+```julia
+PSpecified = [100.0, 200.0, 150.0]
+QSpecified = [50.0, 100.0, 75.0]
+V = [1.0, 1.0, 1.0]
+delta = [0.0, 0.0, 0.0]
+NYBus = DataFrame(FIR = [1, 2, 3], NIR = [-1, -1, -1], Val = [1.0, 2.0, 3.0])
+nnzYBus = DataFrame(NCOL = [1, 2, 3], Val = [0.5, 0.6, 0.7])
+
+deltaP, deltaQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, delta, NYBus, nnzYBus)
+"""
+function computeMismatchesViaSparseYBus(PSpecified::Vector{Float64}, 
+    QSpecified::Vector{Float64}, 
+    V::Vector{Float64}, 
+    delta::Vector{Float64}, 
+    NYBus::DataFrame, 
+    nnzYBus::DataFrame)
+
+    N = length(NYBus.FIR)
+    # P, Q = zeros(N)
+    (P, Q) = (repeat([0.0000], N), repeat([0.0000], N))
+
+    for bus = 1:N
+        i = bus
+        elemkNum = NYBus.FIR[bus]
+        while elemkNum != -1
+            elemk = nnzYBus[elemkNum, :]
+            k = elemk.NCOL
+            YBus_ik = elemk.Val
+            P[i] += abs( YBus_ik*V[i]*V[k] ) * cos( angle(YBus_ik) + delta[k] - delta[i])
+            Q[i] += -abs( YBus_ik*V[i]*V[k]) * sin( angle(YBus_ik) + delta[k] - delta[i])
+            elemkNum = elemk.NIR
+        end
+    end
+
+    deltaP = PSpecified - P
+    deltaQ = QSpecified - Q
+    return deltaP, deltaQ
+end
+
+"""
     compressed2Full(compMatrix::DataFrame)
 
 Converts a compressed matrix representation stored in a DataFrame into a full 
