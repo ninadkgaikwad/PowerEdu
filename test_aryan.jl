@@ -2,7 +2,7 @@ using Pkg
 using CSV
 using DataFrames
 
-
+include("src/Helper_Functions.jl")
 include("src/Ybus_Builder.jl")
 include("src/IEEE_CDF_Parser.jl")
 include("src/SparseTechniques_Functions.jl")
@@ -27,10 +27,14 @@ systemName = extractSystemName(CDF_DF_List)
 busData_pu = CDF_DF_List_pu[2];
 branchData_pu = CDF_DF_List_pu[3];
 
-NYBus, nnzYBus = constructSparseYBus(CDF_DF_List_pu)
+NYBus, nnzYBus = constructSparseYBus(CDF_DF_List_pu);
 # vscodedisplay(NYBus)
-vscodedisplay(nnzYBus)
+# vscodedisplay(nnzYBus)
 
-ybus, BMatrix, b, A, branchNames, E   = ybusGenerator(CDF_DF_List_pu, saveTables=true);
-vscodedisplay(ybus)
-ybus_ByTypes, BMatrix_ByTypes, b_ByTypes, A_ByTypes, branchNames_ByTypes, E_ByTypes = ybusGenerator(CDF_DF_List_pu, sortBy="busTypes", saveTables=true, saveLocation=folder_processedData);
+# ybus, BMatrix, b, A, branchNames, E   = ybusGenerator(CDF_DF_List_pu, saveTables=true);
+# vscodedisplay(ybus)
+# ybus_ByTypes, BMatrix_ByTypes, b_ByTypes, A_ByTypes, branchNames_ByTypes, E_ByTypes = ybusGenerator(CDF_DF_List_pu, sortBy="busTypes", saveTables=true, saveLocation=folder_processedData);
+
+PSpecified, QSpecified, V, delta, listOfSlackBuses, listOfPVBuses, 
+    listOfPQBuses, listOfNonSlackBuses, 
+    nSlack, nPV, nPQ = initializeVectors_pu(CDF_DF_List_pu)
