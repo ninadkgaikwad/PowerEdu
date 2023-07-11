@@ -306,7 +306,7 @@ function CDF_Parser(CDF_FilePath;
         end
 
         # Ordering BusDataCard_DF: PQ->PV->Slack
-        sort!(BusDataCard_DF, [order(:Type)])
+        # sort!(BusDataCard_DF, [order(:Type)])
 
 
         # Filling up BranchDataCard_DF
