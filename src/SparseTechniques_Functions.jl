@@ -562,6 +562,51 @@ function computeMismatchesViaSparseYBus(PSpecified::Vector{Float64},
     return deltaP, deltaQ
 end
 
+function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
+    P::Vector{Float64},
+    Q::Vector{Float64},
+    V::Vector{Float64},
+    delta::Vector{Float64},
+    nnzYBus::DataFrame,
+    NYBus::DataFrame;
+    verbose::Bool=false,
+    saveTable::Bool=false,
+    processedDataFolder::String="processedData/")
+
+    powSysData = initializeVectors_pu(CDF_DF_List_pu)
+    nPV = powSysData.nPV
+    nPQ = powSysData.nPQ
+    lPV = powSysData.listOfPVBuses
+    lPQ = powSysData.listOfPQBuses
+
+    J11 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, type="J11")
+    J12 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, type="J12")
+    J21 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, type="J21")
+    J22 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, type="J22")
+
+    J = combineJacobianSubmatrices(J11, J12, J21, J22)
+    return J
+end
+
+function combineJacobianSubmatrices(J11::Tuple{DataFrame, DataFrame}, 
+    J12::Tuple{DataFrame, DataFrame},
+    J21::Tuple{DataFrame, DataFrame},
+    J22::Tuple{DataFrame, DataFrame};
+    verbose=false)
+
+    J1 = hcatSparse(J11, J12)
+    J2 = hcatSparse(J21, J22)
+    J = vcatSparse(J1, J2)
+    return J
+end
+
+function hcatSparse(matLeft::Tuple{DataFrame, DataFrame}, 
+    matRight::Tuple{DataFrame, DataFrame};
+    verbose::Bool = false)
+
+    return matHorz
+end
+
 """
     compressed2Full(compMatrix::DataFrame)
 
@@ -607,4 +652,39 @@ function compressed2Full(compMatrix::DataFrame)
 	# Convert the sparse matrix into the full matrix.
     fullMatrix = Matrix(sparseMatrix)
 	return fullMatrix
+end
+
+function spar2Full(NVecs::DataFrame,
+    nnzVecs::DataFrame;
+    readMethod::Bool = "row-wise",
+    verbose::Bool = false)
+
+    N = length(NVecs.FIR)
+    nnz = length(nnzVecs.ID)
+    mat = zeros(ComplexF64, N, N)
+
+    FIR = NVecs.FIR
+    FIC = NVecs.FIC
+
+    if readMethod == "row-wise"
+        for row = 1:N
+            elemIdx = FIR[row]
+            while elemIdx != -1
+                nnzElem = nnzVecs[elemIdx, :]
+                i = nnzElem.NROW
+                j = nnzElem.NCOL
+                mat_ij = nnzElem.Val
+                mat[i, j] = mat_ij
+                elemIdx = nnzElem.NIR
+            end
+        end
+    elseif readMethod == "col-wise"
+        for col = 1:N
+        end
+    elseif readMethod == "nnzVecElems-wise"
+        for elemNum = 1:nnz
+        end
+    end
+        
+    return mat
 end
