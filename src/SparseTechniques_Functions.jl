@@ -53,10 +53,16 @@ NVec, nnzVec = sparmat(compMatrix, verbose = true)
 function sparmat(compMatrix::DataFrame;
 	verbose::Bool = false)
 
-	N = maximum([compMatrix.i compMatrix.j])
-	(firs, fics) = (repeat([-1], N), repeat([-1], N))
+	# N = maximum([compMatrix.i compMatrix.j])
+    N = maximum(compMatrix.i)
+    M = maximum(compMatrix.j)
+	# (firs, fics) = (repeat([-1], N), repeat([-1], N))
+    (firs, fics) = (repeat([-1], N), repeat([-1], M))
 
-	NVec = DataFrame(FIR = firs, FIC = fics)
+
+	# NVec = DataFrame(FIR = firs, FIC = fics)
+    NVec = DataFrame(FIR = firs)
+    MVec = DataFrame(FIC = fics)
 	nnzVec = DataFrame(ID = Int64[], Val = ComplexF64[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
 
 	numElems = size(compMatrix, 1)
@@ -66,10 +72,10 @@ function sparmat(compMatrix::DataFrame;
 
 		nnzElem = nnzRowConstructor(compElem)
 
-		NVec, nnzVec = updateSparse(NVec, nnzVec, nnzElem, type="replace", verbose=verbose)
+		NVec, nnzVec = updateSparse(NVec, MVec, nnzVec, nnzElem, type="replace", verbose=verbose)
 	end
 
-	return NVec, nnzVec
+	return NVec, MVec, nnzVec
 end
 
 
@@ -151,7 +157,7 @@ nnzVec = DataFrame(ID = 1:5, NROW = [1, 1, 2, 2, 3], NCOL = [1, 2, 1, 2, 1], Val
 nnzElem = DataFrameRow([0, 3, 2, 3, 1], ["ID", "NROW", "NCOL", "Val", "NIR", "NIC"])
 NVec, nnzVec, nnzElem, updateFlag = checkElementIntoRow(NVec, nnzVec, nnzElem, type="replace", verbose=true)
 """
-function checkElementIntoRow(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
+function checkElementIntoRow(NVec::DataFrame, MVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
 	type::String="replace", verbose::Bool=false)
 	
 	numExistingElems = size(nnzVec, 1)
@@ -229,7 +235,7 @@ function checkElementIntoRow(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFr
     end
 
 	NVec.FIR = FIR
-	return NVec, nnzVec, nnzElem, updateFlag
+	return NVec, MVec, nnzVec, nnzElem, updateFlag
 end
 
 """
@@ -265,14 +271,14 @@ nnzVec = DataFrame(ID = 1:5, NROW = [1, 1, 2, 2, 3], NCOL = [1, 2, 1, 2, 1], Val
 nnzElem = DataFrameRow([0, 3, 2, 3, 1], ["ID", "NROW", "NCOL", "Val", "NIR", "NIC"])
 NVec, nnzVec, nnzElem, updateFlag = checkElementIntoColumn(NVec, nnzVec, nnzElem, type="replace", verbose=true)
 """
-function checkElementIntoColumn(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
+function checkElementIntoColumn(NVec::DataFrame, MVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
 	type::String="replace", verbose::Bool=false)
 	
 	numExistingElems = size(nnzVec, 1)
 	myprintln(verbose, "Currently the Sparse Matrix has $numExistingElems elements.")
 	nnzElem.ID = numExistingElems + 1
 	elID = nnzElem.ID
-	FIC = NVec.FIC
+	FIC = MVec.FIC
 	row = nnzElem.NROW
 	col = nnzElem.NCOL
 	elVal = nnzElem.Val
@@ -342,8 +348,8 @@ function checkElementIntoColumn(NVec::DataFrame, nnzVec::DataFrame, nnzElem::Dat
         end
     end
 
-	NVec.FIC = FIC
-	return NVec, nnzVec, nnzElem, updateFlag
+	MVec.FIC = FIC
+	return NVec, MVec, nnzVec, nnzElem, updateFlag
 end
 
 """
@@ -380,12 +386,12 @@ nnzVec = DataFrame(ID = 1:5, NROW = [1, 1, 2, 2, 3], NCOL = [1, 2, 1, 2, 1], Val
 nnzElem = DataFrameRow([0, 3, 2, 3, 1], ["ID", "NROW", "NCOL", "Val", "NIR", "NIC"])
 NVec, nnzVec = updateSparse(NVec, nnzVec, nnzElem, type="replace", verbose=true)
 """
-function updateSparse(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
+function updateSparse(NVec::DataFrame, MVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
 	type::String = "replace",
 	verbose::Bool = false)
 
-	NVec, nnzVec, nnzElem, updateFlag = checkElementIntoRow(NVec, nnzVec, nnzElem, type=type, verbose=verbose)
-    NVec, nnzVec, nnzElem, updateFlag = checkElementIntoColumn(NVec, nnzVec, nnzElem, type="maintain", verbose=verbose)
+	NVec, MVec, nnzVec, nnzElem, updateFlag = checkElementIntoRow(NVec, MVec, nnzVec, nnzElem, type=type, verbose=verbose)
+    NVec, MVec, nnzVec, nnzElem, updateFlag = checkElementIntoColumn(NVec, MVec, nnzVec, nnzElem, type="maintain", verbose=verbose)
 
 	if updateFlag == false
 		myprintln(verbose, "Another element to be added to the sparse matrix.")
@@ -400,7 +406,7 @@ function updateSparse(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
 		myprintln(verbose, "An element was updated, but not added to the sparse matrix.")
 	end
 
-	return NVec, nnzVec
+	return NVec, MVec, nnzVec
 end
 
 """
@@ -441,7 +447,8 @@ function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
 
     (firs, fics) = (repeat([-1], N), repeat([-1], N))
 
-	NVec = DataFrame(FIR = firs, FIC = fics)
+	NVec = DataFrame(FIR = firs)
+    MVec = DataFrame(FIC = fics)
 	nnzVec = DataFrame(ID = Int64[], Val = ComplexF64[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
 
     for branch = 1:numBranch
@@ -480,7 +487,7 @@ function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
             compElem = compElem[1, :] # I don't know how to directly initialize a DataFrameRow
             # so I awkwardly extract a row from the DataFrame
             nnzElem = nnzRowConstructor(compElem)
-            NVec, nnzVec = updateSparse(NVec, nnzVec, nnzElem, type="add", verbose=false)
+            NVec, MVec, nnzVec = updateSparse(NVec, MVec, nnzVec, nnzElem, type="add", verbose=false)
         end
     
     end
@@ -490,10 +497,10 @@ function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
         compElem = DataFrame(ID = -1, Val = ybus_ii, i = bus, j = bus)
         compElem = compElem[1, :]
         nnzElem = nnzRowConstructor(compElem)
-        NVec, nnzVec = updateSparse(NVec, nnzVec, nnzElem, type="add", verbose=false)
+        NVec, MVec, nnzVec = updateSparse(NVec, MVec, nnzVec, nnzElem, type="add", verbose=false)
     end
 
-    return NVec, nnzVec
+    return NVec, MVec, nnzVec
 end
 
 """
@@ -538,10 +545,10 @@ function computeMismatchesViaSparseYBus(PSpecified::Vector{Float64},
     V::Vector{Float64}, 
     delta::Vector{Float64}, 
     NYBus::DataFrame, 
+    MYBus::DataFrame,
     nnzYBus::DataFrame)
 
     N = length(NYBus.FIR)
-    # P, Q = zeros(N)
     (P, Q) = (repeat([0.0000], N), repeat([0.0000], N))
 
     for bus = 1:N
@@ -655,16 +662,18 @@ function compressed2Full(compMatrix::DataFrame)
 end
 
 function spar2Full(NVecs::DataFrame,
+    MVecs::DataFrame,
     nnzVecs::DataFrame;
-    readMethod::Bool = "row-wise",
+    readMethod::String = "row-wise",
     verbose::Bool = false)
 
     N = length(NVecs.FIR)
+    M = length(MVecs.FIC)
     nnz = length(nnzVecs.ID)
-    mat = zeros(ComplexF64, N, N)
+    mat = zeros(ComplexF64, N, M)
 
     FIR = NVecs.FIR
-    FIC = NVecs.FIC
+    FIC = MVecs.FIC
 
     if readMethod == "row-wise"
         for row = 1:N
@@ -679,11 +688,28 @@ function spar2Full(NVecs::DataFrame,
             end
         end
     elseif readMethod == "col-wise"
-        for col = 1:N
+        for col = 1:M
+            elemIdx = FIC[col]
+            while elemIdx != -1
+                nnzElem = nnzVecs[elemIdx, :]
+                i = nnzElem.NROW
+                j = nnzElem.NCOL
+                mat_ij = nnzElem.Val
+                mat[i, j] = mat_ij
+                elemIdx = nnzElem.NIC
+            end
         end
     elseif readMethod == "nnzVecElems-wise"
         for elemNum = 1:nnz
+            nnzElem = nnzVecs[elemNum, :]
+            i = nnzElem.NROW
+            j = nnzElem.NCOL
+            mat_ij = nnzElem.Val
+            mat[i, j] = mat_ij
         end
+    else
+        error("Unknown read method for conversion of sparse matrix
+        to full")
     end
         
     return mat
