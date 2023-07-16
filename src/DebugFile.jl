@@ -81,42 +81,16 @@ elseif (Debug_Indicator == 3) # YBus Ybus_Builder
 elseif (Debug_Indicator == 4) # Create Initial Solution Vector
 
      # Debugging YBus Builder
-     CDF_FilePath = "C:/Users/ninad/Dropbox (Personal)/NinadGaikwad_PhD/Gaikwad_Research/Gaikwad_Research_Work/PowerSystemsAnalysis/data/IEEE14/IEEE_14_Data.txt"
+     CDF_FilePath = "D:/Sajjad_Work/Projects/Project_PowerEdu/PowerEdu/data/IEEE_14/IEEE_14_Data.txt"
 
-     Ybus_Taps_Indicator = 2
- 
-     # Reading IEEE CDF File
-     CDF_DF_List = PowerSystemsAnalysis.CDF_Parser(CDF_FilePath)
- 
-     # Converting CDF DataFrame to PU
-     CDF_DF_List_pu = PowerSystemsAnalysis.CDF_pu_Converter(CDF_DF_List)
- 
-     # Getting required data from CDF_DF_List
-     BusDataCard_DF = CDF_DF_List_pu[2]
-  
-     # Number of Buses
-     N_Bus = nrow(BusDataCard_DF)
-     N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
-     N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
-     N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
- 
-     N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
-   
- 
-         # Create Ybus
-     if (Ybus_Taps_Indicator == 1) # Without Taps
- 
-             Ybus = PowerSystemsAnalysis.Create_Ybus_WithoutTaps(CDF_DF_List_pu)
- 
-     elseif (Ybus_Taps_Indicator == 2) # With Taps
- 
-             Ybus_WithoutTaps = PowerSystemsAnalysis.Create_Ybus_WithoutTaps(CDF_DF_List_pu)
- 
-             Ybus = PowerSystemsAnalysis.Create_Ybus_WithTaps(Ybus_WithoutTaps,CDF_DF_List_pu)
- 
-     end   
+     Ybus_Taps_Indicator = 1
 
-     # Creating Initial Solution Vector for Power Flow
-    Initial_SolutionVector_NR = PowerSystemsAnalysis.Create_Initial_SolutionVector_NR(CDF_DF_List_pu)
+     NR_Type = 1
+
+     Tolerance = 0.001
+
+     Tol_Num = 0
+     
+     PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
 
 end

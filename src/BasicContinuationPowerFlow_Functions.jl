@@ -400,14 +400,12 @@ function Compute_PQ_MismatchVector_CPF(CDF_DF_List_pu, PQ_BusArray, SolutionVect
                                 if ((NR_Type == 1) || (NR_Type == 2)) # Full/Decoupled NR
 
                                         # Computing P Mismatch
-                                        PQ_MismatchVector[ii] = Lambda*(BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii] )
-                                                                - PQ_BusArray[ii+1,1]
+                                        PQ_MismatchVector[ii] = Lambda*(BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii] )- PQ_BusArray[ii+1,1]
 
                                 elseif (NR_Type == 3) # Fast-Decoupled NR
 
                                         # Computing P Mismatch
-                                        PQ_MismatchVector[ii] = (Lambda*(BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii] ))
-                                                                - (PQ_BusArray[ii+1,1])/(SolutionVector_V[ii+1])
+                                        PQ_MismatchVector[ii] = (Lambda*(BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii] ))- (PQ_BusArray[ii+1,1])/(SolutionVector_V[ii+1])
                                 end
 
                         else
@@ -415,14 +413,12 @@ function Compute_PQ_MismatchVector_CPF(CDF_DF_List_pu, PQ_BusArray, SolutionVect
                                 if ((NR_Type == 1) || (NR_Type == 2)) # Full/Decoupled NR
 
                                         # Computing P Mismatch
-                                        PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii] )
-                                                                - PQ_BusArray[ii+1,1]
+                                        PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii] )- PQ_BusArray[ii+1,1]
 
                                 elseif (NR_Type == 3) # Fast-Decoupled NR
 
                                         # Computing P Mismatch
-                                        PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii] )
-                                                                - PQ_BusArray[ii+1,1])/(SolutionVector_V[ii+1])
+                                        PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii] )- PQ_BusArray[ii+1,1])/(SolutionVector_V[ii+1])
 
                                 end
 
@@ -440,14 +436,12 @@ function Compute_PQ_MismatchVector_CPF(CDF_DF_List_pu, PQ_BusArray, SolutionVect
                                 if ((NR_Type == 1) || (NR_Type == 2)) # Full/Decoupled NR
 
                                         # Computing Q Mismatch
-                                        PQ_MismatchVector[ii] = Lambda*(BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )
-                                                                - PQ_BusArray[PQ_PV_Counter+1,2]
+                                        PQ_MismatchVector[ii] = Lambda*(BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- PQ_BusArray[PQ_PV_Counter+1,2]
 
                                 elseif (NR_Type == 3) # Fast-Decoupled NR
 
                                         # Computing Q Mismatch
-                                        PQ_MismatchVector[ii] = (Lambda*(BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] ))
-                                                                - (PQ_BusArray[PQ_PV_Counter+1,2] )/(SolutionVector_V[PQ_PV_Counter+1])
+                                        PQ_MismatchVector[ii] = (Lambda*(BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] ))- (PQ_BusArray[PQ_PV_Counter+1,2] )/(SolutionVector_V[PQ_PV_Counter+1])
 
                                 end
 
@@ -456,14 +450,12 @@ function Compute_PQ_MismatchVector_CPF(CDF_DF_List_pu, PQ_BusArray, SolutionVect
                                 if ((NR_Type == 1) || (NR_Type == 2)) # Full/Decoupled NR
 
                                         # Computing Q Mismatch
-                                        PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )
-                                                                - PQ_BusArray[PQ_PV_Counter+1,2]
+                                        PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- PQ_BusArray[PQ_PV_Counter+1,2]
 
                                 elseif (NR_Type == 3) # Fast-Decoupled NR
 
                                         # Computing Q Mismatch
-                                        PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )
-                                                                - PQ_BusArray[PQ_PV_Counter+1,2] )/(SolutionVector_V[PQ_PV_Counter+1])
+                                        PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- PQ_BusArray[PQ_PV_Counter+1,2] )/(SolutionVector_V[PQ_PV_Counter+1])
 
                                 end
 

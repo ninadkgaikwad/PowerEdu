@@ -38,8 +38,6 @@ function Create_Initial_SolutionVector_NR(CDF_DF_List_pu)
         # Creating Initial_SolutionVector_NR Delta part for both PQ and PV Buses
         Initial_SolutionVector_NR[1:(N_PQ_Bus+N_PV_Bus),1] = zeros((N_PQ_Bus+N_PV_Bus),1)
 
-
-
         # Creating Initial_SolutionVector_NR V part for PQ Buses
         Initial_SolutionVector_NR[(N_PQ_Bus+N_PV_Bus+1):end,1] = ones(N_PQ_Bus,1)
 
@@ -50,7 +48,7 @@ end
 """
     Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_NR)
 
-Creates Initial Solution Vector for the Newton-Raphson Method.
+Creates separate V and Delta vectors from the solution vector computed by the NR Method and data in the CDF file.
 
 '''
 # Arguments
@@ -86,7 +84,7 @@ function Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_NR)
 
         # Creating SolutionVector_V, SolutionVector_Delta
         SolutionVector_Delta =  vcat([0.0], SolutionVector_NR[1:(N_Bus-1),1])
-        SolutionVector_V[1:(N_PQ_Bus+1),1] =  vcat([BusDataCard_DF.Final_V_pu_Original[N_Bus]], SolutionVector_NR[(N_Bus-1)+1:end,1])
+        SolutionVector_V[1:(N_PQ_Bus+1),1] =  vcat([BusDataCard_DF.Final_V_pu_Original[end]], SolutionVector_NR[(N_Bus-1)+1:end,1])
 
         for ii in N_PQ_Bus+1+1:N_Bus # For each current PV Bus
 
@@ -149,7 +147,7 @@ function Create_SolutionVector_NR(CDF_DF_List_pu, SolutionVector_V, SolutionVect
         SolutionVector_NR[1:(N_PQ_Bus+N_PV_Bus),1] = SolutionVector_Delta[2:end,1]
 
         # Creating Initial_SolutionVector_NR V part for PQ Buses
-        SolutionVector_NR = vcat(SolutionVector_NR, SolutionVector_V[2:N_PQ_Bus+1,1])
+        SolutionVector_NR = vcat(SolutionVector_NR[1:(N_PQ_Bus+N_PV_Bus),1], SolutionVector_V[2:N_PQ_Bus+1,1])
 
         return SolutionVector_NR
 
@@ -191,12 +189,10 @@ function Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
             for jj in 1:length(SolutionVector_V)
 
                     # Computing P_Bus
-                    P_Bus = P_Bus + (SolutionVector_V[ii]*SolutionVector_V[jj]*abs(Ybus[ii,jj])*
-                                     cos(angle(Ybus[ii,jj])+deg2rad(SolutionVector_Delta[jj])-deg2rad(SolutionVector_Delta[ii])))
+                    P_Bus = P_Bus + (SolutionVector_V[ii]*SolutionVector_V[jj]*abs(Ybus[ii,jj])*cos(angle(Ybus[ii,jj])+deg2rad(SolutionVector_Delta[jj])-deg2rad(SolutionVector_Delta[ii])))
 
                     # Computing Q_Bus
-                    Q_Bus = Q_Bus - (SolutionVector_V[ii]*SolutionVector_V[jj]*abs(Ybus[ii,jj])*
-                                     sin(angle(Ybus[ii,jj])+deg2rad(SolutionVector_Delta[jj])-deg2rad(SolutionVector_Delta[ii])))
+                    Q_Bus = Q_Bus - (SolutionVector_V[ii]*SolutionVector_V[jj]*abs(Ybus[ii,jj])*sin(angle(Ybus[ii,jj])+deg2rad(SolutionVector_Delta[jj])-deg2rad(SolutionVector_Delta[ii])))
 
             end
 
@@ -264,14 +260,12 @@ function Compute_PQ_MismatchVector(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V
                         if ((NR_Type == 1) || (NR_Type == 2)) # Full/Decoupled NR
 
                                 # Computing P Mismatch
-                                PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii] )
-                                                        - PQ_BusArray[ii+1,1]
+                                PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii]) - PQ_BusArray[ii+1,1]
 
                         elseif (NR_Type == 3) # Fast-Decoupled NR
 
                                 # Computing P Mismatch
-                                PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii] )
-                                                        - PQ_BusArray[ii+1,1])/(SolutionVector_V[ii+1])
+                                PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii]) - PQ_BusArray[ii+1,1])/(SolutionVector_V[ii+1])
 
                         end
 
@@ -285,14 +279,12 @@ function Compute_PQ_MismatchVector(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V
                                 if ((BusDataCard_DF.Type[PQ_PV_Counter] != BusDataCard_DF.Type_Original[PQ_PV_Counter]) && (BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter]  != -9999)) # Q Limit Violation
 
                                         # Computing Q Mismatch
-                                        PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )
-                                                                - BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter]
+                                        PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter]
 
                                 else # No Q Limit Violation
 
                                         # Computing Q Mismatch
-                                        PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )
-                                                                - PQ_BusArray[PQ_PV_Counter+1,2]
+                                        PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- PQ_BusArray[PQ_PV_Counter+1,2]
 
                                 end
 
@@ -302,14 +294,12 @@ function Compute_PQ_MismatchVector(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V
                                         ] != BusDataCard_DF.Type_Original[PQ_PV_Counter]) && (BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter]  != -9999)) # Q Limit Violation
 
                                         # Computing Q Mismatch
-                                        PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )
-                                                                - BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter]) / (SolutionVector_V[PQ_PV_Counter+1])
+                                        PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter]) / (SolutionVector_V[PQ_PV_Counter+1])
 
                                 else # No Q Limit Violation
 
                                         # Computing Q Mismatch
-                                        PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )
-                                                                - PQ_BusArray[PQ_PV_Counter+1,2] )/(SolutionVector_V[PQ_PV_Counter+1])
+                                        PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- PQ_BusArray[PQ_PV_Counter+1,2] )/(SolutionVector_V[PQ_PV_Counter+1])
 
                                 end
 
@@ -398,7 +388,7 @@ function PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Type, NR_Type, Soluti
         # Checking and Modifying Bus Types
         Bus_Modification_Counter = 0
 
-        for ii in 1:(N_Bus-1)
+        #= for ii in 1:(N_Bus-1)
 
                 if (BusDataCard_DF.Type_Original[ii] == 1) # Hold MVAR generation within voltage limits, (PQ)
 
@@ -505,7 +495,7 @@ function PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Type, NR_Type, Soluti
 
                 end
 
-        end
+        end =#
 
 
         # Making Changes based on Bus_Modification_Counter
@@ -645,16 +635,12 @@ function Compute_LineFlows(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVecto
                 end
 
                 # Computing P_ij
-                P_ij = -(SolutionVector_V[Bus_i_Index]^(2)*real(Ybus[Bus_i_Index, Bus_j_Index])) +
-                        (SolutionVector_V[Bus_i_Index]*SolutionVector_V[Bus_j_Index]*abs(Ybus[Bus_i_Index, Bus_j_Index]))*
-                        cos(angle(Ybus[Bus_i_Index, Bus_j_Index])+deg2rad(SolutionVector_Delta[Bus_j_Index])-deg2rad(SolutionVector_Delta[Bus_i_Index]))
+                P_ij = -(SolutionVector_V[Bus_i_Index]^(2)*real(Ybus[Bus_i_Index, Bus_j_Index])) +(SolutionVector_V[Bus_i_Index]*SolutionVector_V[Bus_j_Index]*abs(Ybus[Bus_i_Index, Bus_j_Index]))*cos(angle(Ybus[Bus_i_Index, Bus_j_Index])+deg2rad(SolutionVector_Delta[Bus_j_Index])-deg2rad(SolutionVector_Delta[Bus_i_Index]))
 
                 LineFlow_Array[ii,1] = P_ij
 
                 # Computing Q_ij
-                Q_ij = -((SolutionVector_V[Bus_i_Index]^(2)*((BranchDataCard_DF.B_pu[ii]/2) - imag(Ybus[Bus_i_Index, Bus_j_Index])))) +
-                        (SolutionVector_V[Bus_i_Index]*SolutionVector_V[Bus_j_Index]*abs(Ybus[Bus_i_Index, Bus_j_Index]))*
-                        sin(angle(Ybus[Bus_i_Index, Bus_j_Index])+deg2rad(SolutionVector_Delta[Bus_j_Index])-deg2rad(SolutionVector_Delta[Bus_i_Index]))
+                Q_ij = -((SolutionVector_V[Bus_i_Index]^(2)*((BranchDataCard_DF.B_pu[ii]/2) - imag(Ybus[Bus_i_Index, Bus_j_Index])))) +(SolutionVector_V[Bus_i_Index]*SolutionVector_V[Bus_j_Index]*abs(Ybus[Bus_i_Index, Bus_j_Index]))*sin(angle(Ybus[Bus_i_Index, Bus_j_Index])+deg2rad(SolutionVector_Delta[Bus_j_Index])-deg2rad(SolutionVector_Delta[Bus_i_Index]))
 
                 # Filling up LineFlow_Array
                 LineFlow_Array[ii,1] = P_ij
@@ -678,9 +664,17 @@ Computes if the correction vector satifies the tolerance.
 
 '''
 # Arguments
+- 'CDF_DF_List_pu': IEEE CDF file in List of Dataframe format according to
+Data Card types in IEEE CDF file : [TitleCard_DF, BusDataCard_DF,
+BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
+TieLinesDataCard_DF].
+- 'Ybus': A complex array of Ybus elements ordered according to bus
+type: Slack->PQ->PV.
+- 'NR_Type': 1 -> Full Newton-Raphson, 2-> Decoupled Newton-Raphson,
+3 -> Fast Decoupled Newton-Raphson
 - 'Tolerance': Tolerance level for stopping criterion of Newton-Raphson Method.
-- 'Corrections_Vector': The correction vector computed during Newton-Raphson
-Method.
+- 'SolutionVector_NR': Voltage and Angle at each bus ordered according to bus
+type: PQ->PV.
 '''
 '''
 # Output
@@ -688,15 +682,24 @@ Method.
 (True) and disatisfaction (False).
 '''
 """
-function Compute_ToleranceSatisfaction(Tolerance, Corrections_Vector)
+function Compute_ToleranceSatisfaction(CDF_DF_List_pu, Ybus, NR_Type, Tolerance, SolutionVector_NR)
+        
+    # Creating SolutionVector_V and SolutionVector_Delta
+    SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_NR)
 
+    #  Compute P-Q at Buses
+    PQ_BusArray = Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
+
+    #  Compute PQ Mistmatch
+    PQ_MismatchVector = Compute_PQ_MismatchVector(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V, NR_Type)
+    
     # Initializing Tolerance Counter
     ToleranceCounter = 0
 
     # Computing Tolerance Counter
-    for ii in 1: length(Corrections_Vector)
+    for ii in 1: length(PQ_MismatchVector)
 
-            if (abs(Corrections_Vector[ii]) > Tolerance)
+            if (abs(PQ_MismatchVector[ii]) > Tolerance)
 
                     # Incrementing the Tolerance Counter
                     ToleranceCounter = ToleranceCounter + 1
@@ -760,23 +763,34 @@ function Compute_Corrected_CorrectionVector(CDF_DF_List_pu, Correction_Vector_NR
         N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
         N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
 
-        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
-
         # Initializing Correction_Vector_NR_Corrected
         Correction_Vector_NR_Corrected = Correction_Vector_NR
 
         # If Else Loop: For NR_Type
         if ((NR_Type == 1) || (NR_Type == 2)) # Full NR Decoupled NR
 
+                for ii in 1 : (N_PQ_Bus + N_PV_Bus)
+
+                        Correction_Vector_NR_Corrected[ii] = rad2deg(Correction_Vector_NR_Corrected[ii])
+
+                end
+ 
+ 
                 for ii in (N_PQ_Bus + N_PV_Bus + 1) : length(SolutionVector_NR)
 
-                        Correction_Vector_NR_Corrected[ii] = Correction_Vector_NR_Corrected[ii]/SolutionVector_NR[ii]
+                        Correction_Vector_NR_Corrected[ii] = Correction_Vector_NR_Corrected[ii]*SolutionVector_NR[ii]
 
                 end
 
         elseif (NR_Type == 3) # Fast Decoupled NR
 
                 Correction_Vector_NR_Corrected = Correction_Vector_NR
+
+                for ii in 1 : (N_PQ_Bus + N_PV_Bus)
+
+                        Correction_Vector_NR_Corrected[ii] = rad2deg(Correction_Vector_NR_Corrected[ii])
+
+                end
 
         end
 
