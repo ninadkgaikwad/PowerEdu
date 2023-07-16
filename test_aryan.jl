@@ -29,11 +29,13 @@ busData_pu = CDF_DF_List_pu[2];
 # vscodedisplay(busData_pu)
 branchData_pu = CDF_DF_List_pu[3];
 
-NYBus, MYBus, nnzYBus = constructSparseYBus(CDF_DF_List_pu);
+sparYBus = constructSparseYBus(CDF_DF_List_pu);
 # vscodedisplay(NYBus)
 # vscodedisplay(MYBus)
 # vscodedisplay(nnzYBus)
-ybusFull = spar2Full(NYBus, MYBus, nnzYBus, readMethod="col-wise")
+
+# sparYBus = (NVec=NYBus, MVec=MYBus, nnzVec=nnzYBus);
+ybusFull = spar2Full(sparYBus, readMethod="col-wise")
 vscodedisplay(ybusFull)
 ybus, BMatrix, b, A, branchNames, E   = ybusGenerator(CDF_DF_List_pu, saveTables=true);
 vscodedisplay(ybus)
@@ -43,7 +45,7 @@ PSpecified, QSpecified, V, delta, listOfSlackBuses, listOfPVBuses,
 listOfPQBuses, listOfNonSlackBuses, nSlack, nPV, nPQ = initializeVectors_pu(CDF_DF_List_pu);
 
 deltaP, deltaQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, delta, 
-NYBus, MYBus, nnzYBus)
+sparYBus);
 
 P = PSpecified - deltaP;
 Q = QSpecified - deltaQ;
