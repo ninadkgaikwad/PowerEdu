@@ -5,6 +5,169 @@ using DataFrames
 
 include("Helper_Functions.jl")
 
+""""
+    compressed2Full(compMatrix::DataFrame)
+
+Converts a compressed matrix representation stored in a DataFrame into a full 
+matrix.
+
+## Arguments
+- `compMatrix::DataFrame`: A DataFrame representing the compressed matrix. 
+It should have three columns: `i`, `j`, and `val`. Column `i` contains the 
+row indices, column `j` contains the column indices, and column `val` contains 
+the corresponding values.
+
+## Returns
+- `fullMatrix::Matrix`: A full matrix representation of the input compressed 
+matrix.
+
+## Dependencies
+This function requires the following packages to be imported:
+- `SparseArrays`: Provides support for sparse matrix operations.
+- `DataFrames`: Provides support for working with tabular data in a 
+DataFrame format.
+
+## Example
+```julia
+using SparseArrays
+using DataFrames
+
+# Define the compressed matrix
+values = vec([-1, -2, 2, 8, 1, 3, -2, -3, 2, 1, 2, -4])
+rows = vec([1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5])
+cols = vec([1, 3, 1, 2, 4, 3, 5, 2, 3, 1, 2, 5])
+compMatrix = DataFrame(Val = values, i = rows, j = cols)
+
+# Convert the compressed matrix to a full matrix
+matFull = compressed2Full(compMatrix)
+"""
+function compressed2Full(compMatrix::DataFrame)
+	# Use SparseArrays's sparse function to conveniently convert the compressed 
+	# matrix (i, j, Val) into Compressed Storage Column CSC format
+	# I don't care how it does it. 
+	# This function is only to be called for testing purposes anyway.
+    sparseMatrix = sparse(compMatrix.i, compMatrix.j, compMatrix.Val)
+	# Convert the sparse matrix into the full matrix.
+    fullMatrix = Matrix(sparseMatrix)
+	return fullMatrix
+end
+
+
+"""
+    spar2Full(sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+    readMethod::String = "row-wise",
+    verbose::Bool = false)
+
+Convert a sparse matrix represented by sparMat to a regular matrix.
+
+## Arguments
+- `sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: Named tuple representing the sparse matrix, with fields `NVec`, `MVec`, and `nnzVec`.
+- `readMethod::String`: Optional. The method to read the elements of the sparse matrix. Default is "row-wise". Possible values are "row-wise", "col-wise", and "nnzVecElems-wise".
+- `verbose::Bool`: Optional. If set to `true`, print verbose output. Default is `false`.
+
+## Returns
+- `mat::Matrix{ComplexF64}`: The converted regular matrix.
+
+## Details
+The `spar2Full` function converts the sparse matrix represented by `sparMat` to a regular matrix. The sparse matrix is defined by the non-zero elements stored in `nnzVec` DataFrame, with the row and column information stored in `NVec` and `MVec` DataFrames, respectively.
+
+The conversion can be done in different ways depending on the `readMethod` argument:
+- `"row-wise"`: The elements are read row by row, and the corresponding positions in the regular matrix are filled.
+- `"col-wise"`: The elements are read column by column, and the corresponding positions in the regular matrix are filled.
+- `"nnzVecElems-wise"`: The elements are read from `nnzVec` DataFrame in the order they appear, and the corresponding positions in the regular matrix are filled.
+
+## Example
+```julia
+sparMat = (NVec=DataFrame(FIR=[1, 2, 4], NIR=[2, -1, -1]),
+MVec=DataFrame(FIC=[1, 3, 2, -1]), 
+nnzVec=DataFrame(ID=[1, 2, 3],
+NROW=[1, 2, 3],
+NCOL=[1, 2, 3],
+Val=[1.0, 2.0, 3.0],
+NIR=[2, -1, -1],
+NIC=[-1, -1, -1]))
+mat = spar2Full(sparMat, readMethod="row-wise", verbose=true)
+```
+```julia
+3×3 Matrix{ComplexF64}:
+1.0+0.0im  0.0+2.0im  0.0+0.0im
+0.0+0.0im  0.0+0.0im  2.0+0.0im
+0.0+0.0im  0.0+0.0im  0.0+3.0im
+```
+```julia
+mat = spar2Full(sparMat, readMethod="col-wise", verbose=true)
+```
+```julia
+3×3 Matrix{ComplexF64}:
+1.0+0.0im  0.0+2.0im  0.0+0.0im
+0.0+0.0im  0.0+0.0im  2.0+0.0im
+0.0+0.0im  0.0+0.0im  0.0+3.0im
+```
+```julia
+mat = spar2Full(sparMat, readMethod="nnzVecElems-wise", verbose=true)
+```
+```julia
+3×3 Matrix{ComplexF64}:
+1.0+0.0im  0.0+2.0im  0.0+0.0im
+0.0+0.0im  0.0+0.0im  2.0+0.0im
+0.0+0.0im  0.0+0.0im  0.0+3.0im
+```
+"""
+function spar2Full(sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+    readMethod::String = "row-wise",
+    verbose::Bool = false)
+
+    NVec = sparMat.NVec
+    MVec = sparMat.MVec
+    nnzVec = sparMat.nnzVec
+
+    FIR = NVec.FIR
+    FIC = MVec.FIC
+    N = length(FIR)
+    M = length(FIC)
+    nnz = length(nnzVec.ID)
+    mat = zeros(ComplexF64, N, M)
+
+    if readMethod == "row-wise"
+        for row = 1:N
+            elemIdx = FIR[row]
+            while elemIdx != -1
+                nnzElem = nnzVec[elemIdx, :]
+                i = nnzElem.NROW
+                j = nnzElem.NCOL
+                mat_ij = nnzElem.Val
+                mat[i, j] = mat_ij
+                elemIdx = nnzElem.NIR
+            end
+        end
+    elseif readMethod == "col-wise"
+        for col = 1:M
+            elemIdx = FIC[col]
+            while elemIdx != -1
+                nnzElem = nnzVec[elemIdx, :]
+                i = nnzElem.NROW
+                j = nnzElem.NCOL
+                mat_ij = nnzElem.Val
+                mat[i, j] = mat_ij
+                elemIdx = nnzElem.NIC
+            end
+        end
+    elseif readMethod == "nnzVecElems-wise"
+        for elemNum = 1:nnz
+            nnzElem = nnzVec[elemNum, :]
+            i = nnzElem.NROW
+            j = nnzElem.NCOL
+            mat_ij = nnzElem.Val
+            mat[i, j] = mat_ij
+        end
+    else
+        error("Unknown read method for conversion of sparse matrix
+        to full")
+    end
+        
+    return mat
+end
+
 """
 nnzRowConstructor(compElem::DataFrameRow)
 
@@ -628,21 +791,16 @@ function hcatSparse(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame
     matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
     verbose::Bool = false)
 
-    NLeftVec, MLeftVec, nnzLeftVec = matLeft.NVec, matLeft.MVec, matLeft.nnzVec
-    NRightVec, MRightVec, nnzRightVec = matRight.NVec, matRight.MVec, matRight.nnzVec
-
-    N = length(NLeftVec.FIR)
-    if length(NRightVec.FIR) != N
-        error("Horizontal Concatenations NOT possible for mismatching number of rows.")
+    if length(matRight.NVec.FIR) != length(matLeft.NVec.FIR)
+        error("Horizontal Concatenation NOT possible for mismatching number of rows.")
     end
 
-    nnzLeft = length(nnzLeftVec.ID)
-    # MRightVec.FIC =  nnzLeft.+MRightVec.FIC
+    matRightMod = modify_matRight(matLeft, matRight)
+    NRightVec, MRightVec, nnzRightVec = matRightMod.NVec, matRightMod.MVec, matRightMod.nnzVec
 
-    MLeft = length(MLeftVec.FIC)
+    matLeftMod = modify_matLeft(matLeft, matRightMod)
+    NLeftVec, MLeftVec, nnzLeftVec = matLeftMod.NVec, matLeftMod.MVec, matLeftMod.nnzVec
 
-    @show NRightVec, MRightVec, nnzRightVec = modify_matRight(NRightVec, MRightVec, nnzRightVec, N, MLeft, nnzLeft)
-    NLeftVec, nnzLeftVec = connect_nnzVecs(NLeftVec, nnzLeftVec, NRightVec)
 
     NVec = NLeftVec
     MVec = DataFrame(FIC = vcat(MLeftVec.FIC, MRightVec.FIC))
@@ -652,8 +810,17 @@ function hcatSparse(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame
     return matHorz
 end
 
-function modify_matRight(NRightVec::DataFrame, MRightVec::DataFrame, nnzRightVec::DataFrame, N::Int64, MLeft::Int64, nnzLeft::Int64)
+function modify_matRight(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
     
+    NLeftVec, MLeftVec, nnzLeftVec = matLeft.NVec, matLeft.MVec, matLeft.nnzVec
+    N = length(NLeftVec.FIR)
+    MLeft = length(MLeftVec.FIC)
+    nnzLeft = length(nnzLeftVec.ID)
+
+    matRightCopy = deepcopy(matRight)
+    NRightVec, MRightVec, nnzRightVec = matRightCopy.NVec, matRightCopy.MVec, matRightCopy.nnzVec
+
     for row in 1:N
         if NRightVec.FIR[row] != -1
             NRightVec.FIR[row] += nnzLeft
@@ -679,10 +846,17 @@ function modify_matRight(NRightVec::DataFrame, MRightVec::DataFrame, nnzRightVec
         end
     end
 
-    return NRightVec, MRightVec, nnzRightVec
+    matRightCopy = (NVec=NRightVec, MVec=MRightVec, nnzVec=nnzRightVec)
+    return matRightCopy
 end
 
-function connect_nnzVecs(NLeftVec::DataFrame, nnzLeftVec::DataFrame, NRightVec::DataFrame)
+function modify_matLeft(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
+
+    matLeftCopy = deepcopy(matLeft)
+    NLeftVec, MLeftVec, nnzLeftVec = matLeftCopy.NVec, matLeftCopy.MVec, matLeftCopy.nnzVec
+    NRightVec, MRightVec, nnzRightVec = matRight.NVec, matRight.MVec, matRight.nnzVec
+
     N = length(NLeftVec.FIR)
     for row = 1:N
         lastKnownElemInRow = NLeftVec.FIR[row]
@@ -698,7 +872,8 @@ function connect_nnzVecs(NLeftVec::DataFrame, nnzLeftVec::DataFrame, NRightVec::
         end
     end
 
-    return NLeftVec, nnzLeftVec
+    matLeftCopy = (NVec=NLeftVec, MVec=MLeftVec, nnzVec=nnzLeftVec)
+    return matLeftCopy
 end
 
 NLeft1 = DataFrame(FIR = [1, 2, 4])
@@ -713,166 +888,5 @@ nnzRight1 = DataFrame(ID = [1, 2, 3], NROW = [1, 2, 3], NCOL = [1, 2, 1], NIR = 
 matRight = (NVec=NRight1, MVec=MRight1, nnzVec=nnzRight1)
 spar2Full(matRight)
 
-hcatSparse(matLeft, matRight)
-""""
-    compressed2Full(compMatrix::DataFrame)
+matHorz = hcatSparse(matLeft, matRight)
 
-Converts a compressed matrix representation stored in a DataFrame into a full 
-matrix.
-
-## Arguments
-- `compMatrix::DataFrame`: A DataFrame representing the compressed matrix. 
-It should have three columns: `i`, `j`, and `val`. Column `i` contains the 
-row indices, column `j` contains the column indices, and column `val` contains 
-the corresponding values.
-
-## Returns
-- `fullMatrix::Matrix`: A full matrix representation of the input compressed 
-matrix.
-
-## Dependencies
-This function requires the following packages to be imported:
-- `SparseArrays`: Provides support for sparse matrix operations.
-- `DataFrames`: Provides support for working with tabular data in a 
-DataFrame format.
-
-## Example
-```julia
-using SparseArrays
-using DataFrames
-
-# Define the compressed matrix
-values = vec([-1, -2, 2, 8, 1, 3, -2, -3, 2, 1, 2, -4])
-rows = vec([1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5])
-cols = vec([1, 3, 1, 2, 4, 3, 5, 2, 3, 1, 2, 5])
-compMatrix = DataFrame(Val = values, i = rows, j = cols)
-
-# Convert the compressed matrix to a full matrix
-matFull = compressed2Full(compMatrix)
-"""
-function compressed2Full(compMatrix::DataFrame)
-	# Use SparseArrays's sparse function to conveniently convert the compressed 
-	# matrix (i, j, Val) into Compressed Storage Column CSC format
-	# I don't care how it does it. 
-	# This function is only to be called for testing purposes anyway.
-    sparseMatrix = sparse(compMatrix.i, compMatrix.j, compMatrix.Val)
-	# Convert the sparse matrix into the full matrix.
-    fullMatrix = Matrix(sparseMatrix)
-	return fullMatrix
-end
-
-
-"""
-    spar2Full(sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
-    readMethod::String = "row-wise",
-    verbose::Bool = false)
-
-Convert a sparse matrix represented by sparMat to a regular matrix.
-
-## Arguments
-- `sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: Named tuple representing the sparse matrix, with fields `NVec`, `MVec`, and `nnzVec`.
-- `readMethod::String`: Optional. The method to read the elements of the sparse matrix. Default is "row-wise". Possible values are "row-wise", "col-wise", and "nnzVecElems-wise".
-- `verbose::Bool`: Optional. If set to `true`, print verbose output. Default is `false`.
-
-## Returns
-- `mat::Matrix{ComplexF64}`: The converted regular matrix.
-
-## Details
-The `spar2Full` function converts the sparse matrix represented by `sparMat` to a regular matrix. The sparse matrix is defined by the non-zero elements stored in `nnzVec` DataFrame, with the row and column information stored in `NVec` and `MVec` DataFrames, respectively.
-
-The conversion can be done in different ways depending on the `readMethod` argument:
-- `"row-wise"`: The elements are read row by row, and the corresponding positions in the regular matrix are filled.
-- `"col-wise"`: The elements are read column by column, and the corresponding positions in the regular matrix are filled.
-- `"nnzVecElems-wise"`: The elements are read from `nnzVec` DataFrame in the order they appear, and the corresponding positions in the regular matrix are filled.
-
-## Example
-```julia
-sparMat = (NVec=DataFrame(FIR=[1, 2, 4], NIR=[2, -1, -1]),
-MVec=DataFrame(FIC=[1, 3, 2, -1]), 
-nnzVec=DataFrame(ID=[1, 2, 3],
-NROW=[1, 2, 3],
-NCOL=[1, 2, 3],
-Val=[1.0, 2.0, 3.0],
-NIR=[2, -1, -1],
-NIC=[-1, -1, -1]))
-mat = spar2Full(sparMat, readMethod="row-wise", verbose=true)
-```
-```julia
-3×3 Matrix{ComplexF64}:
-1.0+0.0im  0.0+2.0im  0.0+0.0im
-0.0+0.0im  0.0+0.0im  2.0+0.0im
-0.0+0.0im  0.0+0.0im  0.0+3.0im
-```
-```julia
-mat = spar2Full(sparMat, readMethod="col-wise", verbose=true)
-```
-```julia
-3×3 Matrix{ComplexF64}:
-1.0+0.0im  0.0+2.0im  0.0+0.0im
-0.0+0.0im  0.0+0.0im  2.0+0.0im
-0.0+0.0im  0.0+0.0im  0.0+3.0im
-```
-```julia
-mat = spar2Full(sparMat, readMethod="nnzVecElems-wise", verbose=true)
-```
-```julia
-3×3 Matrix{ComplexF64}:
-1.0+0.0im  0.0+2.0im  0.0+0.0im
-0.0+0.0im  0.0+0.0im  2.0+0.0im
-0.0+0.0im  0.0+0.0im  0.0+3.0im
-```
-"""
-function spar2Full(sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
-    readMethod::String = "row-wise",
-    verbose::Bool = false)
-
-    NVec = sparMat.NVec
-    MVec = sparMat.MVec
-    nnzVec = sparMat.nnzVec
-
-    FIR = NVec.FIR
-    FIC = MVec.FIC
-    N = length(FIR)
-    M = length(FIC)
-    nnz = length(nnzVec.ID)
-    mat = zeros(ComplexF64, N, M)
-
-    if readMethod == "row-wise"
-        for row = 1:N
-            elemIdx = FIR[row]
-            while elemIdx != -1
-                nnzElem = nnzVec[elemIdx, :]
-                i = nnzElem.NROW
-                j = nnzElem.NCOL
-                mat_ij = nnzElem.Val
-                mat[i, j] = mat_ij
-                elemIdx = nnzElem.NIR
-            end
-        end
-    elseif readMethod == "col-wise"
-        for col = 1:M
-            elemIdx = FIC[col]
-            while elemIdx != -1
-                nnzElem = nnzVec[elemIdx, :]
-                i = nnzElem.NROW
-                j = nnzElem.NCOL
-                mat_ij = nnzElem.Val
-                mat[i, j] = mat_ij
-                elemIdx = nnzElem.NIC
-            end
-        end
-    elseif readMethod == "nnzVecElems-wise"
-        for elemNum = 1:nnz
-            nnzElem = nnzVec[elemNum, :]
-            i = nnzElem.NROW
-            j = nnzElem.NCOL
-            mat_ij = nnzElem.Val
-            mat[i, j] = mat_ij
-        end
-    else
-        error("Unknown read method for conversion of sparse matrix
-        to full")
-    end
-        
-    return mat
-end
