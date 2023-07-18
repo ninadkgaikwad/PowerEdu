@@ -612,10 +612,10 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
     return J
 end
 
-function combineJacobianSubmatrices(J11::Tuple{DataFrame, DataFrame}, 
-    J12::Tuple{DataFrame, DataFrame},
-    J21::Tuple{DataFrame, DataFrame},
-    J22::Tuple{DataFrame, DataFrame};
+function combineJacobianSubmatrices(J11::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}, 
+    J12::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    J21::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    J22::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
     verbose=false)
 
     J1 = hcatSparse(J11, J12)
@@ -624,14 +624,97 @@ function combineJacobianSubmatrices(J11::Tuple{DataFrame, DataFrame},
     return J
 end
 
-function hcatSparse(matLeft::Tuple{DataFrame, DataFrame}, 
-    matRight::Tuple{DataFrame, DataFrame};
+function hcatSparse(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}, 
+    matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
     verbose::Bool = false)
+
+    NLeftVec, MLeftVec, nnzLeftVec = matLeft.NVec, matLeft.MVec, matLeft.nnzVec
+    NRightVec, MRightVec, nnzRightVec = matRight.NVec, matRight.MVec, matRight.nnzVec
+
+    N = length(NLeftVec.FIR)
+    if length(NRightVec.FIR) != N
+        error("Horizontal Concatenations NOT possible for mismatching number of rows.")
+    end
+
+    nnzLeft = length(nnzLeftVec.ID)
+    # MRightVec.FIC =  nnzLeft.+MRightVec.FIC
+
+    MLeft = length(MLeftVec.FIC)
+
+    @show NRightVec, MRightVec, nnzRightVec = modify_matRight(NRightVec, MRightVec, nnzRightVec, N, MLeft, nnzLeft)
+    NLeftVec, nnzLeftVec = connect_nnzVecs(NLeftVec, nnzLeftVec, NRightVec)
+
+    NVec = NLeftVec
+    MVec = DataFrame(FIC = vcat(MLeftVec.FIC, MRightVec.FIC))
+    nnzVec = vcat(nnzLeftVec, nnzRightVec)
+    matHorz = (NVec=NVec, MVec=MVec, nnzVec=nnzVec)
 
     return matHorz
 end
 
-"""
+function modify_matRight(NRightVec::DataFrame, MRightVec::DataFrame, nnzRightVec::DataFrame, N::Int64, MLeft::Int64, nnzLeft::Int64)
+    
+    for row in 1:N
+        if NRightVec.FIR[row] != -1
+            NRightVec.FIR[row] += nnzLeft
+        end
+    end
+
+    MRight = length(MRightVec.FIC)
+    for col in 1:MRight
+        if MRightVec.FIC[col] != -1
+            MRightVec.FIC[col] += nnzLeft
+        end
+    end
+    
+    nnzRightVec.ID .+= nnzLeft
+    nnzRightVec.NCOL .+= MLeft
+    nnzRight = length(nnzRightVec.ID)
+    for elemNum in 1:nnzRight
+        if nnzRightVec.NIR[elemNum] != -1
+            nnzRightVec.NIR[elemNum] += nnzLeft
+        end
+        if nnzRightVec.NIC[elemNum] != -1
+            nnzRightVec.NIC[elemNum] += nnzLeft
+        end
+    end
+
+    return NRightVec, MRightVec, nnzRightVec
+end
+
+function connect_nnzVecs(NLeftVec::DataFrame, nnzLeftVec::DataFrame, NRightVec::DataFrame)
+    N = length(NLeftVec.FIR)
+    for row = 1:N
+        lastKnownElemInRow = NLeftVec.FIR[row]
+        if lastKnownElemInRow == -1
+            NLeftVec.FIR[row] = NRightVec.ID[row]
+        else
+            nextElemInRow = lastKnownElemInRow
+            while nextElemInRow != -1
+                lastKnownElemInRow = nextElemInRow
+                nextElemInRow = nnzLeftVec.NIR[lastKnownElemInRow]
+            end
+            nnzLeftVec.NIR[lastKnownElemInRow] = NRightVec.FIR[row]
+        end
+    end
+
+    return NLeftVec, nnzLeftVec
+end
+
+NLeft1 = DataFrame(FIR = [1, 2, 4])
+MLeft1 = DataFrame(FIC = [2, 1, 3])
+nnzLeft1 = DataFrame(ID = [1, 2, 3, 4, 5], NROW = [1, 2, 2, 3, 3], NCOL = [2, 1, 3, 2, 3], NIR = [-1, 3, -1, 5, -1], NIC = [4, -1, 5, -1, -1], Val = [1, 1, 1, 1, 1])
+matLeft = (NVec=NLeft1, MVec=MLeft1, nnzVec=nnzLeft1)
+spar2Full(matLeft)
+
+NRight1 = DataFrame(FIR = [1, 2, 3])
+MRight1 = DataFrame(FIC = [1, 2])
+nnzRight1 = DataFrame(ID = [1, 2, 3], NROW = [1, 2, 3], NCOL = [1, 2, 1], NIR = [-1, -1, -1], NIC = [3, -1, -1], Val = [1, 1, 1])
+matRight = (NVec=NRight1, MVec=MRight1, nnzVec=nnzRight1)
+spar2Full(matRight)
+
+hcatSparse(matLeft, matRight)
+""""
     compressed2Full(compMatrix::DataFrame)
 
 Converts a compressed matrix representation stored in a DataFrame into a full 
