@@ -60,7 +60,8 @@ end
     readMethod::String = "row-wise",
     verbose::Bool = false)
 
-Convert a sparse matrix represented by sparMat to a regular matrix.
+Convert a sparse matrix represented by sparMat to a regular (full) matrix. 
+It is literally the inverse function of `sparmat`.
 
 ## Arguments
 - `sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: Named tuple representing the sparse matrix, with fields `NVec`, `MVec`, and `nnzVec`.
@@ -217,7 +218,6 @@ sparMat = sparmat(compMatrix, verbose = true)
 """
 function sparmat(input::T where T<:Union{DataFrame, Matrix};
     verbose::Bool=false)
-    @show typeof(input)
     if isa(input, DataFrame)
         # Input is a compMat, so use it directly
         compMatrix = input
@@ -769,6 +769,7 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
     nnzYBus::DataFrame,
     NYBus::DataFrame;
     verbose::Bool=false,
+    combinationOrder::String="hcat-then-vcat",
     saveTable::Bool=false,
     processedDataFolder::String="processedData/")
 
@@ -783,22 +784,50 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
     J21 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, type="J21")
     J22 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, type="J22")
 
-    J = combineJacobianSubmatrices(J11, J12, J21, J22)
+    if combinationOrder == "hcat-then-vcat"
+        JTop = hcatSparse(J11, J12)
+        JBottom = hcatSparse(J21, J22)
+        J = vcatSparse(JTop, JBottom)
+    elseif combinationOrder == "vcat-then-hcat"
+        JLeft = vcatSparse(J11, J21)
+        JRight = vcatSparse(J12, J22)
+        J = hcatSparse(JLeft, JRight)
+    else
+        error("Unknown combination order.")
+    end
+
     return J
 end
 
-function combineJacobianSubmatrices(J11::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}, 
-    J12::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
-    J21::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
-    J22::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
-    verbose=false)
+"""
+    hcatSparse(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}, 
+        matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+        verbose::Bool = false)
 
-    J1 = hcatSparse(J11, J12)
-    J2 = hcatSparse(J21, J22)
-    J = vcatSparse(J1, J2)
-    return J
-end
+The `hcatSparse` function performs horizontal concatenation of two sparse matrices represented by named tuples `matLeft` and `matRight`. It concatenates the `matLeft` and `matRight` DataFrames horizontally and returns a new sparse matrix represented by the named tuple `matHorz`.
 
+Arguments:
+- `matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the left sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the right sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `verbose::Bool`: (optional) A Boolean value indicating whether to display verbose output during the concatenation process. Default is `false`.
+
+Returns:
+- A named tuple `matHorz` containing three DataFrames `NVec`, `MVec`, and `nnzVec` representing the horizontally concatenated sparse matrix.
+
+Example:
+```julia
+NLeft1 = DataFrame(FIR = [1, 2, 4])
+MLeft1 = DataFrame(FIC = [2, 1, 3])
+nnzLeft1 = DataFrame(ID = [1, 2, 3, 4, 5], NROW = [1, 2, 2, 3, 3], NCOL = [2, 1, 3, 2, 3], NIR = [-1, 3, -1, 5, -1], NIC = [4, -1, 5, -1, -1], Val = [1, 1, 1, 1, 1])
+matLeft = (NVec=NLeft1, MVec=MLeft1, nnzVec=nnzLeft1)
+
+NRight1 = DataFrame(FIR = [1, 2, 3])
+MRight1 = DataFrame(FIC = [1, 2])
+nnzRight1 = DataFrame(ID = [1, 2, 3], NROW = [1, 2, 3], NCOL = [1, 2, 1], NIR = [-1, -1, -1], NIC = [3, -1, -1], Val = [1, 1, 1])
+matRight = (NVec=NRight1, MVec=MRight1, nnzVec=nnzRight1)
+
+matHorz = hcatSparse(matLeft, matRight)
+"""
 function hcatSparse(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}, 
     matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
     verbose::Bool = false)
@@ -822,6 +851,28 @@ function hcatSparse(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame
     return matHorz
 end
 
+"""
+    vcatSparse(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}, 
+        matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+        verbose::Bool = false)
+
+The `vcatSparse` function performs vertical concatenation of two sparse matrices represented by named tuples `matTop` and `matBottom`. It concatenates the `matTop` and `matBottom` DataFrames vertically and returns a new sparse matrix represented by the named tuple `matVert`.
+
+Arguments:
+- `matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the top sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the bottom sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `verbose::Bool`: (optional) A Boolean value indicating whether to display verbose output during the concatenation process. Default is `false`.
+
+Returns:
+- A named tuple `matVert` containing three DataFrames `NVec`, `MVec`, and `nnzVec` representing the vertically concatenated sparse matrix.
+
+Example:
+```julia
+matTop = (NVec=DataFrame(FIR=[1, 3, 4]), MVec=DataFrame(FIC=[2, 1, 3]), nnzVec=DataFrame(ID=[1, 2, 3, 4, 5], NROW=[1, 1, 2, 3, 3], NCOL=[1, 3, 2, 2, 3], NIR=[-1, 3, -1, 5, -1], NIC=[4, -1, 5, -1, -1], Val=[11, 22, 33, 44, 55]))
+matBottom = (NVec=DataFrame(FIR=[1]), MVec=DataFrame(FIC=[1, 2, 3]), nnzVec=DataFrame(ID=[1, 2, 3], NROW=[1, 2, 3], NCOL=[1, 2, 1], NIR=[-1, -1, -1], NIC=[3, -1, -1], Val=[66, 77, 88]))
+
+matVert = vcatSparse(matTop, matBottom, verbose=true)
+"""
 function vcatSparse(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}, 
     matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
     verbose::Bool = false)
@@ -844,6 +895,26 @@ function vcatSparse(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame,
     return matVert
 end
 
+"""
+    modify_matRight(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+        matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
+
+The `modify_matRight` function modifies the `matRight` named tuple to prepare it for horizontal concatenation with `matLeft`. It updates the column indices of the elements in the right sparse matrix and ensures that the matrix can be properly concatenated with the left sparse matrix.
+
+Arguments:
+- `matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the left sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the right sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+
+Returns:
+- A modified named tuple `matRightCopy` with updated column indices to prepare it for horizontal concatenation with `matLeft`.
+
+Example:
+```julia
+matLeft = (NVec=DataFrame(FIR=[1, 3, 4]), MVec=DataFrame(FIC=[2, 1, 3]), nnzVec=DataFrame(ID=[1, 2, 3, 4, 5], NROW=[1, 1, 2, 3, 3], NCOL=[1, 3, 2, 2, 3], NIR=[-1, 3, -1, 5, -1], NIC=[4, -1, 5, -1, -1], Val=[11, 22, 33, 44, 55]))
+matRight = (NVec=DataFrame(FIR=[1, 2, 3]), MVec=DataFrame(FIC=[1, 2]), nnzVec=DataFrame(ID=[1, 2, 3], NROW=[1, 2, 3], NCOL=[1, 2, 1], NIR=[-1, -1, -1], NIC=[3, -1, -1], Val=[66, 77, 88]))
+
+matRightCopy = modify_matRight(matLeft, matRight)
+"""
 function modify_matRight(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
     matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
     
@@ -884,6 +955,26 @@ function modify_matRight(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{Data
     return matRightCopy
 end
 
+"""
+    modify_matBottom(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+        matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
+
+The `modify_matBottom` function modifies the `matBottom` named tuple to prepare it for vertical concatenation with `matTop`. It updates the row indices of the elements in the bottom sparse matrix to properly align them with the top sparse matrix.
+
+Arguments:
+- `matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the top sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the bottom sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+
+Returns:
+- A modified named tuple `matBottomCopy` with updated row indices to prepare it for vertical concatenation with `matTop`.
+
+Example:
+```julia
+matTop = (NVec=DataFrame(FIR=[1, 3, 4]), MVec=DataFrame(FIC=[2, 1, 3]), nnzVec=DataFrame(ID=[1, 2, 3, 4, 5], NROW=[1, 1, 2, 3, 3], NCOL=[1, 3, 2, 2, 3], NIR=[-1, 3, -1, 5, -1], NIC=[4, -1, 5, -1, -1], Val=[11, 22, 33, 44, 55]))
+matBottom = (NVec=DataFrame(FIR=[1, 2, 3]), MVec=DataFrame(FIC=[1, 2]), nnzVec=DataFrame(ID=[1, 2, 3], NROW=[1, 2, 3], NCOL=[1, 2, 1], NIR=[-1, -1, -1], NIC=[3, -1, -1], Val=[66, 77, 88]))
+
+matBottomCopy = modify_matBottom(matTop, matBottom)
+"""
 function modify_matBottom(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
     matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
     
@@ -924,6 +1015,26 @@ function modify_matBottom(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{Data
     return matBottomCopy
 end
 
+"""
+    modify_matLeft(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+        matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
+
+The `modify_matLeft` function modifies the `matLeft` named tuple to prepare it for vertical concatenation with `matRight`. It updates the row indices of the elements in the left sparse matrix to properly align them with the right sparse matrix.
+
+Arguments:
+- `matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the left sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the right sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+
+Returns:
+- A modified named tuple `matLeftCopy` with updated row indices to prepare it for vertical concatenation with `matRight`.
+
+Example:
+```julia
+matLeft = (NVec=DataFrame(FIR=[1, 3, 4]), MVec=DataFrame(FIC=[2, 1, 3]), nnzVec=DataFrame(ID=[1, 2, 3, 4, 5], NROW=[1, 1, 2, 3, 3], NCOL=[1, 3, 2, 2, 3], NIR=[-1, 3, -1, 5, -1], NIC=[4, -1, 5, -1, -1], Val=[11, 22, 33, 44, 55]))
+matRight = (NVec=DataFrame(FIR=[1, 2, 3]), MVec=DataFrame(FIC=[1, 2]), nnzVec=DataFrame(ID=[1, 2, 3], NROW=[1, 2, 3], NCOL=[1, 2, 1], NIR=[-1, -1, -1], NIC=[3, -1, -1], Val=[66, 77, 88]))
+
+matLeftCopy = modify_matLeft(matLeft, matRight)
+"""
 function modify_matLeft(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
     matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
 
@@ -950,6 +1061,28 @@ function modify_matLeft(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataF
     return matLeftCopy
 end
 
+"""
+    modify_matTop(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+        matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+        verbose::Bool=false)
+
+The `modify_matTop` function modifies the `matTop` named tuple to prepare it for vertical concatenation with `matBottom`. It updates the column indices of the elements in the top sparse matrix to properly align them with the bottom sparse matrix.
+
+Arguments:
+- `matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the top sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the bottom sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `verbose::Bool`: (optional) A Boolean value indicating whether to display verbose output during the modification process. Default is `false`.
+
+Returns:
+- A modified named tuple `matTopCopy` with updated column indices to prepare it for vertical concatenation with `matBottom`.
+
+Example:
+```julia
+matTop = (NVec=DataFrame(FIR=[1, 3, 4]), MVec=DataFrame(FIC=[2, 1, 3]), nnzVec=DataFrame(ID=[1, 2, 3, 4, 5], NROW=[1, 1, 2, 3, 3], NCOL=[1, 3, 2, 2, 3], NIR=[-1, 3, -1, 5, -1], NIC=[4, -1, 5, -1, -1], Val=[11, 22, 33, 44, 55]))
+matBottom = (NVec=DataFrame(FIR=[1, 2, 3]), MVec=DataFrame(FIC=[1, 2]), nnzVec=DataFrame(ID=[1, 2, 3], NROW=[1, 2, 3], NCOL=[1, 2, 1], NIR=[-1, -1, -1], NIC=[3, -1, -1], Val=[66, 77, 88]))
+
+matTopCopy = modify_matTop(matTop, matBottom)
+"""
 function modify_matTop(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
     matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
     verbose::Bool=false)
@@ -983,22 +1116,22 @@ function modify_matTop(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFra
     return matTopCopy
 end
 
+"""
+    full2comp(matFull::Matrix{T}) where T
 
+The `full2comp` function converts a full matrix `matFull` into a compressed matrix `compMat`. It iterates over the elements of the full matrix, constructs `compMat` by storing the non-zero elements with their row and column indices.
 
-NLeft1 = DataFrame(FIR = [1, 2, 4])
-MLeft1 = DataFrame(FIC = [2, 1, 3])
-nnzLeft1 = DataFrame(ID = [1, 2, 3, 4, 5], NROW = [1, 2, 2, 3, 3], NCOL = [2, 1, 3, 2, 3], NIR = [-1, 3, -1, 5, -1], NIC = [4, -1, 5, -1, -1], Val = [1, 1, 1, 1, 1])
-matLeft = (NVec=NLeft1, MVec=MLeft1, nnzVec=nnzLeft1)
-spar2Full(matLeft)
+Arguments:
+- `matFull::Matrix{T}`: The full matrix to be converted into a compressed matrix, where `T` represents the element type.
 
-NRight1 = DataFrame(FIR = [1, 2, 3])
-MRight1 = DataFrame(FIC = [1, 2])
-nnzRight1 = DataFrame(ID = [1, 2, 3], NROW = [1, 2, 3], NCOL = [1, 2, 1], NIR = [-1, -1, -1], NIC = [3, -1, -1], Val = [1, 1, 1])
-matRight = (NVec=NRight1, MVec=MRight1, nnzVec=nnzRight1)
-spar2Full(matRight)
+Returns:
+- A DataFrame `compMat` representing the compressed matrix with columns `i`, `j`, and `Val` containing the row indices, column indices, and values of the non-zero elements, respectively.
 
-matHorz = hcatSparse(matLeft, matRight)
-
+Example:
+```julia
+matFull = [11 0 22; 0 33 0; 0 44 55]
+compMat = full2comp(matFull)
+"""
 function full2comp(matFull::Matrix{T}) where T
     m, n = size(matFull)
     i, j, Val = Int[], Int[], T[]
@@ -1015,27 +1148,6 @@ function full2comp(matFull::Matrix{T}) where T
 
     compMat = DataFrame(i=i, j=j, Val=Val)
     return compMat
-end
-
-matTopFull = [11 0 22; 0 33 0; 0 44 55]
-compMatTop = full2comp(matTopFull)
-matTop = sparmat(compMatTop)
-@test spar2Full(matTop) == matTopFull
-
-
-matBottomFull = [0 111 222;333 444 0]
-compMatBottom = full2comp(matBottomFull)
-matBottom = sparmat(compMatBottom)
-@test spar2Full(matBottom) == matBottomFull 
-
-matBottom2 = modify_matBottom(matTop, matBottom)
-
-matTop2 = modify_matTop(matTop, matBottom2)
-expected_matVertFull = [11 0 22; 0 33 0; 0 44 55; 0 111 222; 333 444 0]
-
-@test begin
-    matVert = vcatSparse(matTop, matBottom)
-    spar2Full(matVert) == expected_matVertFull
 end
 
 nPV = 1;
