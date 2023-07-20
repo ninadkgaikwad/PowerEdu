@@ -2,6 +2,8 @@
 
 using SparseArrays
 using DataFrames
+using Test
+using CSV
 
 include("Helper_Functions.jl")
 
@@ -233,7 +235,8 @@ function sparmat(compMatrix::DataFrame;
 
 		nnzElem = nnzRowConstructor(compElem)
 
-		NVec, MVec, nnzVec = updateSparse(NVec, MVec, nnzVec, nnzElem, type="replace", verbose=verbose)
+        sparMat = (NVec=NVec, MVec=MVec, nnzVec=nnzVec)
+		NVec, MVec, nnzVec = updateSparse(sparMat, nnzElem, type="replace", verbose=verbose)
 	end
 
     sparMat = (NVec=NVec, MVec=MVec, nnzVec=nnzVec) 
@@ -810,6 +813,28 @@ function hcatSparse(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame
     return matHorz
 end
 
+function vcatSparse(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}, 
+    matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+    verbose::Bool = false)
+
+    if length(matTop.MVec.FIC) != length(matBottom.MVec.FIC)
+        error("Vertical Concatenation NOT possible for mismatching number of columns.")
+    end
+
+    matBottomMod = modify_matBottom(matTop, matBottom)
+    NBottomVec, MBottomVec, nnzBottomVec = matBottomMod.NVec, matBottomMod.MVec, matBottomMod.nnzVec
+
+    matTopMod = modify_matTop(matTop, matBottomMod)
+    NTopVec, MTopVec, nnzTopVec = matTopMod.NVec, matTopMod.MVec, matTopMod.nnzVec
+
+    NVec = DataFrame(FIR = vcat(NTopVec.FIR, NBottomVec.FIR))
+    MVec = MTopVec
+    nnzVec = vcat(nnzTopVec, nnzBottomVec)
+    matVert = (NVec=NVec, MVec=MVec, nnzVec=nnzVec)
+
+    return matVert
+end
+
 function modify_matRight(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
     matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
     
@@ -850,6 +875,46 @@ function modify_matRight(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{Data
     return matRightCopy
 end
 
+function modify_matBottom(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
+    
+    NTopVec, MTopVec, nnzTopVec = matTop.NVec, matTop.MVec, matTop.nnzVec
+    NTop = length(NTopVec.FIR)
+    M = length(MTopVec.FIC)
+    nnzTop = length(nnzTopVec.ID)
+
+    matBottomCopy = deepcopy(matBottom)
+    NBottomVec, MBottomVec, nnzBottomVec = matBottomCopy.NVec, matBottomCopy.MVec, matBottomCopy.nnzVec
+
+    for col in 1:M
+        if MBottomVec.FIC[col] != -1
+            MBottomVec.FIC[col] += nnzTop
+        end
+    end
+
+    NBottom = length(NBottomVec.FIR)
+    for row in 1:NBottom
+        if NBottomVec.FIR[row] != -1
+            NBottomVec.FIR[row] += nnzTop
+        end
+    end
+    
+    nnzBottomVec.ID .+= nnzTop
+    nnzBottomVec.NROW .+= NTop
+    nnzBottom = length(nnzBottomVec.ID)
+    for elemNum in 1:nnzBottom
+        if nnzBottomVec.NIC[elemNum] != -1
+            nnzBottomVec.NIC[elemNum] += nnzTop
+        end
+        if nnzBottomVec.NIR[elemNum] != -1
+            nnzBottomVec.NIR[elemNum] += nnzTop
+        end
+    end
+
+    matBottomCopy = (NVec=NBottomVec, MVec=MBottomVec, nnzVec=nnzBottomVec)
+    return matBottomCopy
+end
+
 function modify_matLeft(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
     matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
 
@@ -876,17 +941,82 @@ function modify_matLeft(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataF
     return matLeftCopy
 end
 
-NLeft1 = DataFrame(FIR = [1, 2, 4])
-MLeft1 = DataFrame(FIC = [2, 1, 3])
-nnzLeft1 = DataFrame(ID = [1, 2, 3, 4, 5], NROW = [1, 2, 2, 3, 3], NCOL = [2, 1, 3, 2, 3], NIR = [-1, 3, -1, 5, -1], NIC = [4, -1, 5, -1, -1], Val = [1, 1, 1, 1, 1])
-matLeft = (NVec=NLeft1, MVec=MLeft1, nnzVec=nnzLeft1)
-spar2Full(matLeft)
+function modify_matTop(matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
 
-NRight1 = DataFrame(FIR = [1, 2, 3])
-MRight1 = DataFrame(FIC = [1, 2])
-nnzRight1 = DataFrame(ID = [1, 2, 3], NROW = [1, 2, 3], NCOL = [1, 2, 1], NIR = [-1, -1, -1], NIC = [3, -1, -1], Val = [1, 1, 1])
-matRight = (NVec=NRight1, MVec=MRight1, nnzVec=nnzRight1)
-spar2Full(matRight)
+    matTopCopy = deepcopy(matTop)
+    NTopVec, MTopVec, nnzTopVec = matTopCopy.NVec, matTopCopy.MVec, matTopCopy.nnzVec
+    NBottomVec, MBottomVec, nnzBottomVec = matBottom.NVec, matBottom.MVec, matBottom.nnzVec
 
-matHorz = hcatSparse(matLeft, matRight)
+    M = length(MTopVec.FIC)
+    for col = 1:M
+        lastKnownElemInCol = MTopVec.FIC[col]
+        if lastKnownElemInCol == -1
+            MTopVec.FIC[col] = MBottomVec.ID[col]
+        else
+            nextElemInCol = lastKnownElemInCol
+            while nextElemInCol != -1
+                lastKnownElemInCol = nextElemInCol
+                nextElemInCol = nnzTopVec.NIC[lastKnownElemInCol]
+            end
+            nnzTopVec.NIC[lastKnownElemInCol] = MBottomVec.FIC[col]
+        end
+    end
 
+    matTopCopy = (NVec=NTopVec, MVec=MTopVec, nnzVec=nnzTopVec)
+    return matTopCopy
+end
+
+
+
+# NLeft1 = DataFrame(FIR = [1, 2, 4])
+# MLeft1 = DataFrame(FIC = [2, 1, 3])
+# nnzLeft1 = DataFrame(ID = [1, 2, 3, 4, 5], NROW = [1, 2, 2, 3, 3], NCOL = [2, 1, 3, 2, 3], NIR = [-1, 3, -1, 5, -1], NIC = [4, -1, 5, -1, -1], Val = [1, 1, 1, 1, 1])
+# matLeft = (NVec=NLeft1, MVec=MLeft1, nnzVec=nnzLeft1)
+# spar2Full(matLeft)
+
+# NRight1 = DataFrame(FIR = [1, 2, 3])
+# MRight1 = DataFrame(FIC = [1, 2])
+# nnzRight1 = DataFrame(ID = [1, 2, 3], NROW = [1, 2, 3], NCOL = [1, 2, 1], NIR = [-1, -1, -1], NIC = [3, -1, -1], Val = [1, 1, 1])
+# matRight = (NVec=NRight1, MVec=MRight1, nnzVec=nnzRight1)
+# spar2Full(matRight)
+
+# matHorz = hcatSparse(matLeft, matRight)
+
+function full2comp(matFull::Matrix{T}) where T
+    m, n = size(matFull)
+    i, j, Val = Int[], Int[], T[]
+
+    for row in 1:m
+        for col in 1:n
+            if matFull[row, col] != zero(T) # Use zero(T) to handle different numeric types
+                push!(i, row)
+                push!(j, col)
+                push!(Val, matFull[row, col])
+            end
+        end
+    end
+
+    compMat = DataFrame(i=i, j=j, Val=Val)
+    return compMat
+end
+
+matTopFull = [11 0 22; 0 33 0; 0 44 55]
+compMatTop = full2comp(matTopFull)
+matTop = sparmat(compMatTop)
+@test spar2Full(matTop) == matTopFull
+
+
+matBottomFull = [0 111 222;333 444 0]
+compMatBottom = full2comp(matBottomFull)
+matBottom = sparmat(compMatBottom)
+@test spar2Full(matBottom) == matBottomFull 
+
+matBottom2 = modify_matBottom(matTop, matBottom)
+
+expected_matVertFull = [11 0 22; 0 33 0; 0 44 55; 0 111 222; 333 444 0]
+
+@test begin
+    matVert = vcatSparse(matTop, matBottom)
+    spar2Full(matVert) == expected_matVertFull
+end
