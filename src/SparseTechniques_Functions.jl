@@ -199,12 +199,12 @@ function nnzRowConstructor(compElem::DataFrameRow)
 end
 
 """
-    sparmat(compMatrix::DataFrame; verbose::Bool = false)
+    sparmat(input::T where T<:Union{DataFrame, Matrix}; verbose::Bool = false)
 
-The `sparmat` function creates a named tuple `sparMat` that contains three DataFrames, `NVec`, `MVec`, and `nnzVec`, which together represent a sparse matrix. It iterates over the `compMatrix` DataFrame, constructs `nnzVec` rows using the `nnzRowConstructor` function, and updates `NVec`, `MVec`, and `nnzVec` accordingly.
+The `sparmat` function creates a named tuple `sparMat` that contains three DataFrames, `NVec`, `MVec`, and `nnzVec`, which together represent a sparse matrix. It takes either a compressed matrix `compMatrix` (a DataFrame) or a regular (full) matrix as input. If the input is a regular matrix, it first converts it into `compMatrix` using the `full2comp` function.
 
 Arguments:
-- `compMatrix::DataFrame`: The DataFrame containing the compressed matrix information.
+- `input::T`: The input matrix, which can be either a compressed matrix represented as a DataFrame (`compMatrix`) or a regular (full) matrix.
 - `verbose::Bool`: (optional) A Boolean value indicating whether to display verbose output during the construction process. Default is `false`.
 
 Returns:
@@ -214,10 +214,19 @@ Example:
 ```julia
 compMatrix = DataFrame(ID = [1, 2, 3], Val = [0.5, 0.3, 0.8], i = [2, 1, 3], j = [3, 2, 1])
 sparMat = sparmat(compMatrix, verbose = true)
-```
 """
-function sparmat(compMatrix::DataFrame;
-	verbose::Bool = false)
+function sparmat(input::T where T<:Union{DataFrame, Matrix};
+    verbose::Bool=false)
+    @show typeof(input)
+    if isa(input, DataFrame)
+        # Input is a compMat, so use it directly
+        compMatrix = input
+    elseif isa(input, Matrix)
+        # Input is a regular (full) matrix, convert it to compMat using full2comp
+        compMatrix = full2comp(input)
+    else
+        throw(ArgumentError("Unsupported input type. Must be either DataFrame (compMat) or Matrix"))
+    end
 
     N = maximum(compMatrix.i)
     M = maximum(compMatrix.j)
@@ -1040,9 +1049,9 @@ J22 = rand(nPQ, nPQ)
 J = [J11 J12; J21 J22]
 
 J11Spar = sparmat(full2comp(J11))
-J12Spar = sparmat(full2comp(J12))
+J12Spar = sparmat(J12)
 J21Spar = sparmat(full2comp(J21))
-J22Spar = sparmat(full2comp(J22))
+J22Spar = sparmat(J22)
 JTopSpar = hcatSparse(J11Spar, J12Spar)
 JBottomSpar = hcatSparse(J21Spar, J22Spar)
 JSpar = vcatSparse(JTopSpar, JBottomSpar)
