@@ -941,8 +941,9 @@ function modify_matLeft(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataF
     return matLeftCopy
 end
 
-function modify_matTop(matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
-    matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
+function modify_matTop(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+    verbose::Bool=false)
 
     matTopCopy = deepcopy(matTop)
     NTopVec, MTopVec, nnzTopVec = matTopCopy.NVec, matTopCopy.MVec, matTopCopy.nnzVec
@@ -952,8 +953,14 @@ function modify_matTop(matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{Data
     for col = 1:M
         lastKnownElemInCol = MTopVec.FIC[col]
         if lastKnownElemInCol == -1
-            MTopVec.FIC[col] = MBottomVec.ID[col]
+            myprintln(verbose, "Column $col in top matrix was empty!?")
+            myprintln(verbose, "So, the next element to be connected would be
+            $(MBottom.ID[col])")
+            MTopVec.FIC[col] = MBottomVec.FIC[col]
         else
+            incumbentID = MTopVec.FIC[col]
+            myprintln(verbose, "Column $col already has an element, with ID: $incumbentID")
+            myprintln(verbose, "So we find the next element.")
             nextElemInCol = lastKnownElemInCol
             while nextElemInCol != -1
                 lastKnownElemInCol = nextElemInCol
@@ -969,19 +976,19 @@ end
 
 
 
-# NLeft1 = DataFrame(FIR = [1, 2, 4])
-# MLeft1 = DataFrame(FIC = [2, 1, 3])
-# nnzLeft1 = DataFrame(ID = [1, 2, 3, 4, 5], NROW = [1, 2, 2, 3, 3], NCOL = [2, 1, 3, 2, 3], NIR = [-1, 3, -1, 5, -1], NIC = [4, -1, 5, -1, -1], Val = [1, 1, 1, 1, 1])
-# matLeft = (NVec=NLeft1, MVec=MLeft1, nnzVec=nnzLeft1)
-# spar2Full(matLeft)
+NLeft1 = DataFrame(FIR = [1, 2, 4])
+MLeft1 = DataFrame(FIC = [2, 1, 3])
+nnzLeft1 = DataFrame(ID = [1, 2, 3, 4, 5], NROW = [1, 2, 2, 3, 3], NCOL = [2, 1, 3, 2, 3], NIR = [-1, 3, -1, 5, -1], NIC = [4, -1, 5, -1, -1], Val = [1, 1, 1, 1, 1])
+matLeft = (NVec=NLeft1, MVec=MLeft1, nnzVec=nnzLeft1)
+spar2Full(matLeft)
 
-# NRight1 = DataFrame(FIR = [1, 2, 3])
-# MRight1 = DataFrame(FIC = [1, 2])
-# nnzRight1 = DataFrame(ID = [1, 2, 3], NROW = [1, 2, 3], NCOL = [1, 2, 1], NIR = [-1, -1, -1], NIC = [3, -1, -1], Val = [1, 1, 1])
-# matRight = (NVec=NRight1, MVec=MRight1, nnzVec=nnzRight1)
-# spar2Full(matRight)
+NRight1 = DataFrame(FIR = [1, 2, 3])
+MRight1 = DataFrame(FIC = [1, 2])
+nnzRight1 = DataFrame(ID = [1, 2, 3], NROW = [1, 2, 3], NCOL = [1, 2, 1], NIR = [-1, -1, -1], NIC = [3, -1, -1], Val = [1, 1, 1])
+matRight = (NVec=NRight1, MVec=MRight1, nnzVec=nnzRight1)
+spar2Full(matRight)
 
-# matHorz = hcatSparse(matLeft, matRight)
+matHorz = hcatSparse(matLeft, matRight)
 
 function full2comp(matFull::Matrix{T}) where T
     m, n = size(matFull)
@@ -1014,9 +1021,30 @@ matBottom = sparmat(compMatBottom)
 
 matBottom2 = modify_matBottom(matTop, matBottom)
 
+matTop2 = modify_matTop(matTop, matBottom2)
 expected_matVertFull = [11 0 22; 0 33 0; 0 44 55; 0 111 222; 333 444 0]
 
 @test begin
     matVert = vcatSparse(matTop, matBottom)
     spar2Full(matVert) == expected_matVertFull
 end
+
+nPV = 1;
+nPQ = 1;
+nSlack = 1;
+N = nPV + nPQ + nSlack;
+J11 = rand(N-1, N-1)
+J12 = rand(N-1, nPQ)
+J21 = rand(nPQ, N-1)
+J22 = rand(nPQ, nPQ)
+J = [J11 J12; J21 J22]
+
+J11Spar = sparmat(full2comp(J11))
+J12Spar = sparmat(full2comp(J12))
+J21Spar = sparmat(full2comp(J21))
+J22Spar = sparmat(full2comp(J22))
+JTopSpar = hcatSparse(J11Spar, J12Spar)
+JBottomSpar = hcatSparse(J21Spar, J22Spar)
+JSpar = vcatSparse(JTopSpar, JBottomSpar)
+
+@test spar2Full(JSpar) == J
