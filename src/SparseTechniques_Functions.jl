@@ -602,6 +602,17 @@ function updateSparse(sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFra
 	return sparMat
 end
 
+function sparseMatrixConstructor(N::Int64, M::Int64)
+    (firs, fics) = (repeat([-1], N), repeat([-1], M))
+
+    NVec = DataFrame(FIR = firs)
+    MVec = DataFrame(FIC = fics)
+    nnzVec = DataFrame(ID = Int64[], Val = ComplexF64[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
+    sparMat = (NVec=NVec, MVec=MVec, nnzVec=nnzVec)
+
+    return sparMat
+end
+
 """
     constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
     disableTaps::Bool = false,
@@ -637,12 +648,7 @@ function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
     N = size(busData_pu, 1)
     numBranch = size(branchData_pu, 1)
 
-    (firs, fics) = (repeat([-1], N), repeat([-1], N))
-
-    NVec = DataFrame(FIR = firs)
-    MVec = DataFrame(FIC = fics)
-    nnzVec = DataFrame(ID = Int64[], Val = ComplexF64[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
-    sparMat = (NVec=NVec, MVec=MVec, nnzVec=nnzVec)
+    sparMat = sparseMatrixConstructor(N, N)
 
     for branch = 1:numBranch
         currentBranch = branchData_pu[branch, :]
@@ -766,8 +772,7 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
     Q::Vector{Float64},
     V::Vector{Float64},
     delta::Vector{Float64},
-    nnzYBus::DataFrame,
-    NYBus::DataFrame;
+    YBus::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
     verbose::Bool=false,
     combinationOrder::String="hcat-then-vcat",
     saveTable::Bool=false,
@@ -779,10 +784,10 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
     lPV = powSysData.listOfPVBuses
     lPQ = powSysData.listOfPQBuses
 
-    J11 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, type="J11")
-    J12 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, type="J12")
-    J21 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, type="J21")
-    J22 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, type="J22")
+    J11 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J11")
+    J12 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J12")
+    J21 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J21")
+    J22 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J22")
 
     if combinationOrder == "hcat-then-vcat"
         JTop = hcatSparse(J11, J12)
@@ -799,6 +804,144 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
     return J
 end
 
+function constructSparseJacobianSubMatrix(CDF_DF_List_pu::Vector{DataFrame},
+    P::Vector{Float64},
+    Q::Vector{Float64},
+    V::Vector{Float64},
+    delta::Vector{Float64},
+    sparYBus::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+    type::String="J11",
+    verbose::Bool=false)
+
+    busData_pu = CDF_DF_List_pu[2]
+    N = size(busData_pu, 1)
+
+    busPositions = busPositionsForJacobian(CDF_DF_List_pu)
+
+    NYBus = sparYBus.NVec
+    MYBus = sparYBus.MVec
+    nnzYBus = sparYBus.nnzVec
+
+    powSysData = initializeVectors_pu(CDF_DF_List_pu)
+    nPV = powSysData.nPV
+    nPQ = powSysData.nPQ
+    lPV = powSysData.listOfPVBuses
+    lPQ = powSysData.listOfPQBuses
+    lNonSlack = powSysData.listOfNonSlackBuses
+
+    if type == "J11"
+        JSub = sparseMatrixConstructor(N-1, N-1)
+    elseif type == "J12"
+        JSub = sparseMatrixConstructor(N-1, nPQ)
+    elseif type == "J21"
+        JSub = sparseMatrixConstructor(nPQ, N-1)
+    elseif type == "J22"
+        JSub = sparseMatrixConstructor(nPQ, nPQ)
+    else
+        error("Unknown Jacobian Sub-matrix.")
+    end
+
+    for i = 1:N
+        elemNum = NYBus.FIR[i]
+        while elemNum != -1
+            elem = nnzYBus[elemNum, :]
+            k = elem.NCOL
+
+            if type == "J11"
+                row = busPositions.nonSlackBusIdx[i]
+                col = busPositions.nonSlackBusIdx[k]
+            elseif type == "J12"
+                row = busPositions.nonSlackBusIdx[i]
+                col = busPositions.PQBusIdx[k]
+            elseif type == "J21"
+                row = busPositions.PQBusIdx[i]
+                col = busPositions.nonSlackBusIdx[k]
+            elseif type == "J22"
+                row = busPositions.PQBusIdx[i]
+                col = busPositions.PQBusIdx[k]
+            else
+                error("Unknown Jacobian Submatrix type")
+            end
+
+            if row != -1 && col != -1
+
+                Y_ik = elem.Val
+                if i == k
+                    B_ii = imag(Y_ik)
+                    G_ii = real(Y_ik)
+                    Vi_squared = V[i]^2
+                    j11 = -Q[i] - B_ii*Vi_squared
+                    j12 = P[i] + G_ii*Vi_squared
+                    j21 = P[i] - G_ii*Vi_squared
+                    j22 = Q[i] - B_ii*Vi_squared
+                else
+                    YVkVi = abs(Y_ik)*V[k]*V[i]
+                    gamma_deltak_delta_i = angle(Y_ik) + delta[k] - delta[i]
+                    j11 = -YVkVi*sin(gamma_deltak_delta_i)
+                    j12 = YVkVi*cos(gamma_deltak_delta_i)
+                    j21 = -j12
+                    j22 = j11
+                end
+                
+                if type == "J11"
+                    compElem = DataFrame(i = row, j = col, Val = j11)
+                elseif type == "J12"
+                    compElem = DataFrame(i = row, j = col, Val = j12)
+                elseif type == "J21"
+                    compElem = DataFrame(i = row, j = col, Val = j21)
+                elseif type == "J22"
+                    compElem = DataFrame(i = row, j = col, Val = j22)
+                else
+                    error("Unknown Jacobian Submatrix type.")
+                end
+
+                nnzElem = nnzRowConstructor(compElem[1, :])
+                JSub = updateSparse(JSub, nnzElem)
+            end
+            
+            elemNum = elem.NIR;
+        end
+    end
+
+    return JSub
+end
+
+function busPositionsForJacobian(CDF_DF_List_pu::Vector{DataFrame};
+    verbose::Bool=true)
+
+    busPositions = DataFrame(busNum = Int64[], nonSlackBusIdx = Int64[], PQBusIdx = Int64[])
+    counterPQ = 0
+    counterPV = 0
+
+    busData = CDF_DF_List_pu[2]
+    N = size(busData, 1)
+
+    for busNum = 1:N
+        busType = busData.Type[busNum]
+        if busType == 0
+            counterPQ = counterPQ + 1
+            push!(busPositions.busNum, busNum)
+            push!(busPositions.nonSlackBusIdx, counterPQ + counterPV)
+            push!(busPositions.PQBusIdx, counterPQ)
+        elseif busType == 2
+            counterPV = counterPV + 1
+            push!(busPositions.busNum, busNum)
+            push!(busPositions.nonSlackBusIdx, counterPQ + counterPV)
+            push!(busPositions.PQBusIdx, -1)
+        elseif busType == 3
+            push!(busPositions.busNum, busNum)
+            push!(busPositions.nonSlackBusIdx, -1)
+            push!(busPositions.PQBusIdx, -1)
+        else
+            error("Not prepared for this bus type.")
+        end
+    end
+
+    return busPositions
+end
+
+J11 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, sparYBus, type="J11")
+J = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus)
 """
     hcatSparse(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}, 
         matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};

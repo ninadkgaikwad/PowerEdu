@@ -30,11 +30,8 @@ busData_pu = CDF_DF_List_pu[2];
 branchData_pu = CDF_DF_List_pu[3];
 
 sparYBus = constructSparseYBus(CDF_DF_List_pu);
-# vscodedisplay(NYBus)
-# vscodedisplay(MYBus)
-# vscodedisplay(nnzYBus)
+NYBus = sparYBus.NVec; MYBus = sparYBus.MVec; nnzYBus = sparYBus.nnzVec;
 
-# sparYBus = (NVec=NYBus, MVec=MYBus, nnzVec=nnzYBus);
 ybusFull = spar2Full(sparYBus, readMethod="col-wise")
 # vscodedisplay(ybusFull)
 ybus, BMatrix, b, A, branchNames, E   = ybusGenerator(CDF_DF_List_pu, saveTables=false);
@@ -48,3 +45,6 @@ deltaP, deltaQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, delta
 
 P = PSpecified - deltaP;
 Q = QSpecified - deltaQ;
+
+sparJ = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
+JFull = spar2Full(sparJ)
