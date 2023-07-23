@@ -940,8 +940,6 @@ function busPositionsForJacobian(CDF_DF_List_pu::Vector{DataFrame};
     return busPositions
 end
 
-J11 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, sparYBus, type="J11")
-J = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus)
 """
     hcatSparse(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}, 
         matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
@@ -1293,22 +1291,7 @@ function full2comp(matFull::Matrix{T}) where T
     return compMat
 end
 
-nPV = 1;
-nPQ = 1;
-nSlack = 1;
-N = nPV + nPQ + nSlack;
-J11 = rand(N-1, N-1)
-J12 = rand(N-1, nPQ)
-J21 = rand(nPQ, N-1)
-J22 = rand(nPQ, nPQ)
-J = [J11 J12; J21 J22]
-
-J11Spar = sparmat(full2comp(J11))
-J12Spar = sparmat(J12)
-J21Spar = sparmat(full2comp(J21))
-J22Spar = sparmat(J22)
-JTopSpar = hcatSparse(J11Spar, J12Spar)
-JBottomSpar = hcatSparse(J21Spar, J22Spar)
-JSpar = vcatSparse(JTopSpar, JBottomSpar)
+JSpar = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
+JFull = spar2Full(JSpar)
 
 @test spar2Full(JSpar) == J

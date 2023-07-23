@@ -6,7 +6,7 @@ include("src/Helper_Functions.jl")
 include("src/Ybus_Builder.jl")
 include("src/IEEE_CDF_Parser.jl")
 include("src/SparseTechniques_Functions.jl")
-
+include("src/Jacobian_Builder.jl")
 folderInput = "data/"
 folder_processedData = "processedData/";
 systemName = "IEEE_14";
@@ -48,3 +48,5 @@ Q = QSpecified - deltaQ;
 
 sparJ = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
 JFull = spar2Full(sparJ)
+
+# Create_Jacobian_NR(CDF_DF_List_pu, ybus, V, delta, vcat(P, Q), 1, 0)
