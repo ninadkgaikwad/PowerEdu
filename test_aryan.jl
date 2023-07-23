@@ -12,7 +12,6 @@ folder_processedData = "processedData/";
 systemName = "IEEE_14";
 # systemName = "IEEE_30";
 
-# Ybus_Builder.createFolderIfNotExisting(systemName, folder_processedData)
 createFolderIfNotExisting(systemName, folder_processedData)
 
 fileType_CDFFile = ".txt";
