@@ -544,11 +544,11 @@ function CDF_pu_Converter(CDF_DF_List;
         return CDF_DF_List_pu
 end
 
-# test the parser
-CDF_DF_List = CDF_Parser("data/IEEE_14/IEEE_14_Data.txt")
-busData = CDF_DF_List[2]
-busData.Gen_MW
+# # test the parser
+# CDF_DF_List = CDF_Parser("data/IEEE_14/IEEE_14_Data.txt")
+# busData = CDF_DF_List[2]
+# busData.Gen_MW
 
-CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List)
-busData_pu = CDF_DF_List_pu[2]
-busData_pu.Gen_MW
+# CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List)
+# busData_pu = CDF_DF_List_pu[2]
+# busData_pu.Gen_MW

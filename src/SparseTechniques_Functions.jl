@@ -2,8 +2,174 @@
 
 using SparseArrays
 using DataFrames
+using Test
+using CSV
 
 include("Helper_Functions.jl")
+
+""""
+    compressed2Full(compMatrix::DataFrame)
+
+Converts a compressed matrix representation stored in a DataFrame into a full 
+matrix.
+
+## Arguments
+- `compMatrix::DataFrame`: A DataFrame representing the compressed matrix. 
+It should have three columns: `i`, `j`, and `val`. Column `i` contains the 
+row indices, column `j` contains the column indices, and column `val` contains 
+the corresponding values.
+
+## Returns
+- `fullMatrix::Matrix`: A full matrix representation of the input compressed 
+matrix.
+
+## Dependencies
+This function requires the following packages to be imported:
+- `SparseArrays`: Provides support for sparse matrix operations.
+- `DataFrames`: Provides support for working with tabular data in a 
+DataFrame format.
+
+## Example
+```julia
+using SparseArrays
+using DataFrames
+
+# Define the compressed matrix
+values = vec([-1, -2, 2, 8, 1, 3, -2, -3, 2, 1, 2, -4])
+rows = vec([1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5])
+cols = vec([1, 3, 1, 2, 4, 3, 5, 2, 3, 1, 2, 5])
+compMatrix = DataFrame(Val = values, i = rows, j = cols)
+
+# Convert the compressed matrix to a full matrix
+matFull = compressed2Full(compMatrix)
+"""
+function compressed2Full(compMatrix::DataFrame)
+	# Use SparseArrays's sparse function to conveniently convert the compressed 
+	# matrix (i, j, Val) into Compressed Storage Column CSC format
+	# I don't care how it does it. 
+	# This function is only to be called for testing purposes anyway.
+    sparseMatrix = sparse(compMatrix.i, compMatrix.j, compMatrix.Val)
+	# Convert the sparse matrix into the full matrix.
+    fullMatrix = Matrix(sparseMatrix)
+	return fullMatrix
+end
+
+
+"""
+    spar2Full(sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+    readMethod::String = "row-wise",
+    verbose::Bool = false)
+
+Convert a sparse matrix represented by sparMat to a regular (full) matrix. 
+It is literally the inverse function of `sparmat`.
+
+## Arguments
+- `sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: Named tuple representing the sparse matrix, with fields `NVec`, `MVec`, and `nnzVec`.
+- `readMethod::String`: Optional. The method to read the elements of the sparse matrix. Default is "row-wise". Possible values are "row-wise", "col-wise", and "nnzVecElems-wise".
+- `verbose::Bool`: Optional. If set to `true`, print verbose output. Default is `false`.
+
+## Returns
+- `mat::Matrix{ComplexF64}`: The converted regular matrix.
+
+## Details
+The `spar2Full` function converts the sparse matrix represented by `sparMat` to a regular matrix. The sparse matrix is defined by the non-zero elements stored in `nnzVec` DataFrame, with the row and column information stored in `NVec` and `MVec` DataFrames, respectively.
+
+The conversion can be done in different ways depending on the `readMethod` argument:
+- `"row-wise"`: The elements are read row by row, and the corresponding positions in the regular matrix are filled.
+- `"col-wise"`: The elements are read column by column, and the corresponding positions in the regular matrix are filled.
+- `"nnzVecElems-wise"`: The elements are read from `nnzVec` DataFrame in the order they appear, and the corresponding positions in the regular matrix are filled.
+
+## Example
+```julia
+sparMat = (NVec=DataFrame(FIR=[1, 2, 4], NIR=[2, -1, -1]),
+MVec=DataFrame(FIC=[1, 3, 2, -1]), 
+nnzVec=DataFrame(ID=[1, 2, 3],
+NROW=[1, 2, 3],
+NCOL=[1, 2, 3],
+Val=[1.0, 2.0, 3.0],
+NIR=[2, -1, -1],
+NIC=[-1, -1, -1]))
+mat = spar2Full(sparMat, readMethod="row-wise", verbose=true)
+```
+```julia
+3×3 Matrix{ComplexF64}:
+1.0+0.0im  0.0+2.0im  0.0+0.0im
+0.0+0.0im  0.0+0.0im  2.0+0.0im
+0.0+0.0im  0.0+0.0im  0.0+3.0im
+```
+```julia
+mat = spar2Full(sparMat, readMethod="col-wise", verbose=true)
+```
+```julia
+3×3 Matrix{ComplexF64}:
+1.0+0.0im  0.0+2.0im  0.0+0.0im
+0.0+0.0im  0.0+0.0im  2.0+0.0im
+0.0+0.0im  0.0+0.0im  0.0+3.0im
+```
+```julia
+mat = spar2Full(sparMat, readMethod="nnzVecElems-wise", verbose=true)
+```
+```julia
+3×3 Matrix{ComplexF64}:
+1.0+0.0im  0.0+2.0im  0.0+0.0im
+0.0+0.0im  0.0+0.0im  2.0+0.0im
+0.0+0.0im  0.0+0.0im  0.0+3.0im
+```
+"""
+function spar2Full(sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+    readMethod::String = "row-wise",
+    verbose::Bool = false)
+
+    NVec = sparMat.NVec
+    MVec = sparMat.MVec
+    nnzVec = sparMat.nnzVec
+
+    FIR = NVec.FIR
+    FIC = MVec.FIC
+    N = length(FIR)
+    M = length(FIC)
+    nnz = length(nnzVec.ID)
+    mat = zeros(ComplexF64, N, M)
+
+    if readMethod == "row-wise"
+        for row = 1:N
+            elemIdx = FIR[row]
+            while elemIdx != -1
+                nnzElem = nnzVec[elemIdx, :]
+                i = nnzElem.NROW
+                j = nnzElem.NCOL
+                mat_ij = nnzElem.Val
+                mat[i, j] = mat_ij
+                elemIdx = nnzElem.NIR
+            end
+        end
+    elseif readMethod == "col-wise"
+        for col = 1:M
+            elemIdx = FIC[col]
+            while elemIdx != -1
+                nnzElem = nnzVec[elemIdx, :]
+                i = nnzElem.NROW
+                j = nnzElem.NCOL
+                mat_ij = nnzElem.Val
+                mat[i, j] = mat_ij
+                elemIdx = nnzElem.NIC
+            end
+        end
+    elseif readMethod == "nnzVecElems-wise"
+        for elemNum = 1:nnz
+            nnzElem = nnzVec[elemNum, :]
+            i = nnzElem.NROW
+            j = nnzElem.NCOL
+            mat_ij = nnzElem.Val
+            mat[i, j] = mat_ij
+        end
+    else
+        error("Unknown read method for conversion of sparse matrix
+        to full")
+    end
+        
+    return mat
+end
 
 """
 nnzRowConstructor(compElem::DataFrameRow)
@@ -34,29 +200,41 @@ function nnzRowConstructor(compElem::DataFrameRow)
 end
 
 """
-sparmat(compMatrix::DataFrame; verbose::Bool = false)
+    sparmat(input::T where T<:Union{DataFrame, Matrix}; verbose::Bool = false)
 
-The `sparmat` function creates two DataFrames, `NVec` and `nnzVec`, which together represent a sparse matrix. It iterates over the `compMatrix` DataFrame, constructs `nnzVec` rows using the `nnzRowConstructor` function, and updates `NVec` and `nnzVec` accordingly.
+The `sparmat` function creates a named tuple `sparMat` that contains three DataFrames, `NVec`, `MVec`, and `nnzVec`, which together represent a sparse matrix. It takes either a compressed matrix `compMatrix` (a DataFrame) or a regular (full) matrix as input. If the input is a regular matrix, it first converts it into `compMatrix` using the `full2comp` function.
 
 Arguments:
-- `compMatrix::DataFrame`: The DataFrame containing the compressed matrix information.
+- `input::T`: The input matrix, which can be either a compressed matrix represented as a DataFrame (`compMatrix`) or a regular (full) matrix.
 - `verbose::Bool`: (optional) A Boolean value indicating whether to display verbose output during the construction process. Default is `false`.
 
 Returns:
-- A tuple `(NVec, nnzVec)` representing the two DataFrames `NVec` and `nnzVec` that represent the sparse matrix.
+- A named tuple `sparMat = (NVec = NVec, MVec = MVec, nnzVec = nnzVec)` representing the three DataFrames `NVec`, `MVec`, and `nnzVec` that together represent the sparse matrix.
 
 Example:
 ```julia
 compMatrix = DataFrame(ID = [1, 2, 3], Val = [0.5, 0.3, 0.8], i = [2, 1, 3], j = [3, 2, 1])
-NVec, nnzVec = sparmat(compMatrix, verbose = true)
+sparMat = sparmat(compMatrix, verbose = true)
 """
-function sparmat(compMatrix::DataFrame;
-	verbose::Bool = false)
+function sparmat(input::T where T<:Union{DataFrame, Matrix};
+    verbose::Bool=false)
+    if isa(input, DataFrame)
+        # Input is a compMat, so use it directly
+        compMatrix = input
+    elseif isa(input, Matrix)
+        # Input is a regular (full) matrix, convert it to compMat using full2comp
+        compMatrix = full2comp(input)
+    else
+        throw(ArgumentError("Unsupported input type. Must be either DataFrame (compMat) or Matrix"))
+    end
 
-	N = maximum([compMatrix.i compMatrix.j])
-	(firs, fics) = (repeat([-1], N), repeat([-1], N))
+    N = maximum(compMatrix.i)
+    M = maximum(compMatrix.j)
+    (firs, fics) = (repeat([-1], N), repeat([-1], M))
 
-	NVec = DataFrame(FIR = firs, FIC = fics)
+
+    NVec = DataFrame(FIR = firs)
+    MVec = DataFrame(FIC = fics)
 	nnzVec = DataFrame(ID = Int64[], Val = ComplexF64[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
 
 	numElems = size(compMatrix, 1)
@@ -66,11 +244,14 @@ function sparmat(compMatrix::DataFrame;
 
 		nnzElem = nnzRowConstructor(compElem)
 
-		NVec, nnzVec = updateSparse(NVec, nnzVec, nnzElem, type="replace", verbose=verbose)
+        sparMat = (NVec=NVec, MVec=MVec, nnzVec=nnzVec)
+		NVec, MVec, nnzVec = updateSparse(sparMat, nnzElem, type="replace", verbose=verbose)
 	end
 
-	return NVec, nnzVec
+    sparMat = (NVec=NVec, MVec=MVec, nnzVec=nnzVec) 
+	return sparMat
 end
+
 
 
 """
@@ -121,8 +302,9 @@ function resolveTie(nnzVec::DataFrame, incumbentID::Int64, elVal::ComplexF64;
 end
 
 """
-    checkElementIntoRow(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
-                        type::String = "replace", verbose::Bool = false)
+    checkElementIntoRow(sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    nnzElem::DataFrameRow;
+	type::String="replace", verbose::Bool=false)
 
 Check and insert an element into a row of a sparse matrix.
 
@@ -133,15 +315,13 @@ the `nnzElem.NCOL` value. The position can be before the incumbent element, afte
 in a tie, which can be resolved using the `resolveTie` function.
 
 ## Arguments
-- `NVec::DataFrame`: DataFrame containing additional information about the sparse matrix.
-- `nnzVec::DataFrame`: DataFrame representing the non-zero elements of the sparse matrix.
+- `sparMat::NamedTuple`: A named tuple representing the sparse matrix with elements `NVec`, `MVec`, and `nnzVec`. `NVec` is a DataFrame containing additional information about the sparse matrix, `MVec` is a DataFrame containing additional information about the columns, and `nnzVec` is a DataFrame representing the non-zero elements of the sparse matrix.
 - `nnzElem::DataFrameRow`: DataFrameRow representing the new element to be inserted.
 - `type::String`: Optional. The type of tie resolution. Default is "replace". Possible values are "replace" and "add".
 - `verbose::Bool`: Optional. If set to `true`, print verbose output. Default is `false`.
 
 ## Returns
-- `NVec::DataFrame`: Updated DataFrame `NVec` with the modified first-in-row information.
-- `nnzVec::DataFrame`: Updated DataFrame `nnzVec` with the newly inserted element or resolved tie.
+- `sparMat::NamedTuple`: Updated named tuple `sparMat` with the modified `NVec`, `MVec`, and `nnzVec`.
 - `nnzElem::DataFrameRow`: Updated DataFrameRow `nnzElem` with the updated element information.
 - `updateFlag::Bool`: A flag indicating if the sparse matrix was updated.
 
@@ -149,11 +329,17 @@ in a tie, which can be resolved using the `resolveTie` function.
 ```julia
 nnzVec = DataFrame(ID = 1:5, NROW = [1, 1, 2, 2, 3], NCOL = [1, 2, 1, 2, 1], Val = [1.0, 2.0, 3.0, 4.0, 5.0], NIR = [2, -1, 4, -1, -1], NIC = [-1, -1, -1, -1, -1])
 nnzElem = DataFrameRow([0, 3, 2, 3, 1], ["ID", "NROW", "NCOL", "Val", "NIR", "NIC"])
-NVec, nnzVec, nnzElem, updateFlag = checkElementIntoRow(NVec, nnzVec, nnzElem, type="replace", verbose=true)
+sparMat = (NVec = DataFrame(FIR = [1, -1, 3]), MVec = DataFrame(FIC = [-1, -1, -1]), nnzVec = nnzVec)
+sparMat, nnzElem, updateFlag = checkElementIntoRow(sparMat, nnzElem, type="replace", verbose=true)
+```
 """
-function checkElementIntoRow(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
+function checkElementIntoRow(sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    nnzElem::DataFrameRow;
 	type::String="replace", verbose::Bool=false)
 	
+    NVec = sparMat.NVec
+    MVec = sparMat.MVec
+    nnzVec = sparMat.nnzVec
 	numExistingElems = size(nnzVec, 1)
 	myprintln(verbose, "Currently the Sparse Matrix has $numExistingElems elements.")
 	nnzElem.ID = numExistingElems + 1
@@ -229,12 +415,14 @@ function checkElementIntoRow(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFr
     end
 
 	NVec.FIR = FIR
-	return NVec, nnzVec, nnzElem, updateFlag
+    sparMat = (NVec=NVec, MVec=MVec, nnzVec=nnzVec)
+	return sparMat, nnzElem, updateFlag
 end
 
 """
-    checkElementIntoColumn(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
-    type::String = "replace", verbose::Bool = false)
+    checkElementIntoColumn(sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    nnzElem::DataFrameRow;
+	type::String="replace", verbose::Bool=false)
 
 Check and insert an element into a column of a sparse matrix.
 
@@ -247,15 +435,13 @@ can be before the incumbent element, after it, or it may result in a tie, which 
 using the `resolveTie` function.
 
 ## Arguments
-- `NVec::DataFrame`: DataFrame containing additional information about the sparse matrix.
-- `nnzVec::DataFrame`: DataFrame representing the non-zero elements of the sparse matrix.
+- `sparMat::NamedTuple`: A named tuple representing the sparse matrix with elements `NVec`, `MVec`, and `nnzVec`. `NVec` is a DataFrame containing additional information about the sparse matrix, `MVec` is a DataFrame containing additional information about the columns, and `nnzVec` is a DataFrame representing the non-zero elements of the sparse matrix.
 - `nnzElem::DataFrameRow`: DataFrameRow representing the new element to be inserted.
 - `type::String`: Optional. The type of tie resolution. Default is "replace". Possible values are "replace" and "add".
 - `verbose::Bool`: Optional. If set to `true`, print verbose output. Default is `false`.
 
 ## Returns
-- `NVec::DataFrame`: Updated DataFrame `NVec` with the modified first-in-column information.
-- `nnzVec::DataFrame`: Updated DataFrame `nnzVec` with the newly inserted element or resolved tie.
+- `sparMat::NamedTuple`: Updated named tuple `sparMat` with the modified `NVec`, `MVec`, and `nnzVec`.
 - `nnzElem::DataFrameRow`: Updated DataFrameRow `nnzElem` with the updated element information.
 - `updateFlag::Bool`: A flag indicating if the sparse matrix was updated.
 
@@ -263,16 +449,23 @@ using the `resolveTie` function.
 ```julia
 nnzVec = DataFrame(ID = 1:5, NROW = [1, 1, 2, 2, 3], NCOL = [1, 2, 1, 2, 1], Val = [1.0, 2.0, 3.0, 4.0, 5.0], NIR = [2, -1, 4, -1, -1], NIC = [-1, -1, -1, -1, -1])
 nnzElem = DataFrameRow([0, 3, 2, 3, 1], ["ID", "NROW", "NCOL", "Val", "NIR", "NIC"])
-NVec, nnzVec, nnzElem, updateFlag = checkElementIntoColumn(NVec, nnzVec, nnzElem, type="replace", verbose=true)
+sparMat = (NVec = DataFrame(FIR = [1, -1, 3]), MVec = DataFrame(FIC = [-1, -1, -1]), nnzVec = nnzVec)
+sparMat, nnzElem, updateFlag = checkElementIntoColumn(sparMat, nnzElem, type="replace", verbose=true)
+```
 """
-function checkElementIntoColumn(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
+function checkElementIntoColumn(sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    nnzElem::DataFrameRow;
 	type::String="replace", verbose::Bool=false)
 	
+    NVec = sparMat.NVec
+    MVec = sparMat.MVec
+    nnzVec = sparMat.nnzVec
+
 	numExistingElems = size(nnzVec, 1)
 	myprintln(verbose, "Currently the Sparse Matrix has $numExistingElems elements.")
 	nnzElem.ID = numExistingElems + 1
 	elID = nnzElem.ID
-	FIC = NVec.FIC
+	FIC = MVec.FIC
 	row = nnzElem.NROW
 	col = nnzElem.NCOL
 	elVal = nnzElem.Val
@@ -334,6 +527,8 @@ function checkElementIntoColumn(NVec::DataFrame, nnzVec::DataFrame, nnzElem::Dat
                 nnzVec = resolveTie(nnzVec, incumbentID, elVal, type=type, verbose=verbose)
                 updateFlag = true
                 stillFindingAPlaceInColumn = false
+
+
             else # row > incumbent.NROW
                 myprintln(verbose, "Not coming before incumbent element $incumbentID. Keep searching.")
                 prevIncumbentID = incumbentID
@@ -342,13 +537,16 @@ function checkElementIntoColumn(NVec::DataFrame, nnzVec::DataFrame, nnzElem::Dat
         end
     end
 
-	NVec.FIC = FIC
-	return NVec, nnzVec, nnzElem, updateFlag
+	MVec.FIC = FIC
+    sparMat = (NVec=NVec, MVec=MVec, nnzVec=nnzVec)
+	return sparMat, nnzElem, updateFlag
 end
 
+
 """
-    updateSparse(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
-    type::String = "replace", verbose::Bool = false)
+    updateSparse(sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    nnzElem::DataFrameRow;
+	type::String = "replace", verbose::Bool = false)
 
 Update a sparse matrix by inserting a new element.
 
@@ -363,44 +561,56 @@ the new element's value replaces the incumbent element's value. If `type` is set
 the new element's value is added to the incumbent element's value.
 
 ## Arguments
-- `NVec::DataFrame`: DataFrame containing additional information about the sparse matrix.
-- `nnzVec::DataFrame`: DataFrame representing the non-zero elements of the sparse matrix.
+- `sparMat::NamedTuple`: A named tuple representing the sparse matrix with elements `NVec`, `MVec`, and `nnzVec`. `NVec` is a DataFrame containing additional information about the sparse matrix, `MVec` is a DataFrame containing additional information about the columns, and `nnzVec` is a DataFrame representing the non-zero elements of the sparse matrix.
 - `nnzElem::DataFrameRow`: DataFrameRow representing the new element to be inserted.
 - `type::String`: Optional. The type of tie resolution. Default is "replace". Possible values are "replace" and "add".
 - `verbose::Bool`: Optional. If set to `true`, print verbose output. Default is `false`.
 
 ## Returns
-- `NVec::DataFrame`: Updated DataFrame `NVec` with the modified first-in-row and first-in-column information.
-- `nnzVec::DataFrame`: Updated DataFrame `nnzVec` with the newly inserted element or resolved tie.
+- `sparMat::NamedTuple`: Updated named tuple `sparMat` with the modified `NVec`, `MVec`, and `nnzVec`.
 
 ## Example
 ```julia
 NVec = DataFrame(FIR = [-1, -1, -1], FIC = [-1, -1, -1])
 nnzVec = DataFrame(ID = 1:5, NROW = [1, 1, 2, 2, 3], NCOL = [1, 2, 1, 2, 1], Val = [1.0, 2.0, 3.0, 4.0, 5.0], NIR = [2, -1, 4, -1, -1], NIC = [-1, -1, -1, -1, -1])
 nnzElem = DataFrameRow([0, 3, 2, 3, 1], ["ID", "NROW", "NCOL", "Val", "NIR", "NIC"])
-NVec, nnzVec = updateSparse(NVec, nnzVec, nnzElem, type="replace", verbose=true)
+sparMat = (NVec = NVec, MVec = DataFrame(FIC = [-1, -1, -1]), nnzVec = nnzVec)
+sparMat = updateSparse(sparMat, nnzElem, type="replace", verbose=true)
+```
 """
-function updateSparse(NVec::DataFrame, nnzVec::DataFrame, nnzElem::DataFrameRow;
+function updateSparse(sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    nnzElem::DataFrameRow;
 	type::String = "replace",
 	verbose::Bool = false)
 
-	NVec, nnzVec, nnzElem, updateFlag = checkElementIntoRow(NVec, nnzVec, nnzElem, type=type, verbose=verbose)
-    NVec, nnzVec, nnzElem, updateFlag = checkElementIntoColumn(NVec, nnzVec, nnzElem, type="maintain", verbose=verbose)
+	sparMat, nnzElem, updateFlag = checkElementIntoRow(sparMat, nnzElem, type=type, verbose=verbose)
+    sparMat, nnzElem, updateFlag = checkElementIntoColumn(sparMat, nnzElem, type="maintain", verbose=verbose)
 
 	if updateFlag == false
 		myprintln(verbose, "Another element to be added to the sparse matrix.")
 		myprintln(verbose, "The element:")
 		myprintln(verbose, nnzElem)
 		myprintln(verbose, "nnzVec before:")
-		myprintln(verbose, nnzVec)
-		push!(nnzVec, nnzElem)
+		myprintln(verbose, sparMat.nnzVec)
+		push!(sparMat.nnzVec, nnzElem)
 		myprintln(verbose, "nnzVec after:")
-		myprintln(verbose, nnzVec)
+		myprintln(verbose, sparMat.nnzVec)
 	else
 		myprintln(verbose, "An element was updated, but not added to the sparse matrix.")
 	end
 
-	return NVec, nnzVec
+	return sparMat
+end
+
+function sparseMatrixConstructor(N::Int64, M::Int64)
+    (firs, fics) = (repeat([-1], N), repeat([-1], M))
+
+    NVec = DataFrame(FIR = firs)
+    MVec = DataFrame(FIC = fics)
+    nnzVec = DataFrame(ID = Int64[], Val = ComplexF64[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
+    sparMat = (NVec=NVec, MVec=MVec, nnzVec=nnzVec)
+
+    return sparMat
 end
 
 """
@@ -411,8 +621,7 @@ end
     saveTables::Bool = false,
     saveLocation::String = "processedData/")
 
-This function constructs a sparse YBus representation from the provided 
-    `busData` and `branchData` extracted from `CDF_DF_List_pu`.
+This function constructs a sparse YBus representation from the provided `busData` and `branchData` extracted from `CDF_DF_List_pu`.
 
 ## Arguments:
 - `CDF_DF_List_pu::Vector{DataFrame}`: A vector of DataFrames containing `busData` and `branchData`.
@@ -439,10 +648,7 @@ function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
     N = size(busData_pu, 1)
     numBranch = size(branchData_pu, 1)
 
-    (firs, fics) = (repeat([-1], N), repeat([-1], N))
-
-	NVec = DataFrame(FIR = firs, FIC = fics)
-	nnzVec = DataFrame(ID = Int64[], Val = ComplexF64[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
+    sparMat = sparseMatrixConstructor(N, N)
 
     for branch = 1:numBranch
         currentBranch = branchData_pu[branch, :]
@@ -458,7 +664,7 @@ function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
         end
 
         y_ik = 1/(currentBranch.R_pu + im*currentBranch.X_pu)
-        
+
         ybus_ii = y_ik/(a^2) + im*currentBranch.B_pu / 2
         ybus_kk = y_ik + im*currentBranch.B_pu / 2
         ybus_ik = -y_ik/a
@@ -476,13 +682,12 @@ function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
             elseif case == "ki"
                 compElem = DataFrame(ID = -1, Val = ybus_ki, i = k, j = i)
             end
-            
-            compElem = compElem[1, :] # I don't know how to directly initialize a DataFrameRow
-            # so I awkwardly extract a row from the DataFrame
+
+            compElem = compElem[1, :]
             nnzElem = nnzRowConstructor(compElem)
-            NVec, nnzVec = updateSparse(NVec, nnzVec, nnzElem, type="add", verbose=false)
+            sparMat = updateSparse(sparMat, nnzElem, type="add", verbose=false)
         end
-    
+
     end
 
     for bus = 1:N
@@ -490,58 +695,58 @@ function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
         compElem = DataFrame(ID = -1, Val = ybus_ii, i = bus, j = bus)
         compElem = compElem[1, :]
         nnzElem = nnzRowConstructor(compElem)
-        NVec, nnzVec = updateSparse(NVec, nnzVec, nnzElem, type="add", verbose=false)
+        sparMat = updateSparse(sparMat, nnzElem, type="add", verbose=false)
     end
 
-    return NVec, nnzVec
+    return sparMat
 end
 
 """
-    computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, delta, NYBus, nnzYBus)
+    computeMismatchesViaSparseYBus(PSpecified::Vector{Float64},
+    QSpecified::Vector{Float64},
+    V::Vector{Float64},
+    delta::Vector{Float64},
+    sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}) -> Tuple{Vector{Float64}, Vector{Float64}}
 
-The `computeMismatchesViaSparseYBus` function calculates the mismatches between specified active and reactive power values and the computed power values using the sparse YBus matrix.
+Calculate mismatches between specified and computed power values using the sparse YBus matrix.
 
-# Arguments
-- `PSpecified::Vector{Float64}`: A vector of specified active power values for each bus.
-- `QSpecified::Vector{Float64}`: A vector of specified reactive power values for each bus.
-- `V::Vector{Float64}`: A vector of voltage magnitudes for each bus.
-- `delta::Vector{Float64}`: A vector of voltage phase angles for each bus.
-- `NYBus::DataFrame`: A DataFrame representing the non-zero elements of the YBus matrix, with columns `FIR`, `NIR`, and `Val`.
-- `nnzYBus::DataFrame`: A DataFrame containing the non-zero elements of the YBus matrix, with columns `NCOL` and `Val`.
+## Arguments
+- `PSpecified::Vector{Float64}`: Vector of specified active power values for each bus.
+- `QSpecified::Vector{Float64}`: Vector of specified reactive power values for each bus.
+- `V::Vector{Float64}`: Vector of voltage magnitudes for each bus.
+- `delta::Vector{Float64}`: Vector of voltage phase angles for each bus.
+- `sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: Named tuple representing the sparse YBus matrix, with fields `NVec`, `MVec`, and `nnzVec`.
 
-# Returns
-- `deltaP::Vector{Float64}`: A vector representing the mismatches between specified and computed active power values.
-- `deltaQ::Vector{Float64}`: A vector representing the mismatches between specified and computed reactive power values.
+## Returns
+- `deltaP::Vector{Float64}`: Vector representing the mismatches between specified and computed active power values.
+- `deltaQ::Vector{Float64}`: Vector representing the mismatches between specified and computed reactive power values.
 
-# Details
+## Details
+The `computeMismatchesViaSparseYBus` function calculates the mismatches between the specified active and reactive power values (`PSpecified` and `QSpecified`) and the computed power values using the sparse YBus matrix represented by `sparMat`. It takes the voltage magnitudes (`V`) and voltage phase angles (`delta`) as inputs.
+
 The function iterates over each bus in the system and calculates the active and reactive power mismatches using the specified power values, voltage magnitudes, voltage phase angles, and the non-zero elements of the YBus matrix.
 
-The active power mismatch `deltaP` is computed as the difference between the specified active power (`PSpecified`) and the computed active power (`P`) for each bus.
+The active power mismatch `deltaP` is computed as the difference between the specified active power and the computed active power for each bus.
 
-The reactive power mismatch `deltaQ` is computed as the difference between the specified reactive power (`QSpecified`) and the computed reactive power (`Q`) for each bus.
+The reactive power mismatch `deltaQ` is computed as the difference between the specified reactive power and the computed reactive power for each bus.
 
-The function assumes that the `NYBus` and `nnzYBus` DataFrames contain the necessary information for building the sparse YBus matrix.
+Note that the `sparMat` named tuple should contain the necessary dataframes representing the non-zero elements of the YBus matrix.
 
-# Example
 ```julia
-PSpecified = [100.0, 200.0, 150.0]
-QSpecified = [50.0, 100.0, 75.0]
-V = [1.0, 1.0, 1.0]
-delta = [0.0, 0.0, 0.0]
-NYBus = DataFrame(FIR = [1, 2, 3], NIR = [-1, -1, -1], Val = [1.0, 2.0, 3.0])
-nnzYBus = DataFrame(NCOL = [1, 2, 3], Val = [0.5, 0.6, 0.7])
-
-deltaP, deltaQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, delta, NYBus, nnzYBus)
+deltaP, deltaQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, delta, sparMat)
+```
 """
 function computeMismatchesViaSparseYBus(PSpecified::Vector{Float64}, 
     QSpecified::Vector{Float64}, 
     V::Vector{Float64}, 
     delta::Vector{Float64}, 
-    NYBus::DataFrame, 
-    nnzYBus::DataFrame)
+    sparMat::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
 
+    NYBus = sparMat.NVec
+    MYBus = sparMat.MVec
+    nnzYBus = sparMat.nnzVec
+    
     N = length(NYBus.FIR)
-    # P, Q = zeros(N)
     (P, Q) = (repeat([0.0000], N), repeat([0.0000], N))
 
     for bus = 1:N
@@ -562,49 +767,548 @@ function computeMismatchesViaSparseYBus(PSpecified::Vector{Float64},
     return deltaP, deltaQ
 end
 
-"""
-    compressed2Full(compMatrix::DataFrame)
+function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
+    P::Vector{Float64},
+    Q::Vector{Float64},
+    V::Vector{Float64},
+    delta::Vector{Float64},
+    YBus::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+    verbose::Bool=false,
+    combinationOrder::String="hcat-then-vcat",
+    saveTable::Bool=false,
+    processedDataFolder::String="processedData/")
 
-Converts a compressed matrix representation stored in a DataFrame into a full 
-matrix.
+    powSysData = initializeVectors_pu(CDF_DF_List_pu)
+    nPV = powSysData.nPV
+    nPQ = powSysData.nPQ
+    lPV = powSysData.listOfPVBuses
+    lPQ = powSysData.listOfPQBuses
 
-## Arguments
-- `compMatrix::DataFrame`: A DataFrame representing the compressed matrix. 
-It should have three columns: `i`, `j`, and `val`. Column `i` contains the 
-row indices, column `j` contains the column indices, and column `val` contains 
-the corresponding values.
+    J11 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J11")
+    J12 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J12")
+    J21 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J21")
+    J22 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J22")
 
-## Returns
-- `fullMatrix::Matrix`: A full matrix representation of the input compressed 
-matrix.
+    if combinationOrder == "hcat-then-vcat"
+        JTop = hcatSparse(J11, J12)
+        JBottom = hcatSparse(J21, J22)
+        J = vcatSparse(JTop, JBottom)
+    elseif combinationOrder == "vcat-then-hcat"
+        JLeft = vcatSparse(J11, J21)
+        JRight = vcatSparse(J12, J22)
+        J = hcatSparse(JLeft, JRight)
+    else
+        error("Unknown combination order.")
+    end
 
-## Dependencies
-This function requires the following packages to be imported:
-- `SparseArrays`: Provides support for sparse matrix operations.
-- `DataFrames`: Provides support for working with tabular data in a 
-DataFrame format.
-
-## Example
-```julia
-using SparseArrays
-using DataFrames
-
-# Define the compressed matrix
-values = vec([-1, -2, 2, 8, 1, 3, -2, -3, 2, 1, 2, -4])
-rows = vec([1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 5])
-cols = vec([1, 3, 1, 2, 4, 3, 5, 2, 3, 1, 2, 5])
-compMatrix = DataFrame(Val = values, i = rows, j = cols)
-
-# Convert the compressed matrix to a full matrix
-matFull = compressed2Full(compMatrix)
-"""
-function compressed2Full(compMatrix::DataFrame)
-	# Use SparseArrays's sparse function to conveniently convert the compressed 
-	# matrix (i, j, Val) into Compressed Storage Column CSC format
-	# I don't care how it does it. 
-	# This function is only to be called for testing purposes anyway.
-    sparseMatrix = sparse(compMatrix.i, compMatrix.j, compMatrix.Val)
-	# Convert the sparse matrix into the full matrix.
-    fullMatrix = Matrix(sparseMatrix)
-	return fullMatrix
+    return J
 end
+
+function constructSparseJacobianSubMatrix(CDF_DF_List_pu::Vector{DataFrame},
+    P::Vector{Float64},
+    Q::Vector{Float64},
+    V::Vector{Float64},
+    delta::Vector{Float64},
+    sparYBus::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+    type::String="J11",
+    verbose::Bool=false)
+
+    busData_pu = CDF_DF_List_pu[2]
+    N = size(busData_pu, 1)
+
+    busPositions = busPositionsForJacobian(CDF_DF_List_pu)
+
+    NYBus = sparYBus.NVec
+    MYBus = sparYBus.MVec
+    nnzYBus = sparYBus.nnzVec
+
+    powSysData = initializeVectors_pu(CDF_DF_List_pu)
+    nPV = powSysData.nPV
+    nPQ = powSysData.nPQ
+    lPV = powSysData.listOfPVBuses
+    lPQ = powSysData.listOfPQBuses
+    lNonSlack = powSysData.listOfNonSlackBuses
+
+    if type == "J11"
+        JSub = sparseMatrixConstructor(N-1, N-1)
+    elseif type == "J12"
+        JSub = sparseMatrixConstructor(N-1, nPQ)
+    elseif type == "J21"
+        JSub = sparseMatrixConstructor(nPQ, N-1)
+    elseif type == "J22"
+        JSub = sparseMatrixConstructor(nPQ, nPQ)
+    else
+        error("Unknown Jacobian Sub-matrix.")
+    end
+
+    for i = 1:N
+        elemNum = NYBus.FIR[i]
+        while elemNum != -1
+            elem = nnzYBus[elemNum, :]
+            k = elem.NCOL
+
+            if type == "J11"
+                row = busPositions.nonSlackBusIdx[i]
+                col = busPositions.nonSlackBusIdx[k]
+            elseif type == "J12"
+                row = busPositions.nonSlackBusIdx[i]
+                col = busPositions.PQBusIdx[k]
+            elseif type == "J21"
+                row = busPositions.PQBusIdx[i]
+                col = busPositions.nonSlackBusIdx[k]
+            elseif type == "J22"
+                row = busPositions.PQBusIdx[i]
+                col = busPositions.PQBusIdx[k]
+            else
+                error("Unknown Jacobian Submatrix type")
+            end
+
+            if row != -1 && col != -1
+
+                Y_ik = elem.Val
+                if i == k
+                    B_ii = imag(Y_ik)
+                    G_ii = real(Y_ik)
+                    Vi_squared = V[i]^2
+                    j11 = -Q[i] - B_ii*Vi_squared
+                    j12 = P[i] + G_ii*Vi_squared
+                    j21 = P[i] - G_ii*Vi_squared
+                    j22 = Q[i] - B_ii*Vi_squared
+                else
+                    YVkVi = abs(Y_ik)*V[k]*V[i]
+                    gamma_deltak_delta_i = angle(Y_ik) + delta[k] - delta[i]
+                    j11 = -YVkVi*sin(gamma_deltak_delta_i)
+                    j12 = YVkVi*cos(gamma_deltak_delta_i)
+                    j21 = -j12
+                    j22 = j11
+                end
+                
+                if type == "J11"
+                    compElem = DataFrame(i = row, j = col, Val = j11)
+                elseif type == "J12"
+                    compElem = DataFrame(i = row, j = col, Val = j12)
+                elseif type == "J21"
+                    compElem = DataFrame(i = row, j = col, Val = j21)
+                elseif type == "J22"
+                    compElem = DataFrame(i = row, j = col, Val = j22)
+                else
+                    error("Unknown Jacobian Submatrix type.")
+                end
+
+                nnzElem = nnzRowConstructor(compElem[1, :])
+                JSub = updateSparse(JSub, nnzElem)
+            end
+            
+            elemNum = elem.NIR;
+        end
+    end
+
+    return JSub
+end
+
+function busPositionsForJacobian(CDF_DF_List_pu::Vector{DataFrame};
+    verbose::Bool=true)
+
+    busPositions = DataFrame(busNum = Int64[], nonSlackBusIdx = Int64[], PQBusIdx = Int64[])
+    counterPQ = 0
+    counterPV = 0
+
+    busData = CDF_DF_List_pu[2]
+    N = size(busData, 1)
+
+    for busNum = 1:N
+        busType = busData.Type[busNum]
+        if busType == 0
+            counterPQ = counterPQ + 1
+            push!(busPositions.busNum, busNum)
+            push!(busPositions.nonSlackBusIdx, counterPQ + counterPV)
+            push!(busPositions.PQBusIdx, counterPQ)
+        elseif busType == 2
+            counterPV = counterPV + 1
+            push!(busPositions.busNum, busNum)
+            push!(busPositions.nonSlackBusIdx, counterPQ + counterPV)
+            push!(busPositions.PQBusIdx, -1)
+        elseif busType == 3
+            push!(busPositions.busNum, busNum)
+            push!(busPositions.nonSlackBusIdx, -1)
+            push!(busPositions.PQBusIdx, -1)
+        else
+            error("Not prepared for this bus type.")
+        end
+    end
+
+    return busPositions
+end
+
+J11 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, sparYBus, type="J11")
+J = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus)
+"""
+    hcatSparse(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}, 
+        matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+        verbose::Bool = false)
+
+The `hcatSparse` function performs horizontal concatenation of two sparse matrices represented by named tuples `matLeft` and `matRight`. It concatenates the `matLeft` and `matRight` DataFrames horizontally and returns a new sparse matrix represented by the named tuple `matHorz`.
+
+Arguments:
+- `matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the left sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the right sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `verbose::Bool`: (optional) A Boolean value indicating whether to display verbose output during the concatenation process. Default is `false`.
+
+Returns:
+- A named tuple `matHorz` containing three DataFrames `NVec`, `MVec`, and `nnzVec` representing the horizontally concatenated sparse matrix.
+
+Example:
+```julia
+NLeft1 = DataFrame(FIR = [1, 2, 4])
+MLeft1 = DataFrame(FIC = [2, 1, 3])
+nnzLeft1 = DataFrame(ID = [1, 2, 3, 4, 5], NROW = [1, 2, 2, 3, 3], NCOL = [2, 1, 3, 2, 3], NIR = [-1, 3, -1, 5, -1], NIC = [4, -1, 5, -1, -1], Val = [1, 1, 1, 1, 1])
+matLeft = (NVec=NLeft1, MVec=MLeft1, nnzVec=nnzLeft1)
+
+NRight1 = DataFrame(FIR = [1, 2, 3])
+MRight1 = DataFrame(FIC = [1, 2])
+nnzRight1 = DataFrame(ID = [1, 2, 3], NROW = [1, 2, 3], NCOL = [1, 2, 1], NIR = [-1, -1, -1], NIC = [3, -1, -1], Val = [1, 1, 1])
+matRight = (NVec=NRight1, MVec=MRight1, nnzVec=nnzRight1)
+
+matHorz = hcatSparse(matLeft, matRight)
+"""
+function hcatSparse(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}, 
+    matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+    verbose::Bool = false)
+
+    if length(matRight.NVec.FIR) != length(matLeft.NVec.FIR)
+        error("Horizontal Concatenation NOT possible for mismatching number of rows.")
+    end
+
+    matRightMod = modify_matRight(matLeft, matRight)
+    NRightVec, MRightVec, nnzRightVec = matRightMod.NVec, matRightMod.MVec, matRightMod.nnzVec
+
+    matLeftMod = modify_matLeft(matLeft, matRightMod)
+    NLeftVec, MLeftVec, nnzLeftVec = matLeftMod.NVec, matLeftMod.MVec, matLeftMod.nnzVec
+
+
+    NVec = NLeftVec
+    MVec = DataFrame(FIC = vcat(MLeftVec.FIC, MRightVec.FIC))
+    nnzVec = vcat(nnzLeftVec, nnzRightVec)
+    matHorz = (NVec=NVec, MVec=MVec, nnzVec=nnzVec)
+
+    return matHorz
+end
+
+"""
+    vcatSparse(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}, 
+        matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+        verbose::Bool = false)
+
+The `vcatSparse` function performs vertical concatenation of two sparse matrices represented by named tuples `matTop` and `matBottom`. It concatenates the `matTop` and `matBottom` DataFrames vertically and returns a new sparse matrix represented by the named tuple `matVert`.
+
+Arguments:
+- `matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the top sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the bottom sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `verbose::Bool`: (optional) A Boolean value indicating whether to display verbose output during the concatenation process. Default is `false`.
+
+Returns:
+- A named tuple `matVert` containing three DataFrames `NVec`, `MVec`, and `nnzVec` representing the vertically concatenated sparse matrix.
+
+Example:
+```julia
+matTop = (NVec=DataFrame(FIR=[1, 3, 4]), MVec=DataFrame(FIC=[2, 1, 3]), nnzVec=DataFrame(ID=[1, 2, 3, 4, 5], NROW=[1, 1, 2, 3, 3], NCOL=[1, 3, 2, 2, 3], NIR=[-1, 3, -1, 5, -1], NIC=[4, -1, 5, -1, -1], Val=[11, 22, 33, 44, 55]))
+matBottom = (NVec=DataFrame(FIR=[1]), MVec=DataFrame(FIC=[1, 2, 3]), nnzVec=DataFrame(ID=[1, 2, 3], NROW=[1, 2, 3], NCOL=[1, 2, 1], NIR=[-1, -1, -1], NIC=[3, -1, -1], Val=[66, 77, 88]))
+
+matVert = vcatSparse(matTop, matBottom, verbose=true)
+"""
+function vcatSparse(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}, 
+    matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+    verbose::Bool = false)
+
+    if length(matTop.MVec.FIC) != length(matBottom.MVec.FIC)
+        error("Vertical Concatenation NOT possible for mismatching number of columns.")
+    end
+
+    matBottomMod = modify_matBottom(matTop, matBottom)
+    NBottomVec, MBottomVec, nnzBottomVec = matBottomMod.NVec, matBottomMod.MVec, matBottomMod.nnzVec
+
+    matTopMod = modify_matTop(matTop, matBottomMod)
+    NTopVec, MTopVec, nnzTopVec = matTopMod.NVec, matTopMod.MVec, matTopMod.nnzVec
+
+    NVec = DataFrame(FIR = vcat(NTopVec.FIR, NBottomVec.FIR))
+    MVec = MTopVec
+    nnzVec = vcat(nnzTopVec, nnzBottomVec)
+    matVert = (NVec=NVec, MVec=MVec, nnzVec=nnzVec)
+
+    return matVert
+end
+
+"""
+    modify_matRight(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+        matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
+
+The `modify_matRight` function modifies the `matRight` named tuple to prepare it for horizontal concatenation with `matLeft`. It updates the column indices of the elements in the right sparse matrix and ensures that the matrix can be properly concatenated with the left sparse matrix.
+
+Arguments:
+- `matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the left sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the right sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+
+Returns:
+- A modified named tuple `matRightCopy` with updated column indices to prepare it for horizontal concatenation with `matLeft`.
+
+Example:
+```julia
+matLeft = (NVec=DataFrame(FIR=[1, 3, 4]), MVec=DataFrame(FIC=[2, 1, 3]), nnzVec=DataFrame(ID=[1, 2, 3, 4, 5], NROW=[1, 1, 2, 3, 3], NCOL=[1, 3, 2, 2, 3], NIR=[-1, 3, -1, 5, -1], NIC=[4, -1, 5, -1, -1], Val=[11, 22, 33, 44, 55]))
+matRight = (NVec=DataFrame(FIR=[1, 2, 3]), MVec=DataFrame(FIC=[1, 2]), nnzVec=DataFrame(ID=[1, 2, 3], NROW=[1, 2, 3], NCOL=[1, 2, 1], NIR=[-1, -1, -1], NIC=[3, -1, -1], Val=[66, 77, 88]))
+
+matRightCopy = modify_matRight(matLeft, matRight)
+"""
+function modify_matRight(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
+    
+    NLeftVec, MLeftVec, nnzLeftVec = matLeft.NVec, matLeft.MVec, matLeft.nnzVec
+    N = length(NLeftVec.FIR)
+    MLeft = length(MLeftVec.FIC)
+    nnzLeft = length(nnzLeftVec.ID)
+
+    matRightCopy = deepcopy(matRight)
+    NRightVec, MRightVec, nnzRightVec = matRightCopy.NVec, matRightCopy.MVec, matRightCopy.nnzVec
+
+    for row in 1:N
+        if NRightVec.FIR[row] != -1
+            NRightVec.FIR[row] += nnzLeft
+        end
+    end
+
+    MRight = length(MRightVec.FIC)
+    for col in 1:MRight
+        if MRightVec.FIC[col] != -1
+            MRightVec.FIC[col] += nnzLeft
+        end
+    end
+    
+    nnzRightVec.ID .+= nnzLeft
+    nnzRightVec.NCOL .+= MLeft
+    nnzRight = length(nnzRightVec.ID)
+    for elemNum in 1:nnzRight
+        if nnzRightVec.NIR[elemNum] != -1
+            nnzRightVec.NIR[elemNum] += nnzLeft
+        end
+        if nnzRightVec.NIC[elemNum] != -1
+            nnzRightVec.NIC[elemNum] += nnzLeft
+        end
+    end
+
+    matRightCopy = (NVec=NRightVec, MVec=MRightVec, nnzVec=nnzRightVec)
+    return matRightCopy
+end
+
+"""
+    modify_matBottom(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+        matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
+
+The `modify_matBottom` function modifies the `matBottom` named tuple to prepare it for vertical concatenation with `matTop`. It updates the row indices of the elements in the bottom sparse matrix to properly align them with the top sparse matrix.
+
+Arguments:
+- `matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the top sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the bottom sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+
+Returns:
+- A modified named tuple `matBottomCopy` with updated row indices to prepare it for vertical concatenation with `matTop`.
+
+Example:
+```julia
+matTop = (NVec=DataFrame(FIR=[1, 3, 4]), MVec=DataFrame(FIC=[2, 1, 3]), nnzVec=DataFrame(ID=[1, 2, 3, 4, 5], NROW=[1, 1, 2, 3, 3], NCOL=[1, 3, 2, 2, 3], NIR=[-1, 3, -1, 5, -1], NIC=[4, -1, 5, -1, -1], Val=[11, 22, 33, 44, 55]))
+matBottom = (NVec=DataFrame(FIR=[1, 2, 3]), MVec=DataFrame(FIC=[1, 2]), nnzVec=DataFrame(ID=[1, 2, 3], NROW=[1, 2, 3], NCOL=[1, 2, 1], NIR=[-1, -1, -1], NIC=[3, -1, -1], Val=[66, 77, 88]))
+
+matBottomCopy = modify_matBottom(matTop, matBottom)
+"""
+function modify_matBottom(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
+    
+    NTopVec, MTopVec, nnzTopVec = matTop.NVec, matTop.MVec, matTop.nnzVec
+    NTop = length(NTopVec.FIR)
+    M = length(MTopVec.FIC)
+    nnzTop = length(nnzTopVec.ID)
+
+    matBottomCopy = deepcopy(matBottom)
+    NBottomVec, MBottomVec, nnzBottomVec = matBottomCopy.NVec, matBottomCopy.MVec, matBottomCopy.nnzVec
+
+    for col in 1:M
+        if MBottomVec.FIC[col] != -1
+            MBottomVec.FIC[col] += nnzTop
+        end
+    end
+
+    NBottom = length(NBottomVec.FIR)
+    for row in 1:NBottom
+        if NBottomVec.FIR[row] != -1
+            NBottomVec.FIR[row] += nnzTop
+        end
+    end
+    
+    nnzBottomVec.ID .+= nnzTop
+    nnzBottomVec.NROW .+= NTop
+    nnzBottom = length(nnzBottomVec.ID)
+    for elemNum in 1:nnzBottom
+        if nnzBottomVec.NIC[elemNum] != -1
+            nnzBottomVec.NIC[elemNum] += nnzTop
+        end
+        if nnzBottomVec.NIR[elemNum] != -1
+            nnzBottomVec.NIR[elemNum] += nnzTop
+        end
+    end
+
+    matBottomCopy = (NVec=NBottomVec, MVec=MBottomVec, nnzVec=nnzBottomVec)
+    return matBottomCopy
+end
+
+"""
+    modify_matLeft(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+        matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
+
+The `modify_matLeft` function modifies the `matLeft` named tuple to prepare it for vertical concatenation with `matRight`. It updates the row indices of the elements in the left sparse matrix to properly align them with the right sparse matrix.
+
+Arguments:
+- `matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the left sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the right sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+
+Returns:
+- A modified named tuple `matLeftCopy` with updated row indices to prepare it for vertical concatenation with `matRight`.
+
+Example:
+```julia
+matLeft = (NVec=DataFrame(FIR=[1, 3, 4]), MVec=DataFrame(FIC=[2, 1, 3]), nnzVec=DataFrame(ID=[1, 2, 3, 4, 5], NROW=[1, 1, 2, 3, 3], NCOL=[1, 3, 2, 2, 3], NIR=[-1, 3, -1, 5, -1], NIC=[4, -1, 5, -1, -1], Val=[11, 22, 33, 44, 55]))
+matRight = (NVec=DataFrame(FIR=[1, 2, 3]), MVec=DataFrame(FIC=[1, 2]), nnzVec=DataFrame(ID=[1, 2, 3], NROW=[1, 2, 3], NCOL=[1, 2, 1], NIR=[-1, -1, -1], NIC=[3, -1, -1], Val=[66, 77, 88]))
+
+matLeftCopy = modify_matLeft(matLeft, matRight)
+"""
+function modify_matLeft(matLeft::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    matRight::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}})
+
+    matLeftCopy = deepcopy(matLeft)
+    NLeftVec, MLeftVec, nnzLeftVec = matLeftCopy.NVec, matLeftCopy.MVec, matLeftCopy.nnzVec
+    NRightVec, MRightVec, nnzRightVec = matRight.NVec, matRight.MVec, matRight.nnzVec
+
+    N = length(NLeftVec.FIR)
+    for row = 1:N
+        lastKnownElemInRow = NLeftVec.FIR[row]
+        if lastKnownElemInRow == -1
+            NLeftVec.FIR[row] = NRightVec.ID[row]
+        else
+            nextElemInRow = lastKnownElemInRow
+            while nextElemInRow != -1
+                lastKnownElemInRow = nextElemInRow
+                nextElemInRow = nnzLeftVec.NIR[lastKnownElemInRow]
+            end
+            nnzLeftVec.NIR[lastKnownElemInRow] = NRightVec.FIR[row]
+        end
+    end
+
+    matLeftCopy = (NVec=NLeftVec, MVec=MLeftVec, nnzVec=nnzLeftVec)
+    return matLeftCopy
+end
+
+"""
+    modify_matTop(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+        matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+        verbose::Bool=false)
+
+The `modify_matTop` function modifies the `matTop` named tuple to prepare it for vertical concatenation with `matBottom`. It updates the column indices of the elements in the top sparse matrix to properly align them with the bottom sparse matrix.
+
+Arguments:
+- `matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the top sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}}`: A named tuple containing three DataFrames representing the bottom sparse matrix with columns `NVec`, `MVec`, and `nnzVec`.
+- `verbose::Bool`: (optional) A Boolean value indicating whether to display verbose output during the modification process. Default is `false`.
+
+Returns:
+- A modified named tuple `matTopCopy` with updated column indices to prepare it for vertical concatenation with `matBottom`.
+
+Example:
+```julia
+matTop = (NVec=DataFrame(FIR=[1, 3, 4]), MVec=DataFrame(FIC=[2, 1, 3]), nnzVec=DataFrame(ID=[1, 2, 3, 4, 5], NROW=[1, 1, 2, 3, 3], NCOL=[1, 3, 2, 2, 3], NIR=[-1, 3, -1, 5, -1], NIC=[4, -1, 5, -1, -1], Val=[11, 22, 33, 44, 55]))
+matBottom = (NVec=DataFrame(FIR=[1, 2, 3]), MVec=DataFrame(FIC=[1, 2]), nnzVec=DataFrame(ID=[1, 2, 3], NROW=[1, 2, 3], NCOL=[1, 2, 1], NIR=[-1, -1, -1], NIC=[3, -1, -1], Val=[66, 77, 88]))
+
+matTopCopy = modify_matTop(matTop, matBottom)
+"""
+function modify_matTop(matTop::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}},
+    matBottom::NamedTuple{(:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+    verbose::Bool=false)
+
+    matTopCopy = deepcopy(matTop)
+    NTopVec, MTopVec, nnzTopVec = matTopCopy.NVec, matTopCopy.MVec, matTopCopy.nnzVec
+    NBottomVec, MBottomVec, nnzBottomVec = matBottom.NVec, matBottom.MVec, matBottom.nnzVec
+
+    M = length(MTopVec.FIC)
+    for col = 1:M
+        lastKnownElemInCol = MTopVec.FIC[col]
+        if lastKnownElemInCol == -1
+            myprintln(verbose, "Column $col in top matrix was empty!?")
+            myprintln(verbose, "So, the next element to be connected would be
+            $(MBottom.ID[col])")
+            MTopVec.FIC[col] = MBottomVec.FIC[col]
+        else
+            incumbentID = MTopVec.FIC[col]
+            myprintln(verbose, "Column $col already has an element, with ID: $incumbentID")
+            myprintln(verbose, "So we find the next element.")
+            nextElemInCol = lastKnownElemInCol
+            while nextElemInCol != -1
+                lastKnownElemInCol = nextElemInCol
+                nextElemInCol = nnzTopVec.NIC[lastKnownElemInCol]
+            end
+            nnzTopVec.NIC[lastKnownElemInCol] = MBottomVec.FIC[col]
+        end
+    end
+
+    matTopCopy = (NVec=NTopVec, MVec=MTopVec, nnzVec=nnzTopVec)
+    return matTopCopy
+end
+
+"""
+    full2comp(matFull::Matrix{T}) where T
+
+The `full2comp` function converts a full matrix `matFull` into a compressed matrix `compMat`. It iterates over the elements of the full matrix, constructs `compMat` by storing the non-zero elements with their row and column indices.
+
+Arguments:
+- `matFull::Matrix{T}`: The full matrix to be converted into a compressed matrix, where `T` represents the element type.
+
+Returns:
+- A DataFrame `compMat` representing the compressed matrix with columns `i`, `j`, and `Val` containing the row indices, column indices, and values of the non-zero elements, respectively.
+
+Example:
+```julia
+matFull = [11 0 22; 0 33 0; 0 44 55]
+compMat = full2comp(matFull)
+"""
+function full2comp(matFull::Matrix{T}) where T
+    m, n = size(matFull)
+    i, j, Val = Int[], Int[], T[]
+
+    for row in 1:m
+        for col in 1:n
+            if matFull[row, col] != zero(T) # Use zero(T) to handle different numeric types
+                push!(i, row)
+                push!(j, col)
+                push!(Val, matFull[row, col])
+            end
+        end
+    end
+
+    compMat = DataFrame(i=i, j=j, Val=Val)
+    return compMat
+end
+
+nPV = 1;
+nPQ = 1;
+nSlack = 1;
+N = nPV + nPQ + nSlack;
+J11 = rand(N-1, N-1)
+J12 = rand(N-1, nPQ)
+J21 = rand(nPQ, N-1)
+J22 = rand(nPQ, nPQ)
+J = [J11 J12; J21 J22]
+
+J11Spar = sparmat(full2comp(J11))
+J12Spar = sparmat(J12)
+J21Spar = sparmat(full2comp(J21))
+J22Spar = sparmat(J22)
+JTopSpar = hcatSparse(J11Spar, J12Spar)
+JBottomSpar = hcatSparse(J21Spar, J22Spar)
+JSpar = vcatSparse(JTopSpar, JBottomSpar)
+
+@test spar2Full(JSpar) == J
