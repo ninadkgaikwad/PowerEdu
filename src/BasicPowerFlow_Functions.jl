@@ -174,7 +174,13 @@ type: Slack->PQ->PV.
 '''
 """
 function Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
-
+#     @show Ybus
+    @show SolutionVector_Delta
+    @show typeof(SolutionVector_Delta)
+    @show size(SolutionVector_Delta)
+    @show SolutionVector_V
+    @show typeof(SolutionVector_V)
+    @show size(SolutionVector_Delta)
     # Initializing PQ_BusArray
     PQ_BusArray = Array{Float64}(undef, length(SolutionVector_V), 2)
 
