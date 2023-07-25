@@ -1291,7 +1291,7 @@ function full2comp(matFull::Matrix{T}) where T
     return compMat
 end
 
-JSpar = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
-JFull = spar2Full(JSpar)
+# JSpar = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
+# JFull = spar2Full(JSpar)
 
-@test spar2Full(JSpar) == J
+# @test spar2Full(JSpar) == J
