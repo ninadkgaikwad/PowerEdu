@@ -46,10 +46,10 @@ P = PSpecified - deltaP;
 Q = QSpecified - deltaQ;
 
 sparJ = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
-JFull = real.(spar2Full(sparJ))::Matrix{Float64}
+JFull = real.(spar2Full(sparJ))::Matrix{Float64};
 
 # Create_Jacobian_NR(CDF_DF_List_pu, ybus, V, delta, vcat(P, Q), 1, 0)
 
-JRegular = constructJacobian(CDF_DF_List_pu, P, Q, V, delta, ybus, E=E)
-
+JRegular = constructJacobian(CDF_DF_List_pu, P, Q, V, delta, ybus, E=E);
+# @vscodedisplay(JRegular)
 @test JFull == JRegular
