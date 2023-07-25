@@ -391,6 +391,7 @@ function ybusGenerator(CDF_DF_List_pu::Vector{DataFrame};
 
     for bus = 1:N
         ybus[bus, bus] += busData_pu.G_pu[bus] + im*busData_pu.B_pu[bus]
+        push!(E[bus], bus)
     end
 
     BMatrix = -imag(ybus)

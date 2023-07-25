@@ -358,3 +358,151 @@ function Create_Jacobian_CPF_Correct(CDF_DF_List_pu, Ybus, CPF_Predictor_Vector,
     return Jacobian_CPF_Correct
 
 end
+
+function constructJacobian(CDF_DF_List_pu::Vector{DataFrame},
+    P::Vector{Float64}, Q::Vector{Float64}, V::Vector{Float64}, 
+    delta::Vector{Float64}, ybus::Matrix{ComplexF64};
+    E::Vector{Vector{Int64}},
+    combinationOrder::String="hcat-then-vcat",
+    constructionType::String="byYBusElements",
+    verbose::Bool = false,
+    save::Bool = true,
+    saveLocation::String = "processedData/",
+    systemName::String = "systemNOTSpecified",
+    fileExtension::String = ".csv")::Matrix{Float64}
+
+    if !isdefined(Main, :E)
+        E = [[i for i in 1:N] for _ in 1:N]
+    end
+
+    powSysData = initializeVectors_pu(CDF_DF_List_pu)
+    nPV = powSysData.nPV
+    nPQ = powSysData.nPQ
+    nSlack = powSysData.nSlack
+    lPV = powSysData.listOfPVBuses
+    lPQ = powSysData.listOfPQBuses
+    lNonSlack = powSysData.listOfNonSlackBuses
+    
+    busData = CDF_DF_List_pu[2]
+    N = size(busData, 1);
+    J11 = constructJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, ybus, E, type="J11")
+    J12 = constructJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, ybus, E, type="J12")
+    J21 = constructJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, ybus, E, type="J21")
+    J22 = constructJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, ybus, E, type="J22")
+
+    if combinationOrder == "hcat-then-vcat"
+        JTop = hcat(J11, J12)
+        JBottom = hcat(J21, J22)
+        J = vcat(JTop, JBottom)
+    elseif combinationOrder == "vcat-then-hcat"
+        JLeft = vcat(J11, J21)
+        JRight = vcat(J12, J22)
+        J = hcat(JLeft, JRight)
+    else
+        error("Unknown combination order.")
+    end
+
+    return J
+    
+end
+
+function constructJacobianSubMatrix(CDF_DF_List_pu::Vector{DataFrame},
+    P::Vector{Float64},
+    Q::Vector{Float64},
+    V::Vector{Float64},
+    delta::Vector{Float64},
+    ybus::Matrix{ComplexF64},
+    E::Vector{Vector{Int64}};
+    type::String="J11",
+    constructionType::String="byYBusElements",
+    verbose::Bool=false)
+
+    busData_pu = CDF_DF_List_pu[2]
+    N = size(busData_pu, 1)
+
+    busPositions = busPositionsForJacobian(CDF_DF_List_pu)
+
+    powSysData = initializeVectors_pu(CDF_DF_List_pu)
+    nPV = powSysData.nPV
+    nPQ = powSysData.nPQ
+    lPV = powSysData.listOfPVBuses
+    lPQ = powSysData.listOfPQBuses
+    lNonSlack = powSysData.listOfNonSlackBuses
+
+    if type == "J11"
+        JSub = zeros(Float64, N-1, N-1)
+    elseif type == "J12"
+        JSub = zeros(Float64, N-1, nPQ)
+    elseif type == "J21"
+        JSub = zeros(Float64, nPQ, N-1)
+    elseif type == "J22"
+        JSub = zeros(Float64, nPQ, nPQ)
+    else
+        error("Unknown Jacobian Sub-matrix.")
+    end
+
+    busPositions = busPositionsForJacobian(CDF_DF_List_pu)
+
+    if constructionType == "byYBusElements"
+        for i = 1:N
+            k = 1
+            for k = E[i]
+                Y_ik = ybus[i, k]
+                if Y_ik != 0
+
+                    if type == "J11"
+                        row = busPositions.nonSlackBusIdx[i]
+                        col = busPositions.nonSlackBusIdx[k]
+                    elseif type == "J12"
+                        row = busPositions.nonSlackBusIdx[i]
+                        col = busPositions.PQBusIdx[k]
+                    elseif type == "J21"
+                        row = busPositions.PQBusIdx[i]
+                        col = busPositions.nonSlackBusIdx[k]
+                    elseif type == "J22"
+                        row = busPositions.PQBusIdx[i]
+                        col = busPositions.PQBusIdx[k]
+                    else
+                        error("Unknown Jacobian Submatrix type")
+                    end
+
+                    if row != -1 && col != -1
+
+                        if i == k
+                            B_ii = imag(Y_ik)
+                            G_ii = real(Y_ik)
+                            Vi_squared = V[i]^2
+                            j11 = -Q[i] - B_ii*Vi_squared
+                            j12 = P[i] + G_ii*Vi_squared
+                            j21 = P[i] - G_ii*Vi_squared
+                            j22 = Q[i] - B_ii*Vi_squared
+                        else
+                            YVkVi = abs(Y_ik)*V[k]*V[i]
+                            gamma_deltak_delta_i = angle(Y_ik) + delta[k] - delta[i]
+                            j11 = -YVkVi*sin(gamma_deltak_delta_i)
+                            j12 = YVkVi*cos(gamma_deltak_delta_i)
+                            j21 = -j12
+                            j22 = j11
+                        end
+                        
+                        if type == "J11"
+                            JSub[row, col] = j11
+                        elseif type == "J12"
+                            JSub[row, col] = j12
+                        elseif type == "J21"
+                            JSub[row, col] = j21
+                        elseif type == "J22"
+                            JSub[row, col] = j22
+                        else
+                            error("Unknown Jacobian Submatrix type.")
+                        end
+
+                    end
+
+                end
+            end
+        end
+    end
+
+    return JSub
+end

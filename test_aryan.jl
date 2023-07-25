@@ -6,13 +6,12 @@ include("src/Helper_Functions.jl")
 include("src/Ybus_Builder.jl")
 include("src/IEEE_CDF_Parser.jl")
 include("src/SparseTechniques_Functions.jl")
-
+include("src/Jacobian_Builder.jl")
 folderInput = "data/"
 folder_processedData = "processedData/";
 systemName = "IEEE_14";
 # systemName = "IEEE_30";
 
-# Ybus_Builder.createFolderIfNotExisting(systemName, folder_processedData)
 createFolderIfNotExisting(systemName, folder_processedData)
 
 fileType_CDFFile = ".txt";
@@ -47,4 +46,10 @@ P = PSpecified - deltaP;
 Q = QSpecified - deltaQ;
 
 sparJ = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
-JFull = spar2Full(sparJ)
+JFull = real.(spar2Full(sparJ))::Matrix{Float64};
+
+# Create_Jacobian_NR(CDF_DF_List_pu, ybus, V, delta, vcat(P, Q), 1, 0)
+
+JRegular = constructJacobian(CDF_DF_List_pu, P, Q, V, delta, ybus, E=E);
+# @vscodedisplay(JRegular)
+@test JFull == JRegular
