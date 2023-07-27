@@ -1291,7 +1291,21 @@ function full2comp(matFull::Matrix{T}) where T
     return compMat
 end
 
-# JSpar = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
-# JFull = spar2Full(JSpar)
+function solveUsingSparseLU(A::NamedTuple{ (:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame} },
+    b::Vector;
+    verbose::Bool = true)::Vector
+    
+    L, U = sparLU(A)
+    y = sparForwardSolve(L, b)
+    x = sparBackwardSolve(U, y)
 
-# @test spar2Full(JSpar) == J
+    return x
+end
+
+function sparLU(A::NamedTuple{ (:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame}};
+    verbose::Bool=true)
+    
+    return L, U
+end
+
+    
