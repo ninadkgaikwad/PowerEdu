@@ -1291,6 +1291,29 @@ function full2comp(matFull::Matrix{T}) where T
     return compMat
 end
 
+function computeSparsity(A::NamedTuple{ (:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame} };
+    returnValue::String="print only",
+    verbose::Bool = false)
+
+    N, M, nnz = length(A.NVec.FIR), length(A.MVec.FIC), length(A.nnzVec.ID)
+    sparsity = 100*nnz/(N*M)
+    if returnValue == "print only"
+        println("Sparsity = $(sparsity) %")
+        return
+    elseif returnValue == "return value and print"
+        println("Sparsity = $(sparsity) %")
+        return sparsity
+    elseif returnValue == "return value only"
+        return sparsity
+    elseif returnValue == "nothing"
+        return
+    else
+        error("Unkown type of output request.")
+    end
+    
+    return sparsity
+end
+
 function solveUsingSparseLU(A::NamedTuple{ (:NVec, :MVec, :nnzVec), Tuple{DataFrame, DataFrame, DataFrame} },
     b::Vector;
     verbose::Bool = true)::Vector
