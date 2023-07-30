@@ -1,5 +1,5 @@
 # SparseTechniquesInPowerSystems.jl
-
+using Revise
 using SparseArrays
 using DataFrames
 using Test
@@ -1344,4 +1344,12 @@ function sparseLU_dotProduct(A::SparseMatrix,
     idxDimension::String="column",
     verbose::Bool=true)
 
+    N = length(A.NVec.FIR)
+    M = length(A.MVec.FIC)
+    nnz = length(A.nnzVec.ID)
+
+    if idxDimension == "column"
+        j = idx
+    elseif idxDimension == "row"
+        
 end    
