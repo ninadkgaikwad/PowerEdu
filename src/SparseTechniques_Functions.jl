@@ -317,13 +317,13 @@ the `nnzElem.NCOL` value. The position can be before the incumbent element, afte
 in a tie, which can be resolved using the `resolveTie` function.
 
 ## Arguments
-- `sparMat::NamedTuple`: A named tuple representing the sparse matrix with elements `NVec`, `MVec`, and `nnzVec`. `NVec` is a DataFrame containing additional information about the sparse matrix, `MVec` is a DataFrame containing additional information about the columns, and `nnzVec` is a DataFrame representing the non-zero elements of the sparse matrix.
+- `sparMat::SparseMatrix`: A named tuple representing the sparse matrix with elements `NVec`, `MVec`, and `nnzVec`. `NVec` is a DataFrame containing additional information about the sparse matrix, `MVec` is a DataFrame containing additional information about the columns, and `nnzVec` is a DataFrame representing the non-zero elements of the sparse matrix.
 - `nnzElem::DataFrameRow`: DataFrameRow representing the new element to be inserted.
 - `type::String`: Optional. The type of tie resolution. Default is "replace". Possible values are "replace" and "add".
 - `verbose::Bool`: Optional. If set to `true`, print verbose output. Default is `false`.
 
 ## Returns
-- `sparMat::NamedTuple`: Updated named tuple `sparMat` with the modified `NVec`, `MVec`, and `nnzVec`.
+- `sparMat::SparseMatrix`: Updated named tuple `sparMat` with the modified `NVec`, `MVec`, and `nnzVec`.
 - `nnzElem::DataFrameRow`: Updated DataFrameRow `nnzElem` with the updated element information.
 - `updateFlag::Bool`: A flag indicating if the sparse matrix was updated.
 
@@ -437,13 +437,13 @@ can be before the incumbent element, after it, or it may result in a tie, which 
 using the `resolveTie` function.
 
 ## Arguments
-- `sparMat::NamedTuple`: A named tuple representing the sparse matrix with elements `NVec`, `MVec`, and `nnzVec`. `NVec` is a DataFrame containing additional information about the sparse matrix, `MVec` is a DataFrame containing additional information about the columns, and `nnzVec` is a DataFrame representing the non-zero elements of the sparse matrix.
+- `sparMat::SparseMatrix`: A named tuple representing the sparse matrix with elements `NVec`, `MVec`, and `nnzVec`. `NVec` is a DataFrame containing additional information about the sparse matrix, `MVec` is a DataFrame containing additional information about the columns, and `nnzVec` is a DataFrame representing the non-zero elements of the sparse matrix.
 - `nnzElem::DataFrameRow`: DataFrameRow representing the new element to be inserted.
 - `type::String`: Optional. The type of tie resolution. Default is "replace". Possible values are "replace" and "add".
 - `verbose::Bool`: Optional. If set to `true`, print verbose output. Default is `false`.
 
 ## Returns
-- `sparMat::NamedTuple`: Updated named tuple `sparMat` with the modified `NVec`, `MVec`, and `nnzVec`.
+- `sparMat::SparseMatrix`: Updated named tuple `sparMat` with the modified `NVec`, `MVec`, and `nnzVec`.
 - `nnzElem::DataFrameRow`: Updated DataFrameRow `nnzElem` with the updated element information.
 - `updateFlag::Bool`: A flag indicating if the sparse matrix was updated.
 
@@ -563,13 +563,13 @@ the new element's value replaces the incumbent element's value. If `type` is set
 the new element's value is added to the incumbent element's value.
 
 ## Arguments
-- `sparMat::NamedTuple`: A named tuple representing the sparse matrix with elements `NVec`, `MVec`, and `nnzVec`. `NVec` is a DataFrame containing additional information about the sparse matrix, `MVec` is a DataFrame containing additional information about the columns, and `nnzVec` is a DataFrame representing the non-zero elements of the sparse matrix.
+- `sparMat::SparseMatrix`: A named tuple representing the sparse matrix with elements `NVec`, `MVec`, and `nnzVec`. `NVec` is a DataFrame containing additional information about the sparse matrix, `MVec` is a DataFrame containing additional information about the columns, and `nnzVec` is a DataFrame representing the non-zero elements of the sparse matrix.
 - `nnzElem::DataFrameRow`: DataFrameRow representing the new element to be inserted.
 - `type::String`: Optional. The type of tie resolution. Default is "replace". Possible values are "replace" and "add".
 - `verbose::Bool`: Optional. If set to `true`, print verbose output. Default is `false`.
 
 ## Returns
-- `sparMat::NamedTuple`: Updated named tuple `sparMat` with the modified `NVec`, `MVec`, and `nnzVec`.
+- `sparMat::SparseMatrix`: Updated named tuple `sparMat` with the modified `NVec`, `MVec`, and `nnzVec`.
 
 ## Example
 ```julia
@@ -1342,6 +1342,6 @@ end
 function sparseLU_dotProduct(A::SparseMatrix,
     idx::Int64;
     idxDimension::String="column",
-    verbose::Bool="true")
+    verbose::Bool=true)
 
 end    
