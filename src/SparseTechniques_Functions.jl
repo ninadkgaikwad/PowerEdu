@@ -1584,15 +1584,4 @@ function fill_ins(A::Matrix, Q::Matrix)::Int64
     return count
 end
 
-# fills1 = fill_ins(ATestFull, QTestFull)
-# println("Number of fill-ins: ", fill_ins)
-
-
-# qluJ = sparLU(sparJ);
-# QJ = qluJ.Q
-# LJ = qluJ.L
-# UJ = qluJ.U
-# αJ = qluJ.α
-# fillsJ = qluJ.fills
-
 

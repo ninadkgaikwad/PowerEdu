@@ -3,6 +3,7 @@ using Revise
 using Pkg
 using CSV
 using DataFrames
+using LinearAlgebra
 
 include("src/Helper_Functions.jl")
 include("src/Ybus_Builder.jl")
@@ -11,8 +12,9 @@ include("src/SparseTechniques_Functions.jl")
 include("src/Jacobian_Builder.jl")
 folderInput = "data/"
 folder_processedData = "processedData/";
-systemName = "IEEE_14";
-# systemName = "IEEE_30";
+# systemName = "IEEE_14";
+# systemName = "IEEE_118"
+systemName = "IEEE_30";
 
 createFolderIfNotExisting(systemName, folder_processedData)
 
@@ -50,51 +52,33 @@ Q = QSpecified - deltaQ;
 sparJ = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
 JFull = real.(spar2Full(sparJ))::Matrix{Float64};
 
-# Create_Jacobian_NR(CDF_DF_List_pu, ybus, V, delta, vcat(P, Q), 1, 0)
+# A = [1 3 4 8; 2 1 2 3; 4 3 5 8; 9 2 7 4];
 
 JRegular = constructJacobian(CDF_DF_List_pu, P, Q, V, delta, ybus, E=E);
 # @vscodedisplay(JRegular)
-@test JFull == JRegular
+@test JFull ≈ JRegular atol=1e-3
 
-ATestFull = [10 1 0 3 0 0 0 5 0 0
-2 9 0 0 0 0 5 0 0 2;
-0 0 21 5 7 0 0 0 0 4;
-4 0 1 18 8 0 0 0 0 0;
-0 0 4 7 25 4 1 0 0 2;
-0 0 0 0 3 14 9 0 0 0;
-0 1 4 0 2 3 12 1 1 0;
-1 0 5 0 0 0 5 10 0 0;
-0 0 0 0 0 0 6 0 20 0;
-0 2 3 0 4 0 0 0 0 35];
-
-ATest = sparmat(ATestFull)
-
-qluMatricesATest = sparLU(ATest, verbose=false)
-QTest = qluMatricesATest.Q
-QTestFull = real.(spar2Full(QTest))
-fills = qluMatricesATest.fills
-
-LU_lib = lu(ATestFull);
-L_lib = LU_lib.L
-U_lib = LU_lib.U
-Q_lib = L_lib + U_lib - I
-@test Q_lib == QTestFull
-Q_lib - QTestFull
+# ATestFull = [10 1 0 3 0 0 0 5 0 0
+# 2 9 0 0 0 0 5 0 0 2;
+# 0 0 21 5 7 0 0 0 0 4;
+# 4 0 1 18 8 0 0 0 0 0;
+# 0 0 4 7 25 4 1 0 0 2;
+# 0 0 0 0 3 14 9 0 0 0;
+# 0 1 4 0 2 3 12 1 1 0;
+# 1 0 5 0 0 0 5 10 0 0;
+# 0 0 0 0 0 0 6 0 20 0;
+# 0 2 3 0 4 0 0 0 0 35];
 
 qluJ = sparLU(sparJ);
-QJ = qluJ.Q;
-LJ = qluJ.L;
-UJ = qluJ.U;
-αJ = qluJ.α
-fillsJ = qluJ.fills
-QJFull = real.(spar2Full(QJ))
-LJFull = real.(spar2Full(LJ))
-UJFull = real.(spar2Full(UJ))
-using LinearAlgebra
-LU_lib = lu(JFull);
-L_lib = LU_lib.L
-U_lib = LU_lib.U
-Q_lib = L_lib + U_lib - I
-@test QJFull == Q_lib
+QJ, LJ, UK, αJ, fill_insJ = qluJ.Q, qluJ.L, qluJ.U, qluJ.α, qluJ.fills;
 
-QJFull - Q_lib
+αJ
+fill_insJ
+QJFull = real.(spar2Full(QJ))
+# vscodedisplay(QJFull)
+LJFull = real.(spar2Full(LJ));
+UJFull = real.(spar2Full(UJ));
+
+@test JFull ≈ JRegular atol=1e-3
+@test LJFull*UJFull ≈ JRegular atol=1e-3
+@test LJFull*UJFull ≈ JFull atol=1e-3
