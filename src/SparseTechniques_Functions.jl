@@ -1322,23 +1322,6 @@ function computeSparsity(A::SparseMatrix;
     return sparsity
 end
 
-function solveUsingSparseLU(A::SparseMatrix,
-    b::Vector;
-    verbose::Bool = true)::Vector
-    
-    Q = sparLU(A)
-    y = sparForwardSolve(Q, b)
-    x = sparBackwardSolve(Q, y)
-
-    return x
-end
-
-function sparLU(A::SparseMatrix;
-    verbose::Bool=true)
-    
-    return Q
-end
-
 function getValueFromSparMat(A::SparseMatrix,
     row::Int64,
     col::Int64;
@@ -1409,7 +1392,7 @@ function getValueFromSparMat(A::SparseMatrix,
     myprintln(true, "This line should never have been reached. Review function.")
 end
 
-function sparLU_dotProduct(A::SparseMatrix,
+function dotProductSparLU(A::SparseMatrix,
     row::Int64,
     col::Int64;
     returnType::String="productAndAlpha",
@@ -1424,7 +1407,8 @@ function sparLU_dotProduct(A::SparseMatrix,
     
     if j==1
         myprintln(verbose, "First row/column element, no multiplication required.")
-        prod = getValueFromSparMat(A, row, col, verbose=false)
+        # prod = getValueFromSparMat(A, row, col, verbose=false)
+        prod = 0
         α = 0
         productComputed = true    
     end
@@ -1485,3 +1469,100 @@ function sparLU_dotProduct(A::SparseMatrix,
 
 end
 
+function solveUsingSparseLU(A::SparseMatrix,
+    b::Vector;
+    verbose::Bool = false)::Vector
+    
+    Q = sparLU(A)
+    y = sparForwardSolve(Q, b)
+    x = sparBackwardSolve(Q, y)
+
+    return x
+end
+
+function sparLU(A::SparseMatrix;
+    method::String="Crout",
+    verbose::Bool=false)
+
+    FIR, FIC, nnzVec = A.NVec.FIR, A.MVec.FIC, A.nnzVec
+    N, M, nnz = length(FIR), length(FIC), length(nnzVec.ID)
+    α, fills = 0, 0
+
+    Q, L, U = [sparseMatrixConstructor(N, M) for _ in 1:3]
+    for j = 1:M
+        for k = j:N
+            prod, αₖⱼ = dotProductSparLU(Q, k, j)
+            aₖⱼ = getValueFromSparMat(A, k, j)
+            if aₖⱼ == 0
+                fills += 1
+            end
+            qₖⱼ = aₖⱼ - prod
+            compElemQ = DataFrame(i = k, j = j, Val = qₖⱼ)
+            nnzElemQ = nnzRowConstructor(compElemQ[1, :])
+            if method == "Doolittle" && k == j
+                compElemL = DataFrame(i = k, j =j, Val = 1)
+                nnzElemL = nnzRowConstructor(compElemL[1, :])
+                nnzElemU = nnzElemQ
+                updateSparse(U, nnzElemU)
+            elseif method == "Crout" && k == j
+                nnzElemL = nnzElemQ
+                compElemU = DataFrame(i = j, j = k, Val = 1)
+                nnzElemU = nnzRowConstructor(compElemU[1, :])
+                updateSparse(U, nnzElemU)
+            else
+                nnzElemL = nnzElemQ
+            end
+            updateSparse(Q, nnzElemQ)
+            updateSparse(L, nnzElemL)
+            α += αₖⱼ 
+        end
+        
+        if j != M
+            @show qⱼⱼ = getValueFromSparMat(Q, j, j)
+
+            for k = j+1:M
+                @show prod, αⱼₖ = dotProductSparLU(Q, j, k)
+                aⱼₖ = getValueFromSparMat(A, j, k)
+                if aⱼₖ == 0
+                    fills += 1
+                end
+                qⱼₖ = (aⱼₖ - prod)/qⱼⱼ
+                compElemQ = DataFrame(i = j, j = k, Val = qⱼₖ)
+                nnzElemQ = nnzRowConstructor(compElemQ[1, :])
+                updateSparse(Q, nnzElemQ)
+                updateSparse(U, nnzElemQ)
+                α += (αⱼₖ + 1)
+            end
+
+        end
+    end
+
+    qluMatrices = (Q = Q, L = L, U = U, α = α, fills = fills)
+    return qluMatrices
+end
+
+# qluMatrices = sparLU(sparA1);
+
+# Q = qluMatrices.Q;
+# QFull = spar2Full(Q)
+# L = qluMatrices.L;
+# LFull = spar2Full(L)
+# U = qluMatrices.U;
+# UFull = spar2Full(U)
+# α = qluMatrices.α
+# fills = qluMatrices.fills
+
+ATestFull = [10 1 0 3 0 0 0 5 0 0
+2 9 0 0 0 0 5 0 0 2;
+0 0 21 5 7 0 0 0 0 4;
+4 0 1 18 8 0 0 0 0 0;
+0 0 4 7 25 4 1 0 0 2;
+0 0 0 0 3 14 9 0 0 0;
+0 1 4 0 2 3 12 1 1 0;
+1 0 5 0 0 0 5 10 0 0;
+0 0 0 0 0 0 6 0 20 0;
+0 2 3 0 4 0 0 0 0 35];
+
+ATestSpar = sparmat(ATestFull)
+
+qluMatricesATest = sparLU(ATestSpar)

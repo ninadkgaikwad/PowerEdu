@@ -62,4 +62,5 @@ JRegular = constructJacobian(CDF_DF_List_pu, P, Q, V, delta, ybus, E=E);
 
 A1 = [1 3 4 8; 2 1 2 3; 4 3 5 8; 9 2 7 4]
 sparA1 = sparmat(A1)
-prod, α = sparLU_dotProduct(sparA1, 4, 4, verbose=true)
+prod, α = dotProductSparLU(sparA1, 4, 4, verbose=true)
+
