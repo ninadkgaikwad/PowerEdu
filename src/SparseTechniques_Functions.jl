@@ -1424,12 +1424,14 @@ function sparseLU_dotProduct(A::SparseMatrix,
     
     if j==1
         myprintln(verbose, "First row/column element, no multiplication required.")
-        prod = getValueFromSparMat(A, row, col, verbose=verbose)
+        prod = getValueFromSparMat(A, row, col, verbose=false)
         α = 0
         productComputed = true    
     end
 
     if ~productComputed
+        myprintln(verbose, "Since the element is NOT a first row/col element,"*
+        " multiplication is required.")
         FIR, FIC, nnzVec = A.NVec.FIR, A.MVec.FIC, A.nnzVec
         # N, M, nnz = length(FIR), length(FIC), length(nnzVec.ID)
 
@@ -1450,7 +1452,8 @@ function sparseLU_dotProduct(A::SparseMatrix,
                 myprintln(verbose, "A good match for multiplication found.")
                 myprintln(verbose, "The indices are ($(row), $(irow)) and ($(icol), $(col))")
                 myprintln(verbose, " Multiplying them.")
-                prod += getValueFromSparMat(A, row, irow, verbose=false) * getValueFromSparMat(A, icol, col, verbose=false)
+                # prod += getValueFromSparMat(A, row, irow, verbose=false) * getValueFromSparMat(A, icol, col, verbose=false)
+                prod += nnzElemRow.Val*nnzElemCol.Val
                 α += 1
                 rowPtr = nnzElemRow.NIR
                 colPtr = nnzElemCol.NIC
@@ -1484,4 +1487,4 @@ end
 
 # j1111 = getValueFromSparMat(sparJ, 9, 10, verbose=true)
 
-sparseLU_dotProduct(sparJ, 22, 22, verbose=true)
+prod, α = sparseLU_dotProduct(sparJ, 22, 22, verbose=true)
