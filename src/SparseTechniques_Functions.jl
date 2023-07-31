@@ -1339,44 +1339,6 @@ function sparLU(A::SparseMatrix;
     return Q
 end
 
-function sparseLU_dotProduct(A::SparseMatrix,
-    row::Int64,
-    col::Int64;
-    returnType::String="onlyProduct",
-    verbose::Bool=true)
-
-    j = row
-    k = col
-    
-    if j==1 || k==1
-        return 
-    end
-
-    FIR = A.NVec.FIR
-    FIC = A.MVec.FIC
-    nnzVec = A.nnzVec
-
-    α = 0
-    N = length(FIR)
-    M = length(FIC)
-    nnz = length(nnzVec.ID)
-
-    prod = 0
-
-
-
-    if returnType == "productOnly"
-        return prod
-    elseif returnType == "productAndAlpha"
-        return prod, α
-    elseif returnType == "alphaOnly"
-        return α
-    else
-        error("Unknown return type.")
-    end
-
-end
-
 function getValueFromSparMat(A::SparseMatrix,
     row::Int64,
     col::Int64;
@@ -1384,7 +1346,6 @@ function getValueFromSparMat(A::SparseMatrix,
 
     FIR, FIC, nnzVec = A.NVec.FIR, A.MVec.FIC, A.nnzVec
     N, M = length(FIR), length(FIC)
-    # nnz = length(nnzVec.ID)
 
     val = 0
 
@@ -1396,7 +1357,8 @@ function getValueFromSparMat(A::SparseMatrix,
     keepSearching = true
 
     if N <= M
-        myprintln(verbose, "Iterating over row $row of the sparse matrix.")
+        myprintln(verbose, "Iterating over row $row of the sparse matrix as "*
+        "number of rows $N ≤ number of columns $M.")
         rowPtr = FIR[row]
         while rowPtr != -1 && !elemFound && keepSearching 
             nnzElem = nnzVec[rowPtr, :]
@@ -1419,8 +1381,8 @@ function getValueFromSparMat(A::SparseMatrix,
             end
         end
     else
-        myprintln(verbose, "Iterating over column $col of the sparse matrix.")
-        
+        myprintln(verbose, "Iterating over column $col of the sparse matrix as "*
+        "number of rows $N ≥ number of columns $M.")        
         colPtr = FIC[col]
         while colPtr != -1 && !elemFound && keepSearching
             nnzElem = nnzVec[:, colPtr]
@@ -1447,4 +1409,79 @@ function getValueFromSparMat(A::SparseMatrix,
     myprintln(true, "This line should never have been reached. Review function.")
 end
 
-j1111 = getValueFromSparMat(sparJ, 9, 10, verbose=true)
+function sparseLU_dotProduct(A::SparseMatrix,
+    row::Int64,
+    col::Int64;
+    returnType::String="productAndAlpha",
+    verbose::Bool=false)
+
+    j = min(row, col)
+
+    prod, α = 0, 0
+
+    productComputed = false
+
+    
+    if j==1
+        myprintln(verbose, "First row/column element, no multiplication required.")
+        prod = getValueFromSparMat(A, row, col, verbose=verbose)
+        α = 0
+        productComputed = true    
+    end
+
+    if ~productComputed
+        FIR, FIC, nnzVec = A.NVec.FIR, A.MVec.FIC, A.nnzVec
+        # N, M, nnz = length(FIR), length(FIC), length(nnzVec.ID)
+
+        rowPtr = FIR[row]
+        colPtr = FIC[col]
+
+        while rowPtr != -1 && colPtr != -1 && ~productComputed
+            nnzElemRow = nnzVec[rowPtr, :]
+            irow = nnzElemRow.NCOL    
+            nnzElemCol = nnzVec[colPtr, :]
+            icol = nnzElemCol.NROW
+
+            if irow ≥ j || icol ≥ j
+                myprintln(verbose, "Stopping product computation as at least "*
+                "one of the pointers has gone above required bounds.")
+                productComputed = true
+            elseif irow == icol
+                myprintln(verbose, "A good match for multiplication found.")
+                myprintln(verbose, "The indices are ($(row), $(irow)) and ($(icol), $(col))")
+                myprintln(verbose, " Multiplying them.")
+                prod += getValueFromSparMat(A, row, irow, verbose=false) * getValueFromSparMat(A, icol, col, verbose=false)
+                α += 1
+                rowPtr = nnzElemRow.NIR
+                colPtr = nnzElemCol.NIC
+                
+            elseif irow < icol
+                myprintln(verbose, "Row pointer is lagging behind column pointer."*
+                " Will increment row pointer by one.")
+                rowPtr = nnzElemRow.NIR
+            elseif icol < irow
+                myprintln(verbose, "Column pointer is lagging behind row pointer."*
+                " Will increment column pointer by one.")
+                colPtr = nnzElemCol.NIC
+            else
+                error("Unprepared for this.")
+            end
+        end
+    end
+
+
+    if returnType == "productOnly"
+        return prod
+    elseif returnType == "productAndAlpha"
+        return prod, α
+    elseif returnType == "alphaOnly"
+        return α
+    else
+        error("Unknown return type.")
+    end
+
+end
+
+# j1111 = getValueFromSparMat(sparJ, 9, 10, verbose=true)
+
+sparseLU_dotProduct(sparJ, 22, 22, verbose=true)
