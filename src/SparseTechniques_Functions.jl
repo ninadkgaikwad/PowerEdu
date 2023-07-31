@@ -1339,7 +1339,8 @@ function getValueFromSparMat(A::SparseMatrix,
     elemFound = false
     keepSearching = true
 
-    if N <= M
+    if N ≤ M
+
         myprintln(verbose, "Iterating over row $row of the sparse matrix as "*
         "number of rows $N ≤ number of columns $M.")
         rowPtr = FIR[row]
@@ -1363,7 +1364,11 @@ function getValueFromSparMat(A::SparseMatrix,
                 error("How did this even happen? Wasn't supposed to happen.")
             end
         end
+
+        return val
+
     else
+
         myprintln(verbose, "Iterating over column $col of the sparse matrix as "*
         "number of rows $N ≥ number of columns $M.")        
         colPtr = FIC[col]
@@ -1387,6 +1392,8 @@ function getValueFromSparMat(A::SparseMatrix,
                 error("How did this even happen? Wasn't supposed to happen.")
             end
         end
+
+        return val
     end
     
     myprintln(true, "This line should never have been reached. Review function.")
@@ -1473,7 +1480,8 @@ function solveUsingSparseLU(A::SparseMatrix,
     b::Vector;
     verbose::Bool = false)::Vector
     
-    Q = sparLU(A)
+    qlu = sparLU(A)
+    Q = qlu.Q
     y = sparForwardSolve(Q, b)
     x = sparBackwardSolve(Q, y)
 
@@ -1491,47 +1499,64 @@ function sparLU(A::SparseMatrix;
     Q, L, U = [sparseMatrixConstructor(N, M) for _ in 1:3]
     for j = 1:M
         for k = j:N
+            myprintln(verbose, "About to compute Q matrix elements for row $k and column $j .")
             prod, αₖⱼ = dotProductSparLU(Q, k, j)
             aₖⱼ = getValueFromSparMat(A, k, j)
-            if aₖⱼ == 0
-                fills += 1
-            end
+
             qₖⱼ = aₖⱼ - prod
-            compElemQ = DataFrame(i = k, j = j, Val = qₖⱼ)
-            nnzElemQ = nnzRowConstructor(compElemQ[1, :])
-            if method == "Doolittle" && k == j
-                compElemL = DataFrame(i = k, j =j, Val = 1)
-                nnzElemL = nnzRowConstructor(compElemL[1, :])
-                nnzElemU = nnzElemQ
-                updateSparse(U, nnzElemU)
-            elseif method == "Crout" && k == j
-                nnzElemL = nnzElemQ
-                compElemU = DataFrame(i = j, j = k, Val = 1)
-                nnzElemU = nnzRowConstructor(compElemU[1, :])
-                updateSparse(U, nnzElemU)
+            if qₖⱼ != 0
+                if aₖⱼ == 0
+                    myprintln(verbose, "Ahah! Fill-in detected at (row, col) = ($(k), $(k)).")
+                    fills += 1
+                end
+                compElemQ = DataFrame(i = k, j = j, Val = qₖⱼ)
+                nnzElemQ = nnzRowConstructor(compElemQ[1, :])
+                if method == "Doolittle" && k == j
+                    compElemL = DataFrame(i = k, j =j, Val = 1)
+                    nnzElemL = nnzRowConstructor(compElemL[1, :])
+                    nnzElemU = nnzElemQ
+                    updateSparse(U, nnzElemU)
+                elseif method == "Crout" && k == j
+                    nnzElemL = nnzElemQ
+                    compElemU = DataFrame(i = j, j = k, Val = 1)
+                    nnzElemU = nnzRowConstructor(compElemU[1, :])
+                    updateSparse(U, nnzElemU)
+                else
+                    nnzElemL = nnzElemQ
+                end
+                updateSparse(Q, nnzElemQ)
+                updateSparse(L, nnzElemL)
+                α += αₖⱼ 
+            elseif qₖⱼ == 0
+                myprintln(verbose, "Everything is zero. Therefore nothing should be added anywhere.")
             else
-                nnzElemL = nnzElemQ
+                error("Shouldn't be reached.")
             end
-            updateSparse(Q, nnzElemQ)
-            updateSparse(L, nnzElemL)
-            α += αₖⱼ 
         end
         
         if j != M
-            @show qⱼⱼ = getValueFromSparMat(Q, j, j)
+            qⱼⱼ = getValueFromSparMat(Q, j, j)
 
             for k = j+1:M
-                @show prod, αⱼₖ = dotProductSparLU(Q, j, k)
+                myprintln(verbose, "About to compute Q matrix elements for row $j and column $k.")
+                prod, αⱼₖ = dotProductSparLU(Q, j, k)
                 aⱼₖ = getValueFromSparMat(A, j, k)
-                if aⱼₖ == 0
-                    fills += 1
-                end
                 qⱼₖ = (aⱼₖ - prod)/qⱼⱼ
-                compElemQ = DataFrame(i = j, j = k, Val = qⱼₖ)
-                nnzElemQ = nnzRowConstructor(compElemQ[1, :])
-                updateSparse(Q, nnzElemQ)
-                updateSparse(U, nnzElemQ)
-                α += (αⱼₖ + 1)
+                if qⱼₖ != 0
+                    if aⱼₖ == 0
+                        myprintln(verbose, "Ahah! Fill-in detected at (row, col) = ($(k), $(k)).")
+                        fills += 1
+                    end
+                    compElemQ = DataFrame(i = j, j = k, Val = qⱼₖ)
+                    nnzElemQ = nnzRowConstructor(compElemQ[1, :])
+                    updateSparse(Q, nnzElemQ)
+                    updateSparse(U, nnzElemQ)
+                    α += (αⱼₖ + 1)
+                elseif qⱼₖ == 0
+                    myprintln(verbose, "Everything is zero. Therefore nothing should be added anywhere.")
+                else
+                    error("Shouldn't be reached.")
+                end
             end
 
         end
@@ -1541,28 +1566,33 @@ function sparLU(A::SparseMatrix;
     return qluMatrices
 end
 
-# qluMatrices = sparLU(sparA1);
+function fill_ins(A::Matrix, Q::Matrix)::Int64
+    count = 0
+    N = size(A, 1)
+    M = size(A, 2)
+    if size(Q) != (N, M)
+        error("Incompatible sizes of matrices. Cannot be compared.")
+    end
 
-# Q = qluMatrices.Q;
-# QFull = spar2Full(Q)
-# L = qluMatrices.L;
-# LFull = spar2Full(L)
-# U = qluMatrices.U;
-# UFull = spar2Full(U)
-# α = qluMatrices.α
-# fills = qluMatrices.fills
+    for i in N
+        for j in M
+            if A[i, j] == 0 && Q[i, j] != 0
+                count += 1
+            end
+        end
+    end
+    return count
+end
 
-ATestFull = [10 1 0 3 0 0 0 5 0 0
-2 9 0 0 0 0 5 0 0 2;
-0 0 21 5 7 0 0 0 0 4;
-4 0 1 18 8 0 0 0 0 0;
-0 0 4 7 25 4 1 0 0 2;
-0 0 0 0 3 14 9 0 0 0;
-0 1 4 0 2 3 12 1 1 0;
-1 0 5 0 0 0 5 10 0 0;
-0 0 0 0 0 0 6 0 20 0;
-0 2 3 0 4 0 0 0 0 35];
+# fills1 = fill_ins(ATestFull, QTestFull)
+# println("Number of fill-ins: ", fill_ins)
 
-ATestSpar = sparmat(ATestFull)
 
-qluMatricesATest = sparLU(ATestSpar)
+# qluJ = sparLU(sparJ);
+# QJ = qluJ.Q
+# LJ = qluJ.L
+# UJ = qluJ.U
+# αJ = qluJ.α
+# fillsJ = qluJ.fills
+
+

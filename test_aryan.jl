@@ -56,11 +56,45 @@ JRegular = constructJacobian(CDF_DF_List_pu, P, Q, V, delta, ybus, E=E);
 # @vscodedisplay(JRegular)
 @test JFull == JRegular
 
-# j1111 = getValueFromSparMat(sparJ, 9, 10, verbose=true)
+ATestFull = [10 1 0 3 0 0 0 5 0 0
+2 9 0 0 0 0 5 0 0 2;
+0 0 21 5 7 0 0 0 0 4;
+4 0 1 18 8 0 0 0 0 0;
+0 0 4 7 25 4 1 0 0 2;
+0 0 0 0 3 14 9 0 0 0;
+0 1 4 0 2 3 12 1 1 0;
+1 0 5 0 0 0 5 10 0 0;
+0 0 0 0 0 0 6 0 20 0;
+0 2 3 0 4 0 0 0 0 35];
 
-# prod, α = sparLU_dotProduct(sparJ, 22, 22, verbose=true)
+ATest = sparmat(ATestFull)
 
-A1 = [1 3 4 8; 2 1 2 3; 4 3 5 8; 9 2 7 4]
-sparA1 = sparmat(A1)
-prod, α = dotProductSparLU(sparA1, 4, 4, verbose=true)
+qluMatricesATest = sparLU(ATest, verbose=false)
+QTest = qluMatricesATest.Q
+QTestFull = real.(spar2Full(QTest))
+fills = qluMatricesATest.fills
 
+LU_lib = lu(ATestFull);
+L_lib = LU_lib.L
+U_lib = LU_lib.U
+Q_lib = L_lib + U_lib - I
+@test Q_lib == QTestFull
+Q_lib - QTestFull
+
+qluJ = sparLU(sparJ);
+QJ = qluJ.Q;
+LJ = qluJ.L;
+UJ = qluJ.U;
+αJ = qluJ.α
+fillsJ = qluJ.fills
+QJFull = real.(spar2Full(QJ))
+LJFull = real.(spar2Full(LJ))
+UJFull = real.(spar2Full(UJ))
+using LinearAlgebra
+LU_lib = lu(JFull);
+L_lib = LU_lib.L
+U_lib = LU_lib.U
+Q_lib = L_lib + U_lib - I
+@test QJFull == Q_lib
+
+QJFull - Q_lib
