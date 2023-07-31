@@ -55,3 +55,11 @@ JFull = real.(spar2Full(sparJ))::Matrix{Float64};
 JRegular = constructJacobian(CDF_DF_List_pu, P, Q, V, delta, ybus, E=E);
 # @vscodedisplay(JRegular)
 @test JFull == JRegular
+
+# j1111 = getValueFromSparMat(sparJ, 9, 10, verbose=true)
+
+# prod, α = sparLU_dotProduct(sparJ, 22, 22, verbose=true)
+
+A1 = [1 3 4 8; 2 1 2 3; 4 3 5 8; 9 2 7 4]
+sparA1 = sparmat(A1)
+prod, α = sparLU_dotProduct(sparA1, 4, 4, verbose=true)

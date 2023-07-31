@@ -1409,7 +1409,7 @@ function getValueFromSparMat(A::SparseMatrix,
     myprintln(true, "This line should never have been reached. Review function.")
 end
 
-function sparseLU_dotProduct(A::SparseMatrix,
+function sparLU_dotProduct(A::SparseMatrix,
     row::Int64,
     col::Int64;
     returnType::String="productAndAlpha",
@@ -1485,6 +1485,3 @@ function sparseLU_dotProduct(A::SparseMatrix,
 
 end
 
-# j1111 = getValueFromSparMat(sparJ, 9, 10, verbose=true)
-
-prod, α = sparseLU_dotProduct(sparJ, 22, 22, verbose=true)
