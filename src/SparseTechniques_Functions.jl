@@ -1340,16 +1340,111 @@ function sparLU(A::SparseMatrix;
 end
 
 function sparseLU_dotProduct(A::SparseMatrix,
-    idx::Int64;
-    idxDimension::String="column",
+    row::Int64,
+    col::Int64;
+    returnType::String="onlyProduct",
     verbose::Bool=true)
 
-    N = length(A.NVec.FIR)
-    M = length(A.MVec.FIC)
-    nnz = length(A.nnzVec.ID)
+    j = row
+    k = col
+    
+    if j==1 || k==1
+        return 
+    end
 
-    if idxDimension == "column"
-        j = idx
-    elseif idxDimension == "row"
+    FIR = A.NVec.FIR
+    FIC = A.MVec.FIC
+    nnzVec = A.nnzVec
+
+    α = 0
+    N = length(FIR)
+    M = length(FIC)
+    nnz = length(nnzVec.ID)
+
+    prod = 0
+
+
+
+    if returnType == "productOnly"
+        return prod
+    elseif returnType == "productAndAlpha"
+        return prod, α
+    elseif returnType == "alphaOnly"
+        return α
+    else
+        error("Unknown return type.")
+    end
+
+end
+
+function getValueFromSparMat(A::SparseMatrix,
+    row::Int64,
+    col::Int64;
+    verbose::Bool=false)
+
+    FIR, FIC, nnzVec = A.NVec.FIR, A.MVec.FIC, A.nnzVec
+    N, M = length(FIR), length(FIC)
+    # nnz = length(nnzVec.ID)
+
+    val = 0
+
+    if row > N || col > M
+        error("Requested element is outside the bounds of the matrix.")
+    end
+
+    elemFound = false
+    keepSearching = true
+
+    if N <= M
+        myprintln(verbose, "Iterating over row $row of the sparse matrix.")
+        rowPtr = FIR[row]
+        while rowPtr != -1 && !elemFound && keepSearching 
+            nnzElem = nnzVec[rowPtr, :]
+            colNum = nnzElem.NCOL
+            if colNum == col
+                elemFound = true
+                keepSearching = false
+                val = nnzElem.Val
+                return val
+            elseif colNum > col
+                keepSearching = false
+                myprintln(verbose, "Element not found in this row, "* 
+                "Are you sure it is a non-sparse element?")
+                return val
+            elseif colNum < col
+                myprintln(verbose, "Not there yet. Go to next element in row.")
+                rowPtr = nnzElem.NIR
+            else
+                error("How did this even happen? Wasn't supposed to happen.")
+            end
+        end
+    else
+        myprintln(verbose, "Iterating over column $col of the sparse matrix.")
         
-end    
+        colPtr = FIC[col]
+        while colPtr != -1 && !elemFound && keepSearching
+            nnzElem = nnzVec[:, colPtr]
+            rowNum = nnzElem.NROW
+            if rowNum == row
+                elemFound = true
+                keepSearching = false
+                val = nnzElem.Val
+                return val
+            elseif rowNum > row
+                keepSearching = false
+                myprintln(verbose, "Element not found in this column, " *
+                "Are you sure it is a non-sparse element?")
+                return val
+            elseif rowNum < row
+                myprintln(verbose, "Not there yet. Go to next element in column.")
+                colPtr = nnzElem.NIC
+            else
+                error("How did this even happen? Wasn't supposed to happen.")
+            end
+        end
+    end
+    
+    myprintln(true, "This line should never have been reached. Review function.")
+end
+
+j1111 = getValueFromSparMat(sparJ, 9, 10, verbose=true)
