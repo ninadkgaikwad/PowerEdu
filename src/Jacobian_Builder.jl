@@ -383,8 +383,8 @@ function constructJacobian(CDF_DF_List_pu::Vector{DataFrame},
     lPQ = powSysData.listOfPQBuses
     lNonSlack = powSysData.listOfNonSlackBuses
     
-    busData = CDF_DF_List_pu[2]
-    N = size(busData, 1);
+    busData_pu = CDF_DF_List_pu[2]
+    N = size(busData_pu, 1);
     J11 = constructJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, ybus, E, type="J11")
     J12 = constructJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, ybus, E, type="J12")
     J21 = constructJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, ybus, E, type="J21")

@@ -306,36 +306,37 @@ function sortMatrixByBusTypes(CDF_DF_List_pu, ybus)
 end
 
 """
-    ybusGenerator(busData_pu, branchData_pu; kwargs...)
+    ybusGenerator(CDF_DF_List_pu::Vector{DataFrame};
+                disableTaps::Bool=false, sortBy::String="busNumbers",
+                verbose::Bool=false, saveTables::Bool=false,
+                saveLocation::String="processedData/")
 
-Generates the Y-bus matrix and related matrices for a power system.
+Generates the Y-bus matrix, B-matrix, and other related matrices for a power system.
 
-# Arguments
-- `busData_pu`: A DataFrame containing the bus data for the power system.
-- `branchData_pu`: A DataFrame containing the branch data for the power system.
+# Arguments:
+- `CDF_DF_List_pu`: A vector of DataFrames where the second element contains the bus data and the third element contains the branch data in per unit.
+- `disableTaps`: A boolean indicating whether transformer tap ratios should be ignored. Default is `false`.
+- `sortBy`: A string which specifies how to sort the matrices. Can be "busNumbers" (default) or "busTypes".
+- `verbose`: A boolean that indicates whether to print the results to the console. Default is `false`.
+- `saveTables`: A boolean that indicates whether to save the results as CSV files. Default is `false`.
+- `saveLocation`: A string that specifies the directory where CSV files will be saved. Default is "processedData/".
 
-# Optional keyword arguments
-- `disableTaps`: A logical value indicating whether to disable tap ratios (default: `false`).
-- `sortBy`: A string specifying the order of the Y-bus matrix ('busNumbers' or 'busTypes', default: 'busNumbers').
-- `verbose`: A logical value indicating whether to display verbose output (default: `false`).
-- `saveTables`: A logical value indicating whether to save the Y-bus and B-matrix as CSV files (default: `false`).
-- `saveLocation`: A string specifying the folder location to save the tables (default: 'processedData/').
+# Returns:
+- A named tuple containing:
+    - `ybus`: The Y-bus matrix
+    - `BMatrix`: The B-matrix
+    - `b`: A matrix related to branch impedances
+    - `A`: The incidence matrix
+    - `branchNames`: A vector of strings representing branch names
+    - `E`: An adjacency list representation of the system topology
 
-# Returns
-- `ybus`: The Y-bus matrix representing the power system.
-- `BMatrix`: The B-matrix representing the power system.
-- `b`: A matrix representing the susceptance values of the branches.
-- `A`: A matrix representing the connection between branches and buses.
-- `branchNames`: A vector containing the names of the branches.
-- `E`: A vector of vectors representing the adjacency list of buses.
+# Notes:
+The function processes the given data, constructs the Y-bus matrix, and can optionally print the results and save them as CSV files.
+It also provides sorting functionality to sort the matrices by either bus numbers or bus types.
 
-# Example
+# Example:
 ```julia
-using DataFrames, CSV
-
-busData_pu = DataFrame(G=[0.1, 0.05, 0.2], B=[0.2, 0.15, 0.25])
-branchData_pu = DataFrame(i=[1, 2, 3], j=[2, 3, 1], R=[0.1, 0.2, 0.15], X=[0.2, 0.3, 0.25], B=[0.05, 0.1, 0.08])
-ybus, BMatrix, b, A, branchNames, E = ybusGenerator(CDF_DF_List_pu, verbose=true, saveTables=true)
+results = ybusGenerator(data, disableTaps=true, verbose=true)
 """
 function ybusGenerator(CDF_DF_List_pu::Vector{DataFrame};
     disableTaps::Bool = false,
@@ -382,8 +383,8 @@ function ybusGenerator(CDF_DF_List_pu::Vector{DataFrame};
         y_ik = 1/(currentBranch.R_pu + im*currentBranch.X_pu)
         ybus[i, i] += y_ik/(a^2) + im*currentBranch.B_pu / 2
         ybus[k, k] += y_ik + im*currentBranch.B_pu / 2
-        ybus[i, k] = -y_ik/a
-        ybus[k, i] = -y_ik/a
+        ybus[i, k] += -y_ik/a
+        ybus[k, i] += -y_ik/a
 
         push!(E[i], k)
         push!(E[k], i)
@@ -435,7 +436,7 @@ function ybusGenerator(CDF_DF_List_pu::Vector{DataFrame};
         CSV.write(filenameBMatrix, BMatrixTable)
     end
 
-    return [ybus, BMatrix, b, A, branchNames, E]
+    return (ybus=ybus, BMatrix=BMatrix, b=b, A=A, branchNames=branchNames, E=E)
 
 end
 
