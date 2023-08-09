@@ -290,3 +290,16 @@ function numPQBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "cur
     result = initializeVectors_pu(CDF_Data_List_pu; busTypes)
     return result.nPQ
 end
+
+function get_position(matrix, position::String)
+    nrows, ncols = size(matrix)
+    positions = Dict(
+        "northeast" => (nrows * 0.9, ncols * 0.9),
+        "northwest" => (nrows * 0.9, ncols * 0.1),
+        "southeast" => (nrows * 0.1, ncols * 0.9),
+        "southwest" => (nrows * 0.1, ncols * 0.1)
+        # Add more if needed
+    )
+    return positions[position]
+end
+
