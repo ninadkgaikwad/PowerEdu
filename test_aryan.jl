@@ -1,18 +1,23 @@
 using Revise
-
 using Pkg
 using CSV
 using DataFrames
 using LinearAlgebra
+using Cthulhu
+using BenchmarkTools
+using Plots
 
 include("src/Helper_Functions.jl");
 include("src/Ybus_Builder.jl");
 include("src/IEEE_CDF_Parser.jl");
 include("src/SparseTechniques_Functions.jl");
 include("src/Jacobian_Builder.jl");
+
+# systemName = "IEEE_14";
+
+
 folderInput = "data/";
 folder_processedData = "processedData/";
-# systemName = "IEEE_14";
 systemName = "IEEE_118"
 # systemName = "IEEE_30";
 # systemName = "IEEE_57"
@@ -30,14 +35,14 @@ busData_pu = CDF_DF_List_pu[2];
 branchData_pu = CDF_DF_List_pu[3];
 
 sparYBus = constructSparseYBus(CDF_DF_List_pu);
-ybusSpar2Full = spar2Full(sparYBus, readMethod="col-wise")
+ybusSpar2Full = spar2Full(sparYBus, readMethod="col-wise");
 
 ybusResults = ybusGenerator(CDF_DF_List_pu, saveTables=true);
-ybusDense = ybusResults.ybus
+ybusDense = ybusResults.ybus;
 E = ybusResults.E ;
 
-diff = ybusDense-ybusSpar2Full
-non_zero_elements = [(diff[i, j], i, j) for i in 1:size(diff, 1), j in 1:size(diff, 2) if diff[i, j] != 0]
+# diff = ybusDense-ybusSpar2Full
+# non_zero_elements = [(diff[i, j], i, j) for i in 1:size(diff, 1), j in 1:size(diff, 2) if diff[i, j] != 0]
 
 @test ybusSpar2Full ≈ ybusDense
 
@@ -50,13 +55,15 @@ P = PSpecified - deltaP;
 Q = QSpecified - deltaQ;
 
 sparJ = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
-JFull = real.(spar2Full(sparJ))::Matrix{Float64};
+JSpar2Full = spar2Full(sparJ);
 
 # A = [1 3 4 8; 2 1 2 3; 4 3 5 8; 9 2 7 4];
 
-JRegular = constructJacobian(CDF_DF_List_pu, P, Q, V, delta, ybus, E=E);
-# @vscodedisplay(JRegular)
-@test JFull ≈ JRegular atol=1e-3
+JDense = constructJacobian(CDF_DF_List_pu, P, Q, V, delta, ybusDense, E=E);
+diff = JSpar2Full - JDense
+non_zero_elements = [(diff[i, j], i, j) for i in 1:size(diff, 1), j in 1:size(diff, 2) if diff[i, j] != 0]
+# @vscodedisplay(JDense)
+@test JSpar2Full ≈ JDense atol=1e-3
 
 # ATestFull = [10 1 0 3 0 0 0 5 0 0
 # 2 9 0 0 0 0 5 0 0 2;
@@ -69,16 +76,31 @@ JRegular = constructJacobian(CDF_DF_List_pu, P, Q, V, delta, ybus, E=E);
 # 0 0 0 0 0 0 6 0 20 0;
 # 0 2 3 0 4 0 0 0 0 35];
 
-qluJ = sparLU(sparJ);
+mats = lu(JDense, NoPivot())
+LDense, UDense = mats.L, mats.U
+@btime qluJ = sparLU(sparJ);
 QJ, LJ, UJ, αJ, fill_insJ = qluJ.Q, qluJ.L, qluJ.U, qluJ.α, qluJ.fills;
 
-αJ
-fill_insJ
-QJFull = real.(spar2Full(QJ))
-# vscodedisplay(QJFull)
-LJFull = real.(spar2Full(LJ));
-UJFull = real.(spar2Full(UJ));
+QJSpar2Full = spar2Full(QJ)
+LJSpar2Full = spar2Full(LJ);
+UJSpar2Full = spar2Full(UJ);
 
-@test JFull ≈ JRegular atol=1e-3
-@test LJFull*UJFull ≈ JRegular atol=1e-3
-@test LJFull*UJFull ≈ JFull atol=1e-3
+
+
+diff = LJSpar2Full*UJSpar2Full - JSpar2Full
+@test LJSpar2Full*UJSpar2Full ≈ JSpar2Full atol=1e-3
+@test JSpar2Full ≈ JDense atol=1e-3
+@test LJSpar2Full*UJSpar2Full ≈ JDense atol=1e-3
+@test LJSpar2Full*UJSpar2Full ≈ JDense atol=1e-3
+
+using Plots
+
+function relative(p, rx, ry)
+    xlims = Plots.xlims(p)
+    ylims = Plots.ylims(p)
+    return xlims[1] + rx * (xlims[2]-xlims[1]), ylims[1] + ry * (ylims[2] - ylims[1])
+end
+
+p = spy(rand(100,100));
+annotate!(p, relative(p, 0.3, 0.7), "Hello, world!")
+

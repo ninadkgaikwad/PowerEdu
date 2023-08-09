@@ -24,10 +24,14 @@ end
 using Pkg
 
 # ╔═╡ 8899d627-5781-42dd-a8d1-02a6061465f5
+# ╠═╡ show_logs = false
 Pkg.activate("sparseTechniques"); 
 
-# ╔═╡ 3667b924-a7ab-4d5f-b08b-f5d9c94a2a25
-using Base
+# ╔═╡ 01f8bcc0-633f-46df-9bee-ed3961da4b2a
+using Revise
+
+# ╔═╡ 59abea63-093a-44e2-a63d-673fb8c5c294
+using LaTeXStrings
 
 # ╔═╡ e2787ca2-f3fa-41bc-bc73-3adc1de1652a
 using DataFrames;
@@ -38,11 +42,18 @@ using CSV;
 # ╔═╡ 7ed6c943-816c-422d-8128-125775f3f606
 using LinearAlgebra;
 
+# ╔═╡ 672d5107-496d-407c-9908-da9bf9149f81
+# ╠═╡ show_logs = false
+using Plots;
+
 # ╔═╡ 3e99b6c8-a1c9-43d5-9b54-06d0aaa49147
 using PlutoUI;
 
 # ╔═╡ a52fc0f5-1797-4fa9-8674-306a96da363b
 using SparseArrays;
+
+# ╔═╡ 75d68fa7-7a13-4356-a619-30cd7f662dc0
+using Printf;
 
 # ╔═╡ 6fe55bc7-11e4-4ef4-8c3e-8ca822b72535
 include("src/Helper_Functions.jl");
@@ -51,6 +62,7 @@ include("src/Helper_Functions.jl");
 include("src/IEEE_CDF_Parser.jl");
 
 # ╔═╡ 533cca13-03ef-4ad6-9d0c-1ed1f9176483
+# ╠═╡ show_logs = false
 include("src/SparseTechniques_Functions.jl");
 
 # ╔═╡ 8ccc68a2-302c-4607-9622-318c523897cc
@@ -82,10 +94,16 @@ $(@bind returnValue Select(["print only" => "Only print out the % Sparsity Value
 """
 
 # ╔═╡ 6fdad9d2-50de-4b55-bbeb-3bd3b431dff5
-md"## Using Packages"
+md"## Using Packages and Modules"
 
-# ╔═╡ 39c120b0-d1e2-41fc-a719-242ade52d229
+# ╔═╡ 938ab111-da12-42ae-8da0-31aae092fae8
+md" (Not Displayed)"
+
+# ╔═╡ da3cfa14-9b0a-4b27-b680-de8f76ae58f1
 md"### Housekeeping"
+
+# ╔═╡ 071e9b51-c4e4-464f-81c1-5c4aa34511a3
+md" (Not displayed)"
 
 # ╔═╡ 3d75f29b-d927-4459-8497-3e8d13c4799a
 folderInput = "data/";
@@ -93,10 +111,8 @@ folderInput = "data/";
 # ╔═╡ 49924d2f-9dcd-404d-96a2-61aa86afe6f0
 folder_processedData = "processedData/";
 
-# ╔═╡ 52f36d53-9f1d-401b-bcbc-b70f228e9f5a
-
-
 # ╔═╡ 8c1a2445-a323-458b-873f-81e49ae20aa0
+# ╠═╡ show_logs = false
 createFolderIfNotExisting(systemName, folder_processedData);
 
 # ╔═╡ 29d49ed2-2af4-49be-a418-fd3ec06924cd
@@ -121,15 +137,16 @@ CDF_DF_List = CDF_Parser(filename_CDFFile);
 CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List);
 
 # ╔═╡ c330d28d-4cd1-4608-b540-cd7f51d0b376
-busData = CDF_DF_List_pu[2];
+busData_pu = CDF_DF_List_pu[2];
 
 # ╔═╡ 093431aa-f04e-4e47-90c9-b1175e0aab8b
-branchData = CDF_DF_List_pu[3];
+branchData_pu = CDF_DF_List_pu[3];
 
 # ╔═╡ 4d9dd2f8-8776-4925-927f-825e8250324b
 if displaySystemData
-	display(busData)
-	display(branchData)
+	# display(busData)
+	(busData_pu = busData_pu, branchData_pu = branchData_pu)
+	# display(branchData)
 end
 
 # ╔═╡ 0f6544d3-186f-4093-a5cf-e61f8bb36c94
@@ -139,13 +156,14 @@ md" ## Construct Sparse $Y_{Bus}$"
 sparYBus = constructSparseYBus(CDF_DF_List_pu);
 
 # ╔═╡ bdaebe7a-ac92-434a-a3e6-4ff8cdba68fa
-computeSparsity(sparYBus, returnValue=returnValue)
+sparsityYBus = computeSparsity(sparYBus, returnValue=returnValue);
 
 # ╔═╡ ee890880-88c9-480a-bc95-ab0bb268efcd
 if displayYBus
-	display(sparYBus.NVec)
-	display(sparYBus.MVec)
-	display(sparYBus.nnzVec)
+	# display(sparYBus.NVec)
+	# display(sparYBus.MVec)
+	# display(sparYBus.nnzVec)
+	sparYBus
 end
 
 # ╔═╡ 311abf2d-5249-4e80-a97b-b809a79d7107
@@ -161,6 +179,9 @@ end;
 
 # ╔═╡ 4021a781-b33c-43a3-8893-3620306f7635
 md" ### Compute Mismatches"
+
+# ╔═╡ cc18a9dc-c35c-481e-a030-3fe919834b38
+md" (Not Displayed)"
 
 # ╔═╡ 8fda426a-5b55-4daa-8f0b-404290c14520
 deltaP, deltaQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, delta, sparYBus);
@@ -178,89 +199,105 @@ md" ## Construct Sparse Jacobian"
 sparJ = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
 
 # ╔═╡ 8eb2435e-eaa4-4d4a-8da0-f125c3125237
-computeSparsity(sparJ, returnValue=returnValue)
+sparsityJ = computeSparsity(sparJ, returnValue=returnValue);
 
 # ╔═╡ f42085e4-0615-4dca-8c2a-2e2eeaf1dcd7
 if displayJacobian
-	display(sparJ)
+	# display(sparJ)
+	sparJ
 end
 
 # ╔═╡ 7fabe75c-5c86-4315-9b5c-0c6856ed4a8d
-
+md"### Convert Sparse Jacobian into Sparse LU Factors"
 
 # ╔═╡ 8c064aa3-ae32-4736-bb54-5e1b9acf891b
+qluJ = sparLU(sparJ);
 
+# ╔═╡ faeaf70f-a09d-4dae-8931-8f71035e2207
+QJ = qluJ.Q;
 
-# ╔═╡ d5f1ab89-ebc0-42fa-bbf4-fe9d5ac9c960
+# ╔═╡ 160ef94f-2ce8-4466-a080-99a046e4183f
+sparsityQ = computeSparsity(QJ, returnValue=returnValue);
 
+# ╔═╡ e5b94da1-be60-4d49-9a36-a0099c37fca9
+md" #### Vizualising the sparse matrices"
+
+# ╔═╡ 8a301f36-d59e-4cd1-9301-7257e3258b92
+JSpar2Full = spar2Full(sparJ);
+
+# ╔═╡ 1492fa9f-2ed8-4c64-a507-b23155df5bbd
+QSpar2Full = spar2Full(QJ);
 
 # ╔═╡ bdeae12a-e105-46b8-b91b-8bd06da8ffd6
+begin
 
+	markerSize = 1 ;
+	
+	pJ = spy(JSpar2Full, 
+		marker=:square, 
+		markersize=markerSize, 
+		title=L"Sparsity Pattern of $J$", 
+		color=:green);
 
-# ╔═╡ b360eaea-452d-4f85-b8fe-832d51d96ee5
+	annotate!(pJ, size(JSpar2Full, 1), 5,
+		text("Sparsity = $(@sprintf("%.2f", sparsityJ/100))", 
+			family="serif", 
+			12, 
+			:right, 
+			:green))
+	
+	pQ = spy(QSpar2Full, 
+		marker=:square, 
+		markersize=markerSize, 
+		title=L"Sparsity Pattern of $LU$ Factors", 
+		color=:green);
 
+	annotate!(pQ, size(JSpar2Full, 1)*0.75, 5,
+		text("Fill-ins = $(qluJ.α)", 
+			family="serif", 
+			12, 
+			:right, 
+			:red))
+	
+	annotate!(pQ, 200, -20,
+			text("Sparsity = $(@sprintf("%.2f", sparsityQ/100))", 
+				family="serif", 
+				12, 
+				:right, 
+				:green))
 
-# ╔═╡ c062d472-9099-424f-a9d7-d62aa3bcc555
+	plot(pJ, pQ, layout=(1, 2))
 
+end
 
-# ╔═╡ 7c994315-27c4-4ce0-9e65-bb47f1f459dc
+# ╔═╡ e193276a-fa6a-481a-9b47-7d68882e52f2
+begin
 
+	YBusSpar2FullMags = abs.(spar2Full(sparYBus))
+	
+	markerSize1 = 4 ;
+	
+	pYBus = spy(YBusSpar2FullMags, 
+		marker=:square, 
+		markersize=markerSize, 
+		title=L"Sparsity Pattern of $Y_{Bus}$", 
+		color=:green);
 
-# ╔═╡ 573cb2be-8e50-42e7-aa49-49cdb89e59c1
+	@show get_position(YBusSpar2FullMags, "southwest")
+	@show size(YBusSpar2FullMags, 1)
+	annotate!(pYBus, size(YBusSpar2FullMags, 1)*0.75, 5,
+		text("Sparsity = $(@sprintf("%.2f", sparsityYBus/100))", 
+			family="serif", 
+			12, 
+			:right, 
+			:green))
+	
+	
+	plot(pYBus, layout=1)
 
+end
 
-# ╔═╡ 00ae0a0d-2b17-4990-9e5b-5a1eb4ed7e60
-
-
-# ╔═╡ 2dd4646b-9a80-4598-89c8-f34826a6ebff
-
-
-# ╔═╡ deeaeafe-7701-4bef-a58d-340aef92feb1
-
-
-# ╔═╡ fd1ebdc3-412a-4c40-9ef8-f5bfadac66f4
-
-
-# ╔═╡ 9989fcde-17b3-4ef8-b6d9-89de778b8bbe
-
-
-# ╔═╡ f1b454f3-ca44-44ea-b15a-d2c7ce68a8f8
-
-
-# ╔═╡ 7c0eeee3-52a0-45d3-a9b4-bb0b497ae310
-
-
-# ╔═╡ fcc50a39-3f19-4b41-8eb1-bed4144fcc57
-
-
-# ╔═╡ c2774e13-82b1-439f-bd1f-06be228749be
-
-
-# ╔═╡ 74031088-02c9-4ade-a1e5-36bee10951c7
-
-
-# ╔═╡ 3fbb08a2-03b4-4c5c-b29b-9d41a1a203d6
-
-
-# ╔═╡ 4f12df3d-1330-4adc-a74e-79a184f51615
-
-
-# ╔═╡ 8543da9e-cb7a-409c-b924-61774c30a341
-
-
-# ╔═╡ 54238595-c782-45b9-bb2c-2e60bf4bde9a
-
-
-# ╔═╡ 0b2b3062-2689-49bf-9170-556287912f9c
-
-
-# ╔═╡ f6ff7694-f21f-498b-821b-bae38529f045
-
-
-# ╔═╡ fc18d362-9705-44dd-b321-6a8218b709bc
-
-
-# ╔═╡ b46244ef-7c81-4185-b975-1fe8bac53c99
+# ╔═╡ 43226284-bc3e-4288-8c99-443bfea5419d
 
 
 # ╔═╡ Cell order:
@@ -271,68 +308,57 @@ end
 # ╟─d99a50b4-4670-4559-b9b6-1e281f46e51a
 # ╟─b3bc7313-0a3c-4996-a71c-602e240bc61e
 # ╟─6fdad9d2-50de-4b55-bbeb-3bd3b431dff5
+# ╟─938ab111-da12-42ae-8da0-31aae092fae8
 # ╟─ecd816ef-75dd-45f5-b255-89d22324066e
+# ╟─01f8bcc0-633f-46df-9bee-ed3961da4b2a
+# ╟─59abea63-093a-44e2-a63d-673fb8c5c294
 # ╟─8899d627-5781-42dd-a8d1-02a6061465f5
-# ╟─3667b924-a7ab-4d5f-b08b-f5d9c94a2a25
 # ╟─e2787ca2-f3fa-41bc-bc73-3adc1de1652a
 # ╟─e8281b42-2efa-4f5d-9c79-1459efa303ab
 # ╟─7ed6c943-816c-422d-8128-125775f3f606
+# ╟─672d5107-496d-407c-9908-da9bf9149f81
 # ╟─3e99b6c8-a1c9-43d5-9b54-06d0aaa49147
 # ╟─a52fc0f5-1797-4fa9-8674-306a96da363b
-# ╟─6fe55bc7-11e4-4ef4-8c3e-8ca822b72535
+# ╟─75d68fa7-7a13-4356-a619-30cd7f662dc0
+# ╠═6fe55bc7-11e4-4ef4-8c3e-8ca822b72535
 # ╟─933a3383-5023-4df2-9a46-cdfdcb7087af
 # ╟─533cca13-03ef-4ad6-9d0c-1ed1f9176483
-# ╟─39c120b0-d1e2-41fc-a719-242ade52d229
+# ╟─da3cfa14-9b0a-4b27-b680-de8f76ae58f1
+# ╟─071e9b51-c4e4-464f-81c1-5c4aa34511a3
 # ╟─3d75f29b-d927-4459-8497-3e8d13c4799a
 # ╟─49924d2f-9dcd-404d-96a2-61aa86afe6f0
-# ╟─52f36d53-9f1d-401b-bcbc-b70f228e9f5a
 # ╟─8c1a2445-a323-458b-873f-81e49ae20aa0
 # ╟─29d49ed2-2af4-49be-a418-fd3ec06924cd
 # ╟─b39cb657-ff03-4ede-8b63-91780928aea3
 # ╟─6b1a9017-c902-429a-bf6c-a173c3ad190b
 # ╟─3a394c37-70f7-476f-a830-d4287835fe59
 # ╟─4017c4f8-9caa-4332-8c8d-994d696d7f5f
-# ╟─54c04bc9-78d3-4b85-ab7b-abe2a6206596
-# ╟─1647fb65-2aec-4ff3-b695-e8ee2d190c25
-# ╟─c330d28d-4cd1-4608-b540-cd7f51d0b376
-# ╟─093431aa-f04e-4e47-90c9-b1175e0aab8b
+# ╠═54c04bc9-78d3-4b85-ab7b-abe2a6206596
+# ╠═1647fb65-2aec-4ff3-b695-e8ee2d190c25
+# ╠═c330d28d-4cd1-4608-b540-cd7f51d0b376
+# ╠═093431aa-f04e-4e47-90c9-b1175e0aab8b
 # ╟─4d9dd2f8-8776-4925-927f-825e8250324b
 # ╟─0f6544d3-186f-4093-a5cf-e61f8bb36c94
-# ╟─3646b871-c83a-410a-af4b-b1ff4dd86540
-# ╟─bdaebe7a-ac92-434a-a3e6-4ff8cdba68fa
+# ╠═3646b871-c83a-410a-af4b-b1ff4dd86540
+# ╠═bdaebe7a-ac92-434a-a3e6-4ff8cdba68fa
+# ╠═e193276a-fa6a-481a-9b47-7d68882e52f2
 # ╟─ee890880-88c9-480a-bc95-ab0bb268efcd
 # ╟─311abf2d-5249-4e80-a97b-b809a79d7107
 # ╟─4727e699-d15e-48e6-b112-5526af6b4d8e
 # ╟─4021a781-b33c-43a3-8893-3620306f7635
+# ╟─cc18a9dc-c35c-481e-a030-3fe919834b38
 # ╟─8fda426a-5b55-4daa-8f0b-404290c14520
 # ╟─9aeffbaf-3223-45da-9d9f-6f7e6f9745e2
 # ╟─4beab547-1b67-4de9-b667-f959fcd5177d
-# ╟─77a35fcf-b866-48b1-8dc3-c303c799e9f5
-# ╟─8eb2435e-eaa4-4d4a-8da0-f125c3125237
+# ╠═77a35fcf-b866-48b1-8dc3-c303c799e9f5
+# ╠═8eb2435e-eaa4-4d4a-8da0-f125c3125237
 # ╟─f42085e4-0615-4dca-8c2a-2e2eeaf1dcd7
-# ╠═7fabe75c-5c86-4315-9b5c-0c6856ed4a8d
+# ╟─7fabe75c-5c86-4315-9b5c-0c6856ed4a8d
 # ╠═8c064aa3-ae32-4736-bb54-5e1b9acf891b
-# ╠═d5f1ab89-ebc0-42fa-bbf4-fe9d5ac9c960
+# ╠═faeaf70f-a09d-4dae-8931-8f71035e2207
+# ╠═160ef94f-2ce8-4466-a080-99a046e4183f
+# ╟─e5b94da1-be60-4d49-9a36-a0099c37fca9
+# ╠═8a301f36-d59e-4cd1-9301-7257e3258b92
+# ╠═1492fa9f-2ed8-4c64-a507-b23155df5bbd
 # ╠═bdeae12a-e105-46b8-b91b-8bd06da8ffd6
-# ╠═b360eaea-452d-4f85-b8fe-832d51d96ee5
-# ╠═c062d472-9099-424f-a9d7-d62aa3bcc555
-# ╠═7c994315-27c4-4ce0-9e65-bb47f1f459dc
-# ╠═573cb2be-8e50-42e7-aa49-49cdb89e59c1
-# ╠═00ae0a0d-2b17-4990-9e5b-5a1eb4ed7e60
-# ╠═2dd4646b-9a80-4598-89c8-f34826a6ebff
-# ╠═deeaeafe-7701-4bef-a58d-340aef92feb1
-# ╠═fd1ebdc3-412a-4c40-9ef8-f5bfadac66f4
-# ╠═9989fcde-17b3-4ef8-b6d9-89de778b8bbe
-# ╠═f1b454f3-ca44-44ea-b15a-d2c7ce68a8f8
-# ╠═7c0eeee3-52a0-45d3-a9b4-bb0b497ae310
-# ╠═fcc50a39-3f19-4b41-8eb1-bed4144fcc57
-# ╠═c2774e13-82b1-439f-bd1f-06be228749be
-# ╠═74031088-02c9-4ade-a1e5-36bee10951c7
-# ╠═3fbb08a2-03b4-4c5c-b29b-9d41a1a203d6
-# ╠═4f12df3d-1330-4adc-a74e-79a184f51615
-# ╠═8543da9e-cb7a-409c-b924-61774c30a341
-# ╠═54238595-c782-45b9-bb2c-2e60bf4bde9a
-# ╠═0b2b3062-2689-49bf-9170-556287912f9c
-# ╠═f6ff7694-f21f-498b-821b-bae38529f045
-# ╠═fc18d362-9705-44dd-b321-6a8218b709bc
-# ╠═b46244ef-7c81-4185-b975-1fe8bac53c99
+# ╠═43226284-bc3e-4288-8c99-443bfea5419d
