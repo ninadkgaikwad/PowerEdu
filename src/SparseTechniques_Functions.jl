@@ -125,13 +125,14 @@ function spar2Full(sparMat::SparseMatrix;
     NVec = sparMat.NVec
     MVec = sparMat.MVec
     nnzVec = sparMat.nnzVec
+    T = eltype(nnzVec.Val)
 
     FIR = NVec.FIR
     FIC = MVec.FIC
     N = length(FIR)
     M = length(FIC)
     nnz = length(nnzVec.ID)
-    mat = zeros(ComplexF64, N, M)
+    mat = zeros(T, N, M)
 
     if readMethod == "row-wise"
         for row = 1:N
@@ -604,12 +605,12 @@ function updateSparse(sparMat::SparseMatrix,
 	return sparMat
 end
 
-function sparseMatrixConstructor(N::Int64, M::Int64)
+function sparseMatrixConstructor(N::Int64, M::Int64; T::DataType=ComplexF64)
     (firs, fics) = (repeat([-1], N), repeat([-1], M))
 
     NVec = DataFrame(FIR = firs)
     MVec = DataFrame(FIC = fics)
-    nnzVec = DataFrame(ID = Int64[], Val = ComplexF64[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
+    nnzVec = DataFrame(ID = Int64[], Val = T[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
     sparMat = (NVec=NVec, MVec=MVec, nnzVec=nnzVec)
 
     return sparMat
@@ -832,13 +833,13 @@ function constructSparseJacobianSubMatrix(CDF_DF_List_pu::Vector{DataFrame},
     lNonSlack = powSysData.listOfNonSlackBuses
 
     if type == "J11"
-        JSub = sparseMatrixConstructor(N-1, N-1)
+        JSub = sparseMatrixConstructor(N-1, N-1, T=Float64)
     elseif type == "J12"
-        JSub = sparseMatrixConstructor(N-1, nPQ)
+        JSub = sparseMatrixConstructor(N-1, nPQ, T=Float64)
     elseif type == "J21"
-        JSub = sparseMatrixConstructor(nPQ, N-1)
+        JSub = sparseMatrixConstructor(nPQ, N-1, T=Float64)
     elseif type == "J22"
-        JSub = sparseMatrixConstructor(nPQ, nPQ)
+        JSub = sparseMatrixConstructor(nPQ, nPQ, T=Float64)
     else
         error("Unknown Jacobian Sub-matrix.")
     end
@@ -1496,7 +1497,8 @@ function sparLU(A::SparseMatrix;
     N, M, nnz = length(FIR), length(FIC), length(nnzVec.ID)
     α, fills = 0, 0
 
-    Q, L, U = [sparseMatrixConstructor(N, M) for _ in 1:3]
+    T = eltype(nnzVec.Val)
+    Q, L, U = [sparseMatrixConstructor(N, M, T=T) for _ in 1:3]
     for j = 1:M
         for k = j:N
             myprintln(verbose, "About to compute Q matrix elements for row $k and column $j .")
