@@ -235,10 +235,11 @@ function sparmat(input::T where T<:Union{DataFrame, Matrix};
     M = maximum(compMatrix.j)
     (firs, fics) = (repeat([-1], N), repeat([-1], M))
 
+    dataType = eltype(compMatrix.Val)
 
     NVec = DataFrame(FIR = firs)
     MVec = DataFrame(FIC = fics)
-	nnzVec = DataFrame(ID = Int64[], Val = ComplexF64[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
+	nnzVec = DataFrame(ID = Int64[], Val = dataType[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
 
 	numElems = size(compMatrix, 1)
 	
@@ -1497,7 +1498,10 @@ function sparLU(A::SparseMatrix;
     N, M, nnz = length(FIR), length(FIC), length(nnzVec.ID)
     α, fills = 0, 0
 
-    T = eltype(nnzVec.Val)
+    Tinput = eltype(nnzVec.Val)
+    if Tinput == Int64
+        T = Float64
+    end
     Q, L, U = [sparseMatrixConstructor(N, M, T=T) for _ in 1:3]
     for j = 1:M
         for k = j:N
