@@ -1413,7 +1413,6 @@ function dotProductSparLU(A::SparseMatrix,
 
     productComputed = false
 
-    
     if j==1
         myprintln(verbose, "First row/column element, no multiplication required.")
         # prod = getValueFromSparMat(A, row, col, verbose=false)
@@ -1590,4 +1589,109 @@ function fill_ins(A::Matrix, Q::Matrix)::Int64
     return count
 end
 
+function sparForwardSolve(Q::SparseMatrix, 
+    b::Vector{<:Union{Int64, Float64, ComplexF64}};
+    returnType::String="productAndBeta",
+    verbose::Bool=false)
 
+    NVec, MVec, nnzVec = Q.NVec, Q.MVec, Q.nnzVec
+    FIR = NVec.FIR
+    FIC = MVec.FIC
+    Vals = nnzVec.Val
+    TA = eltype(Vals)
+    Tb = eltype(b)
+    if TA != Tb
+        println("Hmmm.. DataTypes of SparseMatrix and the Vector are NOT the same.")
+    end
+
+    N = length(b)
+    if N != length(FIR)
+        println("Hmmm.. Number of rows in SparseMatrix and Vector are NOT the same.")
+    end
+    M = length(FIC)
+    y = zeros(Tb, N)
+
+    for i = 1:N
+        qᵢᵢ = getValueFromSparMat(Q, i, i)
+        myprintln(verbose, "Q[$(i), $(i)] = $(qᵢᵢ)")
+        y[i] = (b[i] - dotProductSparFwd(Q, y, i, verbose=verbose).product)/qᵢᵢ
+        myprintln(verbose, "y[$(i)] = $(y[i])")
+    end
+
+    return y
+end
+
+function dotProductSparFwd(A::SparseMatrix, 
+    y::Vector{<:Union{Int64, Float64, ComplexF64}},
+    row::Int64;
+    returnType::String="productAndBeta",
+    verbose::Bool=false)
+
+    product, β = 0, 0
+
+    i = row
+    if i == 1
+        myprintln(verbose, "First row, don't perform any computation. "*
+        "returning zero.")
+        if returnType == "productAndBeta"
+            return (product=product, β=β)
+        elseif returnType == "productOnly"
+            return (product=product)
+        elseif returnType == "betaOnly"
+            return (β=β)
+        else
+            error("Unknown return type")
+        end
+    end
+        
+    NVec, MVec, nnzVec = A.NVec, A.MVec, A.nnzVec
+    FIR = NVec.FIR
+
+    rowEnded = false
+    diagonalNotTouching = false
+    currentElemID = FIR[i]
+    if currentElemID == -1 
+        rowEnded = true
+        myprintln(verbose, "What? Row never starts?")
+    else
+        nnzElem = nnzVec[currentElemID, :]
+        myprintln(verbose, "Starting iterating over row $(i) with elemID = $(currentElemID).")
+    end
+
+    while ~rowEnded && ~diagonalNotTouching
+        j = nnzElem.NCOL
+        myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j))")
+        if j == i - 1
+            diagonalNotTouching = true
+            myprintln(verbose, "Looks like this will be the final " *
+            "computation for this row, as diagonal for Q has been reached.")
+        end
+        qᵢⱼ = nnzElem.Val
+        product += qᵢⱼ*y[j]
+        myprintln(verbose, "Product is now $(product) after an increment of " * 
+        "$(qᵢⱼ)*$(y[j]) = $(qᵢⱼ*y[j]).")
+        β += 1
+        myprintln(verbose, "Beta counter increased by one to become $(β).")
+        currentElemID = nnzElem.NIR
+
+        if currentElemID == -1
+            rowEnded = true
+            myprintln(verbose, "Looks like the computation will end prematurely, "*
+            "as the row is already ended. (This shouldn't really happen in this system.)")
+        else
+            nnzElem =  nnzVec[currentElemID, :]
+        end
+    end
+
+    if returnType == "productAndBeta"
+        return (product=product, β=β)
+    elseif returnType == "productOnly"
+        return (product=product)
+    elseif returnType == "betaOnly"
+        return (β=β)
+    else
+        error("Unknown return type")
+    end
+    
+    error("Invalid code zone reached.")
+end
