@@ -1710,3 +1710,149 @@ function dotProductSparFwd(A::SparseMatrix,
     
     error("Invalid code zone reached.")
 end
+
+function sparBackwardSolve(U::SparseMatrix, 
+    b::Vector{<:Union{Int64, Float64, ComplexF64}};
+    returnType::String="xAndBeta",
+    verbose::Bool=false)
+
+    NVec, MVec, nnzVec = U.NVec, U.MVec, U.nnzVec
+    FIR = NVec.FIR
+    FIC = MVec.FIC
+    Vals = nnzVec.Val
+    TA = eltype(Vals)
+    Tb = eltype(b)
+    
+    if TA != Tb
+        println("Hmmm.. DataTypes of SparseMatrix and the Vector are NOT the same.")
+    end
+
+    N = length(b)
+    if N != length(FIR)
+        println("Hmmm.. Number of rows in SparseMatrix and Vector are NOT the same.")
+    end
+    
+    x = zeros(Tb, N)
+    β = 0
+
+    for i = N:-1:1
+        myprintln(verbose, "U[$(i), $(i)] is 1 by Crout's method.")
+        dotProductValues = dotProductSparBckwd(U, x, i, verbose=verbose)
+        product, β₁ = dotProductValues.product, dotProductValues.β
+        x[i] = b[i] - product
+        β += β₁
+        myprintln(verbose, "x[$(i)] = $(x[i])")
+        myprintln(verbose, "Multiplication/Division counter is now $(β).")
+    end
+
+    if returnType == "xAndBeta"
+        return (x=x, β=β)
+    elseif returnType == "xOnly"
+        return (x=x)
+    elseif returnType == "betaOnly"
+        return (β=β)
+    else
+        error("Unknown return type")
+    end
+end
+
+function dotProductSparBckwd(U::SparseMatrix, 
+    x::Vector{<:Union{Int64, Float64, ComplexF64}},
+    row::Int64;
+    returnType::String="productAndBeta",
+    verbose::Bool=false)
+
+    product, β = 0, 0
+    
+    NVec, MVec, nnzVec = U.NVec, U.MVec, U.nnzVec
+    FIR = NVec.FIR
+    N = length(FIR)
+    
+    myprintln(verbose, "Taking the dot product along row $(row) for " *
+    "backward substitution.")
+    i = row
+    if i == N
+        myprintln(verbose, "Last row, don't perform any computation. "*
+        "returning zero.")
+        if returnType == "productAndBeta"
+            return (product=product, β=β)
+        elseif returnType == "yOnly"
+            return (product=product)
+        elseif returnType == "betaOnly"
+            return (β=β)
+        else
+            error("Unknown return type")
+        end
+    end
+        
+    rowEnded = false
+    diagonalBreached = false
+    currentElemID = FIR[i]
+    if currentElemID == -1 
+        rowEnded = true
+        myprintln(verbose, "What? Row never starts?")
+    else
+        nnzElem = nnzVec[currentElemID, :]
+        myprintln(verbose, "Starting iterating over row $(i) with elemID = $(currentElemID).")
+    end
+
+    if ~rowEnded
+        j = nnzElem.NCOL
+        myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j))")
+        while ~diagonalBreached && ~rowEnded
+            if j == i + 1
+                diagonalBreached = true
+                myprintln(verbose, "Looks like this will be the first " *
+                "computation for this row, as diagonal for Q has just been breached.")
+            elseif j ≤ i
+                myprintln(verbose, "Keep looking to breach the diagonal.")
+                currentElemID = nnzElem.NIR
+                if currentElemID == -1
+                    rowEnded = true
+                    myprintln(verbose, "What? Row ended before we even breached the diagonal?")
+                else
+                    nnzElem = nnzVec[currentElemID, :]
+                    j = nnzElem.NCOL
+                    myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j))")
+                end
+            end
+        end
+    else
+        myprintln(verbose, "Looks like there will be no product.")
+    end
+
+    while ~rowEnded
+        qᵢⱼ = nnzElem.Val
+        product += qᵢⱼ*x[j]
+        myprintln(verbose, "Product is now $(product) after an increment of " * 
+        "$(qᵢⱼ)*$(x[j]) = $(qᵢⱼ*x[j]).")
+        β += 1
+        myprintln(verbose, "Beta counter increased by one to become $(β).")
+        currentElemID = nnzElem.NIR
+
+        if currentElemID == -1
+            rowEnded = true
+            myprintln(verbose, "Last element in this row reached.")
+        else
+            nnzElem =  nnzVec[currentElemID, :]
+            j = nnzElem.NCOL
+            myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j))")
+
+        end
+    end
+
+    if returnType == "productAndBeta"
+        return (product=product, β=β)
+    elseif returnType == "productOnly"
+        return (product=product)
+    elseif returnType == "betaOnly"
+        return (β=β)
+    else
+        error("Unknown return type")
+    end
+    
+    error("Invalid code zone reached.")
+
+end
+
+

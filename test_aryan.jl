@@ -105,5 +105,7 @@ qluA = sparLU(A);
 QA = qluA.Q;
 QASpar2Full = spar2Full(QA);
 b = ones(Float64, 4);
-y, β = sparForwardSolve(QA, b, verbose=false);
+y, β▶ = sparForwardSolve(QA, b, verbose=false);
+x, β◀ = sparBackwardSolve(QA, y, verbose=true);
+x
 
