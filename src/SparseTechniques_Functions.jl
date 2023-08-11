@@ -1479,14 +1479,27 @@ end
 
 function solveUsingSparseLU(A::SparseMatrix,
     b::Vector;
-    verbose::Bool = false)::Vector
+    method::String="Crout",
+    returnType::String="xAndAlphaBeta",
+    verbose::Bool = false)
     
     qlu = sparLU(A)
     Q = qlu.Q
-    y = sparForwardSolve(Q, b)
-    x = sparBackwardSolve(Q, y)
-
-    return x
+    α = qlu.α
+    y, β_1 = sparForwardSolve(Q, b, verbose=verbose)
+    x, β_2 = sparBackwardSolve(Q, y, verbose=verbose)
+    β = β_1 + β_2
+    numOperations = α + β
+    
+    if returnType == "xAndAlphaBeta"
+        return (x=x, numOperations=numOperations, α=α, β=β)
+    elseif returnType == "xOnly"
+        return (x=x)
+    elseif returnType == "alphaBetaOnly"
+        return (numOperations=numOperations, α=α, β=β)
+    else
+        error("Unknown return type")
+    end
 end
 
 function sparLU(A::SparseMatrix;
@@ -1837,7 +1850,6 @@ function dotProductSparBckwd(U::SparseMatrix,
             nnzElem =  nnzVec[currentElemID, :]
             j = nnzElem.NCOL
             myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j))")
-
         end
     end
 

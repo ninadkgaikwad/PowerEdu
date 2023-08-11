@@ -103,9 +103,10 @@ ADense = [1 3 4 8; 2 1 2 3; 4 3 5 8; 9 2 7 4];
 A = sparmat(ADense);
 qluA = sparLU(A);
 QA = qluA.Q;
+α = qluA.α;
 QASpar2Full = spar2Full(QA);
 b = ones(Float64, 4);
 y, β▶ = sparForwardSolve(QA, b, verbose=false);
-x, β◀ = sparBackwardSolve(QA, y, verbose=true);
-x
+x, β◀ = sparBackwardSolve(QA, y, verbose=false);
 
+x, numOperations, α, β = solveUsingSparseLU(A, b)
