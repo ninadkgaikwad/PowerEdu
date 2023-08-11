@@ -97,16 +97,18 @@ diff = LJSpar2Full*UJSpar2Full - JSpar2Full;
 @test LJSpar2Full*UJSpar2Full ≈ JDense atol=1e-3
 
 
-correction = vcat(deltaP[lNonSlack], deltaQ[lPQ]);
+mismatch = vcat(deltaP[lNonSlack], deltaQ[lPQ]);
 
-ADense = [1 3 4 8; 2 1 2 3; 4 3 5 8; 9 2 7 4];
-A = sparmat(ADense);
-qluA = sparLU(A);
-QA = qluA.Q;
-α = qluA.α;
-QASpar2Full = spar2Full(QA);
-b = ones(Float64, 4);
-y, β▶ = sparForwardSolve(QA, b, verbose=false);
-x, β◀ = sparBackwardSolve(QA, y, verbose=false);
+# ADense = [1 3 4 8; 2 1 2 3; 4 3 5 8; 9 2 7 4];
+# A = sparmat(ADense);
+# qluA = sparLU(A);
+# QA = qluA.Q;
+# α = qluA.α;
+# QASpar2Full = spar2Full(QA);
+# b = ones(Float64, 4);
+# y, β▶ = sparForwardSolve(QA, b, verbose=false);
+# x, β◀ = sparBackwardSolve(QA, y, verbose=false);
 
-x, numOperations, α, β = solveUsingSparseLU(A, b)
+# x, numOperations, α, β = solveUsingSparseLU(A, b)
+
+correction = solveUsingSparseLU(QJ, mismatch).x
