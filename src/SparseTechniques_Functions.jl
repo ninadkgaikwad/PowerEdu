@@ -1867,4 +1867,9 @@ function dotProductSparBckwd(U::SparseMatrix,
 
 end
 
-
+function compareSparseAndDense(ASpar::SparseMatrix, ADense::Matrix)
+    ASpar2Full = spar2Full(ASpar)
+    diff = ADense - ASpar2Full
+    non_zero_elements = [(diff[i, j], i, j) for i in 1:size(diff, 1), j in 1:size(diff, 2) if diff[i, j] != 0]
+    return non_zero_elements
+end
