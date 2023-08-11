@@ -1500,6 +1500,8 @@ function sparLU(A::SparseMatrix;
     Tinput = eltype(nnzVec.Val)
     if Tinput == Int64
         T = Float64
+    else
+        T = Tinput
     end
     Q, L, U = [sparseMatrixConstructor(N, M, T=T) for _ in 1:3]
     for j = 1:M
