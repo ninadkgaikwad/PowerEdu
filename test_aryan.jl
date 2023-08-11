@@ -94,7 +94,8 @@ sparJ = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
 qluJ = sparLU(sparJ);
 QJ, LJ, UJ, αJ, fill_insJ = qluJ.Q, qluJ.L, qluJ.U, qluJ.α, qluJ.fills;
 
-# QJSpar2Full = spar2Full(QJ);
+QJSpar2Full = spar2Full(QJ);
+vscodedisplay(QJSpar2Full)
 
 
 correction = solveUsingSparseLU(QJ, mismatch).x
