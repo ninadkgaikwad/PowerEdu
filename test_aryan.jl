@@ -41,9 +41,6 @@ ybusResults = ybusGenerator(CDF_DF_List_pu, saveTables=true);
 ybusDense = ybusResults.ybus;
 E = ybusResults.E ;
 
-# diff = ybusDense-ybusSpar2Full
-# non_zero_elements = [(diff[i, j], i, j) for i in 1:size(diff, 1), j in 1:size(diff, 2) if diff[i, j] != 0]
-
 @test ybusSpar2Full ≈ ybusDense
 
 powSysData = initializeVectors_pu(CDF_DF_List_pu);
@@ -55,21 +52,11 @@ lSlack = powSysData.listOfSlackBuses;
 lPV = powSysData.listOfPVBuses;
 lPQ = powSysData.listOfPQBuses;
 lNonSlack = powSysData.listOfNonSlackBuses;
-
-deltaP, deltaQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, delta, sparYBus);
-
-P = PSpecified - deltaP;
-Q = QSpecified - deltaQ;
-
-sparJ = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
-JSpar2Full = spar2Full(sparJ);
-
-JDense = constructJacobian(CDF_DF_List_pu, P, Q, V, delta, ybusDense, E=E);
-diff = JSpar2Full - JDense;
-non_zero_elements = [(diff[i, j], i, j) for i in 1:size(diff, 1), j in 1:size(diff, 2) if diff[i, j] != 0]
-# @vscodedisplay(JDense)
-@test JSpar2Full ≈ JDense atol=1e-3
-
+nPV = powSysData.nPV
+nPQ = powSysData.nPQ
+nSlack = powSysData.nSlack
+nNonSlack = nPV+nPQ
+N = nSlack + nNonSlack
 # ATestDense = [10 1 0 3 0 0 0 5 0 0
 # 2 9 0 0 0 0 5 0 0 2;
 # 0 0 21 5 7 0 0 0 0 4;
@@ -81,24 +68,6 @@ non_zero_elements = [(diff[i, j], i, j) for i in 1:size(diff, 1), j in 1:size(di
 # 0 0 0 0 0 0 6 0 20 0;
 # 0 2 3 0 4 0 0 0 0 35];
 
-mats = lu(JDense, NoPivot());
-LDense, UDense = mats.L, mats.U;
-qluJ = sparLU(sparJ);
-QJ, LJ, UJ, αJ, fill_insJ = qluJ.Q, qluJ.L, qluJ.U, qluJ.α, qluJ.fills;
-
-QJSpar2Full = spar2Full(QJ);
-LJSpar2Full = spar2Full(LJ);
-UJSpar2Full = spar2Full(UJ);
-
-diff = LJSpar2Full*UJSpar2Full - JSpar2Full;
-@test LJSpar2Full*UJSpar2Full ≈ JSpar2Full atol=1e-3
-@test JSpar2Full ≈ JDense atol=1e-3
-@test LJSpar2Full*UJSpar2Full ≈ JDense atol=1e-3
-@test LJSpar2Full*UJSpar2Full ≈ JDense atol=1e-3
-
-
-mismatch = vcat(deltaP[lNonSlack], deltaQ[lPQ]);
-
 # ADense = [1 3 4 8; 2 1 2 3; 4 3 5 8; 9 2 7 4];
 # A = sparmat(ADense);
 # qluA = sparLU(A);
@@ -109,6 +78,27 @@ mismatch = vcat(deltaP[lNonSlack], deltaQ[lPQ]);
 # y, β▶ = sparForwardSolve(QA, b, verbose=false);
 # x, β◀ = sparBackwardSolve(QA, y, verbose=false);
 
+
+
 # x, numOperations, α, β = solveUsingSparseLU(A, b)
 
+ΔP, ΔQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, delta, sparYBus);
+mismatch = vcat(ΔP[lNonSlack], ΔQ[lPQ])
+
+P = PSpecified - ΔP;
+Q = QSpecified - ΔQ;
+
+sparJ = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
+# JSpar2Full = spar2Full(sparJ);
+
+qluJ = sparLU(sparJ);
+QJ, LJ, UJ, αJ, fill_insJ = qluJ.Q, qluJ.L, qluJ.U, qluJ.α, qluJ.fills;
+
+# QJSpar2Full = spar2Full(QJ);
+
+
 correction = solveUsingSparseLU(QJ, mismatch).x
+Δδ = correction[1:nNonSlack]
+ΔVbyV = correction[N:N+nPQ-1]
+delta[lNonSlack] = delta[lNonSlack] + Δδ
+V[lPQ] .*= (1 .+ (ΔVbyV))
