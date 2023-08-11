@@ -47,14 +47,14 @@ E = ybusResults.E ;
 @test ybusSpar2Full ≈ ybusDense
 
 powSysData = initializeVectors_pu(CDF_DF_List_pu);
-PSpecified = powSysData.PSpecified
-QSpecified = powSysData.QSpecified
-V = powSysData.V
-delta = powSysData.delta
-lSlack = powSysData.listOfSlackBuses
-lPV = powSysData.listOfPVBuses
-lPQ = powSysData.listOfPQBuses
-lNonSlack = powSysData.listOfNonSlackBuses
+PSpecified = powSysData.PSpecified;
+QSpecified = powSysData.QSpecified;
+V = powSysData.V;
+delta = powSysData.delta;
+lSlack = powSysData.listOfSlackBuses;
+lPV = powSysData.listOfPVBuses;
+lPQ = powSysData.listOfPQBuses;
+lNonSlack = powSysData.listOfNonSlackBuses;
 
 deltaP, deltaQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, delta, sparYBus);
 
@@ -70,7 +70,7 @@ non_zero_elements = [(diff[i, j], i, j) for i in 1:size(diff, 1), j in 1:size(di
 # @vscodedisplay(JDense)
 @test JSpar2Full ≈ JDense atol=1e-3
 
-# ATestFull = [10 1 0 3 0 0 0 5 0 0
+# ATestDense = [10 1 0 3 0 0 0 5 0 0
 # 2 9 0 0 0 0 5 0 0 2;
 # 0 0 21 5 7 0 0 0 0 4;
 # 4 0 1 18 8 0 0 0 0 0;
@@ -97,8 +97,7 @@ diff = LJSpar2Full*UJSpar2Full - JSpar2Full;
 @test LJSpar2Full*UJSpar2Full ≈ JDense atol=1e-3
 
 
-deltaP
-correction = vcat(deltaP[lNonSlack], deltaQ[lPQ])
+correction = vcat(deltaP[lNonSlack], deltaQ[lPQ]);
 
 ADense = [1 3 4 8; 2 1 2 3; 4 3 5 8; 9 2 7 4];
 A = sparmat(ADense);
@@ -106,5 +105,5 @@ qluA = sparLU(A);
 QA = qluA.Q;
 QASpar2Full = spar2Full(QA);
 b = ones(Float64, 4);
-y = sparForwardSolve(QA, b, verbose=true)
+y, β = sparForwardSolve(QA, b, verbose=false);
 

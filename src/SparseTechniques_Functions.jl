@@ -1593,7 +1593,7 @@ end
 
 function sparForwardSolve(Q::SparseMatrix, 
     b::Vector{<:Union{Int64, Float64, ComplexF64}};
-    returnType::String="productAndBeta",
+    returnType::String="yAndBeta",
     verbose::Bool=false)
 
     NVec, MVec, nnzVec = Q.NVec, Q.MVec, Q.nnzVec
@@ -1612,15 +1612,28 @@ function sparForwardSolve(Q::SparseMatrix,
     end
     M = length(FIC)
     y = zeros(Tb, N)
+    β = 0
 
     for i = 1:N
         qᵢᵢ = getValueFromSparMat(Q, i, i)
         myprintln(verbose, "Q[$(i), $(i)] = $(qᵢᵢ)")
-        y[i] = (b[i] - dotProductSparFwd(Q, y, i, verbose=verbose).product)/qᵢᵢ
+        dotProductValues = dotProductSparFwd(Q, y, i, verbose=verbose)
+        product, β₁ = dotProductValues.product, dotProductValues.β
+        y[i] = (b[i] - product)/qᵢᵢ
+        β += (β₁ + 1)
         myprintln(verbose, "y[$(i)] = $(y[i])")
+        myprintln(verbose, "Multiplication/Division counter is now $(β).")
     end
 
-    return y
+    if returnType == "yAndBeta"
+        return (y=y, β=β)
+    elseif returnType == "yOnly"
+        return (y=y)
+    elseif returnType == "betaOnly"
+        return (β=β)
+    else
+        error("Unknown return type")
+    end
 end
 
 function dotProductSparFwd(A::SparseMatrix, 
@@ -1637,7 +1650,7 @@ function dotProductSparFwd(A::SparseMatrix,
         "returning zero.")
         if returnType == "productAndBeta"
             return (product=product, β=β)
-        elseif returnType == "productOnly"
+        elseif returnType == "yOnly"
             return (product=product)
         elseif returnType == "betaOnly"
             return (β=β)
