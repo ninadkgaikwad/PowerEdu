@@ -1841,6 +1841,8 @@ function dotProductSparBckwd(U::SparseMatrix,
                     myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j)) "*
                     "and has value $(nnzElem.Val)")
                 end
+            else
+                error("Never supposed to reach here lol.")
             end
         end
     else

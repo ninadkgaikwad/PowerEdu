@@ -15,13 +15,15 @@ include("src/SparseTechniques_Functions.jl");
 include("src/Jacobian_Builder.jl");
 include("src/LU_Factorization.jl");
 
+folderInput = "data/";
+folder_processedData = "processedData/";
+
 # systemName = "IEEE_14";
 # systemName = "IEEE_118"
 systemName = "IEEE_30";
 # systemName = "IEEE_57"
 
-folderInput = "data/";
-folder_processedData = "processedData/";
+
 
 
 createFolderIfNotExisting(systemName, folder_processedData)
