@@ -117,14 +117,16 @@ function initializeVectors_pu(CDF_DF_List_pu::Vector{DataFrame};
     QSpecified = zeros(N)
     V = zeros(N)
     delta = zeros(N)
-    listOfPQBuses = zeros(Int64, N)
-    listOfPVBuses = zeros(Int64, N)
-    nPQ = 0
-    nPV = 0
-    n = 0
+
+    listOfSlackBuses = zeros(Int64, 0)
+    listOfPVBuses = zeros(Int64, 0)
+    listOfPQBuses = zeros(Int64, 0)
+    listOfNonSlackBuses = zeros(Int64, 0)
+    
     nSlack = 0
-    listOfNonSlackBuses = zeros(Int64, N)
-    listOfSlackBuses = zeros(Int64, N)
+    nPV = 0
+    nPQ = 0
+    n = 0
 
     if busTypes == "current"
         busType = busData_pu.Type

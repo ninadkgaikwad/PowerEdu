@@ -235,10 +235,11 @@ function sparmat(input::T where T<:Union{DataFrame, Matrix};
     M = maximum(compMatrix.j)
     (firs, fics) = (repeat([-1], N), repeat([-1], M))
 
+    dataType = eltype(compMatrix.Val)
 
     NVec = DataFrame(FIR = firs)
     MVec = DataFrame(FIC = fics)
-	nnzVec = DataFrame(ID = Int64[], Val = ComplexF64[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
+	nnzVec = DataFrame(ID = Int64[], Val = dataType[], NROW = Int64[], NCOL = Int64[], NIR = Int64[], NIC = Int64[])
 
 	numElems = size(compMatrix, 1)
 	
@@ -1412,7 +1413,6 @@ function dotProductSparLU(A::SparseMatrix,
 
     productComputed = false
 
-    
     if j==1
         myprintln(verbose, "First row/column element, no multiplication required.")
         # prod = getValueFromSparMat(A, row, col, verbose=false)
@@ -1425,7 +1425,6 @@ function dotProductSparLU(A::SparseMatrix,
         myprintln(verbose, "Since the element is NOT a first row/col element,"*
         " multiplication is required.")
         FIR, FIC, nnzVec = A.NVec.FIR, A.MVec.FIC, A.nnzVec
-        # N, M, nnz = length(FIR), length(FIC), length(nnzVec.ID)
 
         rowPtr = FIR[row]
         colPtr = FIC[col]
@@ -1479,14 +1478,27 @@ end
 
 function solveUsingSparseLU(A::SparseMatrix,
     b::Vector;
-    verbose::Bool = false)::Vector
+    method::String="Crout",
+    returnType::String="xAndAlphaBeta",
+    verbose::Bool = false)
     
-    qlu = sparLU(A)
+    qlu = sparLU(A, verbose=verbose)
     Q = qlu.Q
-    y = sparForwardSolve(Q, b)
-    x = sparBackwardSolve(Q, y)
-
-    return x
+    α = qlu.α
+    y, β_1 = sparForwardSolve(Q, b, verbose=verbose)
+    x, β_2 = sparBackwardSolve(Q, y, verbose=verbose)
+    β = β_1 + β_2
+    numOperations = α + β
+    
+    if returnType == "xAndAlphaBeta"
+        return (x=x, numOperations=numOperations, α=α, β=β)
+    elseif returnType == "xOnly"
+        return (x=x)
+    elseif returnType == "alphaBetaOnly"
+        return (numOperations=numOperations, α=α, β=β)
+    else
+        error("Unknown return type")
+    end
 end
 
 function sparLU(A::SparseMatrix;
@@ -1494,15 +1506,23 @@ function sparLU(A::SparseMatrix;
     verbose::Bool=false)
 
     FIR, FIC, nnzVec = A.NVec.FIR, A.MVec.FIC, A.nnzVec
-    N, M, nnz = length(FIR), length(FIC), length(nnzVec.ID)
+    N, M= length(FIR), length(FIC)
     α, fills = 0, 0
 
-    T = eltype(nnzVec.Val)
+    Tinput = eltype(nnzVec.Val)
+    if Tinput == Int64
+        T = Float64
+    else
+        T = Tinput
+    end
+
     Q, L, U = [sparseMatrixConstructor(N, M, T=T) for _ in 1:3]
+
     for j = 1:M
+        myprintln(verbose, "Completing column $(j) of the Q Matrix.")
         for k = j:N
             myprintln(verbose, "About to compute Q matrix elements for row $k and column $j .")
-            prod, αₖⱼ = dotProductSparLU(Q, k, j)
+            prod, αₖⱼ = dotProductSparLU(Q, k, j, verbose=verbose)
             aₖⱼ = getValueFromSparMat(A, k, j)
 
             qₖⱼ = aₖⱼ - prod
@@ -1518,16 +1538,21 @@ function sparLU(A::SparseMatrix;
                     nnzElemL = nnzRowConstructor(compElemL[1, :])
                     nnzElemU = nnzElemQ
                     updateSparse(U, nnzElemU)
+                    myprintln(verbose, "U[$(nnzElemU.NROW), $(nnzElemU.NCOL)] = $(nnzElemU.Val).")
                 elseif method == "Crout" && k == j
                     nnzElemL = nnzElemQ
-                    compElemU = DataFrame(i = j, j = k, Val = 1)
+                    # compElemU = DataFrame(i = j, j = k, Val = 1)
+                    compElemU = DataFrame(i = k, j = j, Val = 1)
                     nnzElemU = nnzRowConstructor(compElemU[1, :])
                     updateSparse(U, nnzElemU)
+                    myprintln(verbose, "U[$(nnzElemU.NROW), $(nnzElemU.NCOL)] = $(nnzElemU.Val).")
                 else
                     nnzElemL = nnzElemQ
                 end
                 updateSparse(Q, nnzElemQ)
+                myprintln(verbose, "Q[$(nnzElemQ.NROW), $(nnzElemQ.NCOL)] = $(nnzElemQ.Val).")
                 updateSparse(L, nnzElemL)
+                myprintln(verbose, "L[$(nnzElemL.NROW), $(nnzElemL.NCOL)] = $(nnzElemL.Val).")
                 α += αₖⱼ 
             elseif qₖⱼ == 0
                 myprintln(verbose, "Everything is zero. Therefore nothing should be added anywhere.")
@@ -1537,11 +1562,12 @@ function sparLU(A::SparseMatrix;
         end
         
         if j != M
+            myprintln(verbose, "Completing row $(j) of the Q Matrix.")
             qⱼⱼ = getValueFromSparMat(Q, j, j)
 
             for k = j+1:M
                 myprintln(verbose, "About to compute Q matrix elements for row $j and column $k.")
-                prod, αⱼₖ = dotProductSparLU(Q, j, k)
+                prod, αⱼₖ = dotProductSparLU(Q, j, k, verbose=verbose)
                 aⱼₖ = getValueFromSparMat(A, j, k)
                 qⱼₖ = (aⱼₖ - prod)/qⱼⱼ
                 if qⱼₖ != 0
@@ -1552,7 +1578,9 @@ function sparLU(A::SparseMatrix;
                     compElemQ = DataFrame(i = j, j = k, Val = qⱼₖ)
                     nnzElemQ = nnzRowConstructor(compElemQ[1, :])
                     updateSparse(Q, nnzElemQ)
+                    myprintln(verbose, "Q[$(nnzElemQ.NROW), $(nnzElemQ.NCOL)] = $(nnzElemQ.Val).")
                     updateSparse(U, nnzElemQ)
+                    myprintln(verbose, "U[$(nnzElemQ.NROW), $(nnzElemQ.NCOL)] = $(nnzElemQ.Val).")
                     α += (αⱼₖ + 1)
                 elseif qⱼₖ == 0
                     myprintln(verbose, "Everything is zero. Therefore nothing should be added anywhere.")
@@ -1586,4 +1614,344 @@ function fill_ins(A::Matrix, Q::Matrix)::Int64
     return count
 end
 
+function sparForwardSolve(Q::SparseMatrix, 
+    b::Vector{<:Union{Int64, Float64, ComplexF64}};
+    returnType::String="yAndBeta",
+    verbose::Bool=false)
 
+    NVec, MVec, nnzVec = Q.NVec, Q.MVec, Q.nnzVec
+    FIR = NVec.FIR
+    FIC = MVec.FIC
+    Vals = nnzVec.Val
+    TA = eltype(Vals)
+    Tb = eltype(b)
+    if TA != Tb
+        println("Hmmm.. DataTypes of SparseMatrix and the Vector are NOT the same.")
+    end
+
+    N = length(b)
+    if N != length(FIR)
+        println("Hmmm.. Number of rows in SparseMatrix and Vector are NOT the same.")
+    end
+    M = length(FIC)
+    y = zeros(Tb, N)
+    β = 0
+
+    for i = 1:N
+        qᵢᵢ = getValueFromSparMat(Q, i, i)
+        myprintln(verbose, "Q[$(i), $(i)] = $(qᵢᵢ)")
+        dotProductValues = dotProductSparFwd(Q, y, i, verbose=verbose)
+        product, β₁ = dotProductValues.product, dotProductValues.β
+        y[i] = (b[i] - product)/qᵢᵢ
+        β += (β₁ + 1)
+        myprintln(verbose, "y[$(i)] = $(y[i])")
+        myprintln(verbose, "Multiplication/Division counter is now $(β).")
+    end
+
+    if returnType == "yAndBeta"
+        return (y=y, β=β)
+    elseif returnType == "yOnly"
+        return (y=y)
+    elseif returnType == "betaOnly"
+        return (β=β)
+    else
+        error("Unknown return type")
+    end
+end
+
+function dotProductSparFwd(A::SparseMatrix, 
+    y::Vector{<:Union{Int64, Float64, ComplexF64}},
+    row::Int64;
+    returnType::String="productAndBeta",
+    verbose::Bool=false)
+
+    product, β = 0, 0
+
+    i = row
+    if i == 1
+        myprintln(verbose, "First row, don't perform any computation. "*
+        "returning zero.")
+        if returnType == "productAndBeta"
+            return (product=product, β=β)
+        elseif returnType == "yOnly"
+            return (product=product)
+        elseif returnType == "betaOnly"
+            return (β=β)
+        else
+            error("Unknown return type")
+        end
+    end
+        
+    NVec, MVec, nnzVec = A.NVec, A.MVec, A.nnzVec
+    FIR = NVec.FIR
+
+    rowEnded = false
+    diagonalNotTouching = false
+    currentElemID = FIR[i]
+    if currentElemID == -1 
+        rowEnded = true
+        myprintln(verbose, "What? Row never starts?")
+    else
+        nnzElem = nnzVec[currentElemID, :]
+        myprintln(verbose, "Starting iterating over row $(i) with elemID = $(currentElemID).")
+    end
+
+    while ~rowEnded && ~diagonalNotTouching
+        j = nnzElem.NCOL
+        myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j)) "*
+        "and has value $(nnzElem.Val)")
+        if j == i - 1
+            diagonalNotTouching = true
+            myprintln(verbose, "Looks like this will be the final " *
+            "computation for this row, as diagonal for Q has been reached.")
+        end
+        qᵢⱼ = nnzElem.Val
+        product += qᵢⱼ*y[j]
+        myprintln(verbose, "Product is now $(product) after an increment of " * 
+        "$(qᵢⱼ)*$(y[j]) = $(qᵢⱼ*y[j]).")
+        β += 1
+        myprintln(verbose, "Beta counter increased by one to become $(β).")
+        currentElemID = nnzElem.NIR
+
+        if currentElemID == -1
+            rowEnded = true
+            myprintln(verbose, "Looks like the computation will end prematurely, "*
+            "as the row is already ended. (This shouldn't really happen in this system.)")
+        else
+            nnzElem =  nnzVec[currentElemID, :]
+        end
+    end
+
+    if returnType == "productAndBeta"
+        return (product=product, β=β)
+    elseif returnType == "productOnly"
+        return (product=product)
+    elseif returnType == "betaOnly"
+        return (β=β)
+    else
+        error("Unknown return type")
+    end
+    
+    error("Invalid code zone reached.")
+end
+
+function sparBackwardSolve(U::SparseMatrix, 
+    b::Vector{<:Union{Int64, Float64, ComplexF64}};
+    returnType::String="xAndBeta",
+    verbose::Bool=false)
+
+    NVec, MVec, nnzVec = U.NVec, U.MVec, U.nnzVec
+    FIR = NVec.FIR
+    FIC = MVec.FIC
+    Vals = nnzVec.Val
+    TA = eltype(Vals)
+    Tb = eltype(b)
+    
+    if TA != Tb
+        println("Hmmm.. DataTypes of SparseMatrix and the Vector are NOT the same.")
+    end
+
+    N = length(b)
+    if N != length(FIR)
+        println("Hmmm.. Number of rows in SparseMatrix and Vector are NOT the same.")
+    end
+    
+    x = zeros(Tb, N)
+    β = 0
+
+    for i = N:-1:1
+        myprintln(verbose, "U[$(i), $(i)] is 1 by Crout's method.")
+        dotProductValues = dotProductSparBckwd(U, x, i, verbose=verbose)
+        product, β₁ = dotProductValues.product, dotProductValues.β
+        x[i] = b[i] - product
+        β += β₁
+        myprintln(verbose, "x[$(i)] = $(x[i])")
+        myprintln(verbose, "Multiplication/Division counter is now $(β).")
+    end
+
+    if returnType == "xAndBeta"
+        return (x=x, β=β)
+    elseif returnType == "xOnly"
+        return (x=x)
+    elseif returnType == "betaOnly"
+        return (β=β)
+    else
+        error("Unknown return type")
+    end
+end
+
+function dotProductSparBckwd(U::SparseMatrix, 
+    x::Vector{<:Union{Int64, Float64, ComplexF64}},
+    row::Int64;
+    returnType::String="productAndBeta",
+    verbose::Bool=false)
+
+    product, β = 0, 0
+    
+    NVec, MVec, nnzVec = U.NVec, U.MVec, U.nnzVec
+    FIR = NVec.FIR
+    N = length(FIR)
+    
+    myprintln(verbose, "Taking the dot product along row $(row) for " *
+    "backward substitution.")
+    i = row
+    if i == N
+        myprintln(verbose, "Last row, don't perform any computation. "*
+        "returning zero.")
+        if returnType == "productAndBeta"
+            return (product=product, β=β)
+        elseif returnType == "yOnly"
+            return (product=product)
+        elseif returnType == "betaOnly"
+            return (β=β)
+        else
+            error("Unknown return type")
+        end
+    end
+        
+    rowEnded = false
+    diagonalBreached = false
+    currentElemID = FIR[i]
+    if currentElemID == -1 
+        rowEnded = true
+        myprintln(verbose, "What? Row never starts?")
+    else
+        nnzElem = nnzVec[currentElemID, :]
+        myprintln(verbose, "Starting iterating over row $(i) with elemID = $(currentElemID).")
+    end
+
+    if ~rowEnded
+        j = nnzElem.NCOL
+        myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j)) "*
+        "and has value $(nnzElem.Val)")
+        while ~diagonalBreached && ~rowEnded
+            if j ≥ i + 1
+                diagonalBreached = true
+                myprintln(verbose, "Looks like this will be the first " *
+                "computation for this row, as diagonal for Q has just been breached.")
+            elseif j ≤ i
+                myprintln(verbose, "Keep looking to breach the diagonal.")
+                currentElemID = nnzElem.NIR
+                if currentElemID == -1
+                    rowEnded = true
+                    myprintln(verbose, "What? Row ended before we even breached the diagonal?")
+                else
+                    nnzElem = nnzVec[currentElemID, :]
+                    j = nnzElem.NCOL
+                    myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j)) "*
+                    "and has value $(nnzElem.Val)")
+                end
+            else
+                error("Never supposed to reach here lol.")
+            end
+        end
+    else
+        myprintln(verbose, "Looks like there will be no product.")
+    end
+
+    while ~rowEnded
+        qᵢⱼ = nnzElem.Val
+        product += qᵢⱼ*x[j]
+        myprintln(verbose, "Product is now $(product) after an increment of " * 
+        "$(qᵢⱼ)*$(x[j]) = $(qᵢⱼ*x[j]).")
+        β += 1
+        myprintln(verbose, "Beta counter increased by one to become $(β).")
+        currentElemID = nnzElem.NIR
+
+        if currentElemID == -1
+            rowEnded = true
+            myprintln(verbose, "Last element in this row reached.")
+        else
+            nnzElem =  nnzVec[currentElemID, :]
+            j = nnzElem.NCOL
+            myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j)) "*
+            "and has value $(nnzElem.Val)")
+        end
+    end
+
+    if returnType == "productAndBeta"
+        return (product=product, β=β)
+    elseif returnType == "productOnly"
+        return (product=product)
+    elseif returnType == "betaOnly"
+        return (β=β)
+    else
+        error("Unknown return type")
+    end
+    
+    error("Invalid code zone reached.")
+
+end
+
+function compareSparseAndDense(ASpar::SparseMatrix, ADense::Matrix)
+    ASpar2Full = spar2Full(ASpar)
+    diff = ADense - ASpar2Full
+    non_zero_elements = [(diff[i, j], i, j) for i in 1:size(diff, 1), j in 1:size(diff, 2) if diff[i, j] != 0]
+    return non_zero_elements
+end
+
+function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
+    tolerance::Float64=1e-5,
+    itrMax::Int64=30,
+    verbose::Bool=false,
+    roundDigits::Int64=0)
+
+    powSysData = initializeVectors_pu(CDF_DF_List_pu);
+    PSpecified = powSysData.PSpecified;
+    QSpecified = powSysData.QSpecified;
+    V = powSysData.V;
+    δ = powSysData.delta;
+    lSlack = powSysData.listOfSlackBuses;
+    lPV = powSysData.listOfPVBuses;
+    lPQ = powSysData.listOfPQBuses;
+    lNonSlack = powSysData.listOfNonSlackBuses;
+    nPV = powSysData.nPV;
+    nPQ = powSysData.nPQ;
+    nSlack = powSysData.nSlack;
+    nNonSlack = nPV+nPQ;
+    N = nSlack + nNonSlack;
+    P = deepcopy(PSpecified)
+    Q = deepcopy(QSpecified)
+    sparYBus = constructSparseYBus(CDF_DF_List_pu);
+
+    residual = 100
+    itr = 1
+    while itr ≤ itrMax && residual > tolerance
+        myprintln(verbose, "Iteration $(itr) of Power flow.")
+
+        ΔP, ΔQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, δ, sparYBus);
+        mismatch = vcat(ΔP[lNonSlack], ΔQ[lPQ])
+        myprintln(verbose, "Iteration $(itr): Mismatch = $([round(x, digits=roundDigits) for x in mismatch])")
+        P = PSpecified - ΔP;
+        Q = QSpecified - ΔQ;
+        myprintln(verbose, "Iteration $(itr): P = $([round(x, digits=roundDigits) for x in P])")
+        myprintln(verbose, "Iteration $(itr): Q = $([round(x, digits=roundDigits) for x in Q])")
+
+        J = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, δ, sparYBus);
+
+        myprintln(verbose, "Iteration $(itr): Jacobian = $([round(x, digits=roundDigits) for x in spar2Full(J)])")
+        correction = solveUsingSparseLU(J, mismatch, verbose=verbose).x
+        myprintln(verbose, "Iteration $(itr): Correction = $([round(x, digits=roundDigits) for x in correction])")
+        residual = mean(abs.(correction))
+        myprintln(verbose, "Iteration $(itr): Residual = $([round(x, digits=6) for x in residual])")
+        Δδ = correction[1:nNonSlack];
+        ΔVbyV = correction[N:N+nPQ-1];
+        δ[lNonSlack] = δ[lNonSlack] + Δδ;
+        V[lPQ] .*= (1 .+ (ΔVbyV));
+        DataFrame(i=1:N, P=P, Q=Q, V=V, δ=δ)
+        itr += 1
+    end
+    
+    if residual ≥ tolerance
+        warning("Convergence NOT achieved even after $(itrMax) iterations.\n"*
+        "Abandoning run and returning current state variables.")
+    elseif residual < tolerance
+        myprintln(true, "Convergence achieved after $(itr) iterations.\n") # always true 
+    else
+        error("No man's land.")
+    end
+
+    results = DataFrame(i=1:N, P=P, Q=Q, V=V, δ=δ)
+    return results
+
+end;

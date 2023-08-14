@@ -803,3 +803,51 @@ function Compute_Corrected_CorrectionVector(CDF_DF_List_pu, Correction_Vector_NR
         return Correction_Vector_NR_Corrected
 
 end
+
+function plotBuswiseDifferences(CDF_DF_List_pu::Vector{DataFrame},
+        results::DataFrame;
+        savePlots::Bool=true,
+        processedDataFolder::String="processedData/",
+        fileExtension::String=".png")
+
+        busData = CDF_DF_List_pu[2]
+        systemName = extractSystemName(CDF_DF_List_pu)
+        N = size(results, 1)
+        # Compute the relative differences in % for V
+        rel_diff_V = 100 * (results.V - busData.Final_V_pu_Original) ./ busData.Final_V_pu_Original
+        # Compute the absolute differences for δ
+        abs_diff_δ = 180/π * results.δ - busData.Final_A_deg_Original
+        
+        # Bar plots
+        p1 = bar(1:N, rel_diff_V, color=:green,
+        alpha=0.7,
+        linewidth=1.5,
+        ylabel="% Difference",
+        xlabel="Bus Number",
+        title="Relative Difference in Official and Computed Voltages\n"*
+        "for the $(systemName) Bus System.",
+        titlefontsize=12,
+        xticks=1:N,
+        label=L"$\frac{ΔV}{V} * 100 \% $ where $ΔV = V_{computed} - V_{CDF}$",
+        legendfontsize=8);
+
+        p2 = bar(1:N, abs_diff_δ, color=:orange,
+        alpha=0.7,
+        linewidth=1.5,
+        ylabel="Absolute Difference in Degrees",
+        xlabel="Bus Number",
+        title="Absolute Difference in Official and Computed Angles\n"*
+        "for the $(systemName) Bus System.",
+        titlefontsize=12,
+        xticks=1:N,
+        label=L"$\Delta \delta \, [\degree]$ where $\Delta \delta = \delta_{computed} - \delta_{CDF}$",
+        legendfontsize=8);
+        # Try specifying a larger size
+        p = plot(p1, p2, layout=(2,1), size=(800, 800))
+        # bar(p1)
+
+        if savePlots
+                filename = processedDataFolder*"results_"*systemName*"_sparse"*fileExtension;
+                savefig(p, filename)   
+        end
+end;
