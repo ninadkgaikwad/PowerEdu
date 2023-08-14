@@ -1482,7 +1482,7 @@ function solveUsingSparseLU(A::SparseMatrix,
     returnType::String="xAndAlphaBeta",
     verbose::Bool = false)
     
-    qlu = sparLU(A)
+    qlu = sparLU(A, verbose=verbose)
     Q = qlu.Q
     α = qlu.α
     y, β_1 = sparForwardSolve(Q, b, verbose=verbose)
@@ -1698,7 +1698,8 @@ function dotProductSparFwd(A::SparseMatrix,
 
     while ~rowEnded && ~diagonalNotTouching
         j = nnzElem.NCOL
-        myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j))")
+        myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j)) "*
+        "and has value $(nnzElem.Val)")
         if j == i - 1
             diagonalNotTouching = true
             myprintln(verbose, "Looks like this will be the final " *
@@ -1821,7 +1822,8 @@ function dotProductSparBckwd(U::SparseMatrix,
 
     if ~rowEnded
         j = nnzElem.NCOL
-        myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j))")
+        myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j)) "*
+        "and has value $(nnzElem.Val)")
         while ~diagonalBreached && ~rowEnded
             if j == i + 1
                 diagonalBreached = true
@@ -1836,7 +1838,8 @@ function dotProductSparBckwd(U::SparseMatrix,
                 else
                     nnzElem = nnzVec[currentElemID, :]
                     j = nnzElem.NCOL
-                    myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j))")
+                    myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j)) "*
+                    "and has value $(nnzElem.Val)")
                 end
             end
         end
@@ -1859,7 +1862,8 @@ function dotProductSparBckwd(U::SparseMatrix,
         else
             nnzElem =  nnzVec[currentElemID, :]
             j = nnzElem.NCOL
-            myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j))")
+            myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j)) "*
+            "and has value $(nnzElem.Val)")
         end
     end
 
@@ -1882,4 +1886,61 @@ function compareSparseAndDense(ASpar::SparseMatrix, ADense::Matrix)
     diff = ADense - ASpar2Full
     non_zero_elements = [(diff[i, j], i, j) for i in 1:size(diff, 1), j in 1:size(diff, 2) if diff[i, j] != 0]
     return non_zero_elements
+end
+
+function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
+    tolerance::Float64=1e-5,
+    itrMax::Int64=30,
+    verbose::Bool=false,
+    roundDigits::Int64=0)
+
+    powSysData = initializeVectors_pu(CDF_DF_List_pu);
+    PSpecified = powSysData.PSpecified;
+    QSpecified = powSysData.QSpecified;
+    V = powSysData.V;
+    δ = powSysData.delta;
+    lSlack = powSysData.listOfSlackBuses;
+    lPV = powSysData.listOfPVBuses;
+    lPQ = powSysData.listOfPQBuses;
+    lNonSlack = powSysData.listOfNonSlackBuses;
+    nPV = powSysData.nPV;
+    nPQ = powSysData.nPQ;
+    nSlack = powSysData.nSlack;
+    nNonSlack = nPV+nPQ;
+    N = nSlack + nNonSlack;
+    P = deepcopy(PSpecified)
+    Q = deepcopy(QSpecified)
+    sparYBus = constructSparseYBus(CDF_DF_List_pu);
+
+    residual = 100
+    itr = 1
+    while itr ≤ itrMax && residual > tolerance
+        myprintln(verbose, "Iteration $(itr) of Power flow.")
+
+        ΔP, ΔQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, δ, sparYBus);
+        mismatch = vcat(ΔP[lNonSlack], ΔQ[lPQ])
+        myprintln(verbose, "Iteration $(itr): Mismatch = $([round(x, digits=roundDigits) for x in mismatch])")
+        P = PSpecified - ΔP;
+        Q = QSpecified - ΔQ;
+        myprintln(verbose, "Iteration $(itr): P = $([round(x, digits=roundDigits) for x in P])")
+        myprintln(verbose, "Iteration $(itr): Q = $([round(x, digits=roundDigits) for x in Q])")
+
+        J = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, δ, sparYBus);
+
+        myprintln(verbose, "Iteration $(itr): Jacobian = $([round(x, digits=roundDigits) for x in spar2Full(J)])")
+        correction = solveUsingSparseLU(J, mismatch, verbose=verbose).x
+        myprintln(verbose, "Iteration $(itr): Correction = $([round(x, digits=roundDigits) for x in correction])")
+        residual = mean(abs.(correction))
+        myprintln(verbose, "Iteration $(itr): Residual = $([round(x, digits=6) for x in residual])")
+        Δδ = correction[1:nNonSlack];
+        ΔVbyV = correction[N:N+nPQ-1];
+        δ[lNonSlack] = δ[lNonSlack] + Δδ;
+        V[lPQ] .*= (1 .+ (ΔVbyV));
+        DataFrame(i=1:N, P=P, Q=Q, V=V, δ=δ)
+        itr += 1
+    end
+    
+    results = DataFrame(i=1:N, P=P, Q=Q, V=V, δ=δ)
+    return results
+
 end
