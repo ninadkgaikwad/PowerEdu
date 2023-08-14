@@ -1425,7 +1425,6 @@ function dotProductSparLU(A::SparseMatrix,
         myprintln(verbose, "Since the element is NOT a first row/col element,"*
         " multiplication is required.")
         FIR, FIC, nnzVec = A.NVec.FIR, A.MVec.FIC, A.nnzVec
-        # N, M, nnz = length(FIR), length(FIC), length(nnzVec.ID)
 
         rowPtr = FIR[row]
         colPtr = FIC[col]
@@ -1507,7 +1506,7 @@ function sparLU(A::SparseMatrix;
     verbose::Bool=false)
 
     FIR, FIC, nnzVec = A.NVec.FIR, A.MVec.FIC, A.nnzVec
-    N, M, nnz = length(FIR), length(FIC), length(nnzVec.ID)
+    N, M= length(FIR), length(FIC)
     α, fills = 0, 0
 
     Tinput = eltype(nnzVec.Val)
@@ -1516,11 +1515,14 @@ function sparLU(A::SparseMatrix;
     else
         T = Tinput
     end
+
     Q, L, U = [sparseMatrixConstructor(N, M, T=T) for _ in 1:3]
+
     for j = 1:M
+        myprintln(verbose, "Completing column $(j) of the Q Matrix.")
         for k = j:N
             myprintln(verbose, "About to compute Q matrix elements for row $k and column $j .")
-            prod, αₖⱼ = dotProductSparLU(Q, k, j)
+            prod, αₖⱼ = dotProductSparLU(Q, k, j, verbose=verbose)
             aₖⱼ = getValueFromSparMat(A, k, j)
 
             qₖⱼ = aₖⱼ - prod
@@ -1536,16 +1538,21 @@ function sparLU(A::SparseMatrix;
                     nnzElemL = nnzRowConstructor(compElemL[1, :])
                     nnzElemU = nnzElemQ
                     updateSparse(U, nnzElemU)
+                    myprintln(verbose, "U[$(nnzElemU.NROW), $(nnzElemU.NCOL)] = $(nnzElemU.Val).")
                 elseif method == "Crout" && k == j
                     nnzElemL = nnzElemQ
-                    compElemU = DataFrame(i = j, j = k, Val = 1)
+                    # compElemU = DataFrame(i = j, j = k, Val = 1)
+                    compElemU = DataFrame(i = k, j = j, Val = 1)
                     nnzElemU = nnzRowConstructor(compElemU[1, :])
                     updateSparse(U, nnzElemU)
+                    myprintln(verbose, "U[$(nnzElemU.NROW), $(nnzElemU.NCOL)] = $(nnzElemU.Val).")
                 else
                     nnzElemL = nnzElemQ
                 end
                 updateSparse(Q, nnzElemQ)
+                myprintln(verbose, "Q[$(nnzElemQ.NROW), $(nnzElemQ.NCOL)] = $(nnzElemQ.Val).")
                 updateSparse(L, nnzElemL)
+                myprintln(verbose, "L[$(nnzElemL.NROW), $(nnzElemL.NCOL)] = $(nnzElemL.Val).")
                 α += αₖⱼ 
             elseif qₖⱼ == 0
                 myprintln(verbose, "Everything is zero. Therefore nothing should be added anywhere.")
@@ -1555,11 +1562,12 @@ function sparLU(A::SparseMatrix;
         end
         
         if j != M
+            myprintln(verbose, "Completing row $(j) of the Q Matrix.")
             qⱼⱼ = getValueFromSparMat(Q, j, j)
 
             for k = j+1:M
                 myprintln(verbose, "About to compute Q matrix elements for row $j and column $k.")
-                prod, αⱼₖ = dotProductSparLU(Q, j, k)
+                prod, αⱼₖ = dotProductSparLU(Q, j, k, verbose=verbose)
                 aⱼₖ = getValueFromSparMat(A, j, k)
                 qⱼₖ = (aⱼₖ - prod)/qⱼⱼ
                 if qⱼₖ != 0
@@ -1570,7 +1578,9 @@ function sparLU(A::SparseMatrix;
                     compElemQ = DataFrame(i = j, j = k, Val = qⱼₖ)
                     nnzElemQ = nnzRowConstructor(compElemQ[1, :])
                     updateSparse(Q, nnzElemQ)
+                    myprintln(verbose, "Q[$(nnzElemQ.NROW), $(nnzElemQ.NCOL)] = $(nnzElemQ.Val).")
                     updateSparse(U, nnzElemQ)
+                    myprintln(verbose, "U[$(nnzElemQ.NROW), $(nnzElemQ.NCOL)] = $(nnzElemQ.Val).")
                     α += (αⱼₖ + 1)
                 elseif qⱼₖ == 0
                     myprintln(verbose, "Everything is zero. Therefore nothing should be added anywhere.")
