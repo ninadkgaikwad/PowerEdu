@@ -1825,7 +1825,7 @@ function dotProductSparBckwd(U::SparseMatrix,
         myprintln(verbose, "Current element with ID $(currentElemID) is at ($(i), $(j)) "*
         "and has value $(nnzElem.Val)")
         while ~diagonalBreached && ~rowEnded
-            if j == i + 1
+            if j ≥ i + 1
                 diagonalBreached = true
                 myprintln(verbose, "Looks like this will be the first " *
                 "computation for this row, as diagonal for Q has just been breached.")
@@ -1942,7 +1942,16 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
         itr += 1
     end
     
+    if residual ≥ tolerance
+        warning("Convergence NOT achieved even after $(itrMax) iterations.\n"*
+        "Abandoning run and returning current state variables.")
+    elseif residual < tolerance
+        myprintln(true, "Convergence achieved after $(itr) iterations.\n") # always true 
+    else
+        error("No man's land.")
+    end
+
     results = DataFrame(i=1:N, P=P, Q=Q, V=V, δ=δ)
     return results
 
-end
+end;
