@@ -1,0 +1,56 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 23.5) (preloaded format=pdflatex 2023.8.14)  15 AUG 2023 00:20
+entering extended mode
+ restricted \write18 enabled.
+ file:line:error style messages enabled.
+ %&-line parsing enabled.
+**"c:/Users/Aryan Ritwajeet Jha/Documents/documents_general/PowerEdu/Reports/pscc2024_full_paper_draft/sections/abstract/abstract.tex"
+(c:/Users/Aryan Ritwajeet Jha/Documents/documents_general/PowerEdu/Reports/pscc2024_full_paper_draft/sections/abstract/abstract.tex
+LaTeX2e <2023-06-01> patch level 1
+L3 programming layer <2023-06-30>
+(C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/standalone\standalone.cls
+Document Class: standalone 2022/10/10 v1.3b Class to compile TeX sub-files standalone
+(C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/tools\shellesc.sty
+Package: shellesc 2023/04/15 v1.0d unified shell escape interface for LaTeX
+Package shellesc Info: Restricted shell escape enabled on input line 77.
+) (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifluatex.sty
+Package: ifluatex 2019/10/25 v1.5 ifluatex legacy package. Use iftex instead.
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty
+Package: iftex 2022/02/03 v1.0f TeX engine tests
+)) (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/xkeyval\xkeyval.sty
+Package: xkeyval 2022/06/16 v2.9 package option processing (HA)
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/generic/xkeyval\xkeyval.tex (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/generic/xkeyval\xkvutils.tex
+\XKV@toks=\toks17
+\XKV@tempa@toks=\toks18
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/generic/xkeyval\keyval.tex))
+\XKV@depth=\count185
+File: xkeyval.tex 2014/12/03 v2.7a key=value parser (HA)
+))
+\sa@internal=\count186
+\c@sapage=\count187
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/standalone\standalone.cfg
+File: standalone.cfg 2022/10/10 v1.3b Default configuration file for 'standalone' class
+)
+
+! LaTeX Error: File `IEEEtran4PSCC.cls' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: cls)
+
+Enter file name: 
+C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/standalone\standalone.cls:502: Emergency stop.
+<read *> 
+         
+l.502 \ifsa@ignorerest
+                      ^^M
+*** (cannot \read from terminal in nonstop modes)
+
+ 
+Here is how much of TeX's memory you used:
+ 603 strings out of 475551
+ 12109 string characters out of 5755910
+ 1916238 words of memory out of 5000000
+ 21892 multiletter control sequences out of 15000+600000
+ 558069 words of font info for 36 fonts, out of 8000000 for 9000
+ 1141 hyphenation exceptions out of 8191
+ 57i,0n,71p,307b,22s stack positions out of 10000i,1000n,20000p,200000b,200000s
+C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/standalone\standalone.cls:502:  ==> Fatal error occurred, no output PDF file produced!
