@@ -1,10 +1,10 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 23.5) (preloaded format=pdflatex 2023.8.3)  14 AUG 2023 18:37
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 23.5) (preloaded format=pdflatex 2023.8.14)  15 AUG 2023 00:27
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
  %&-line parsing enabled.
-**"c:/Users/Aryan Ritwajeet Jha/Documents/documents_general/PowerEdu/Reports/pscc2024_full_paper_draft/outputs/pscc2022_template.tex"
-(c:/Users/Aryan Ritwajeet Jha/Documents/documents_general/PowerEdu/Reports/pscc2024_full_paper_draft/outputs/pscc2022_template.tex
+**"c:/Users/Aryan Ritwajeet Jha/Documents/documents_general/PowerEdu/Reports/pscc2024_full_paper_draft/outputs/main.tex"
+(c:/Users/Aryan Ritwajeet Jha/Documents/documents_general/PowerEdu/Reports/pscc2024_full_paper_draft/outputs/main.tex
 LaTeX2e <2023-06-01> patch level 1
 L3 programming layer <2023-06-30>
 (IEEEtran4PSCC.cls
@@ -196,98 +196,170 @@ Package: lipsum 2021-09-20 v2.7 150 paragraphs of Lorem Ipsum dummy text
 \g__lipsum_par_int=\count279
 \l__lipsum_a_int=\count280
 \l__lipsum_b_int=\count281
- (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/lipsum\lipsum.ltd.tex)) (pscc2022_template.aux)
-\openout1 = `pscc2022_template.aux'.
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/lipsum\lipsum.ltd.tex)) (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/import\import.sty
+Package: import 2020/04/01  v 6.2
+) (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/standalone\standalone.sty
+Package: standalone 2022/10/10 v1.3b Package to include TeX sub-files with preambles
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/tools\shellesc.sty
+Package: shellesc 2023/04/15 v1.0d unified shell escape interface for LaTeX
+Package shellesc Info: Restricted shell escape enabled on input line 77.
+) (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifluatex.sty
+Package: ifluatex 2019/10/25 v1.5 ifluatex legacy package. Use iftex instead.
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty
+Package: iftex 2022/02/03 v1.0f TeX engine tests
+)) (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/xkeyval\xkeyval.sty
+Package: xkeyval 2022/06/16 v2.9 package option processing (HA)
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/generic/xkeyval\xkeyval.tex (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/generic/xkeyval\xkvutils.tex
+\XKV@toks=\toks24
+\XKV@tempa@toks=\toks25
+)
+\XKV@depth=\count282
+File: xkeyval.tex 2014/12/03 v2.7a key=value parser (HA)
+)) (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/currfile\currfile.sty
+Package: currfile 2020/09/29 v0.7d Provides the file path elements of the current input file
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.sty
+Package: kvoptions 2022-06-15 v3.15 Key value format for package options (HO)
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.sty
+Package: ltxcmds 2020-05-10 v1.25 LaTeX kernel commands for general use (HO)
+) (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.sty
+Package: kvsetkeys 2022-10-05 v1.19 Key value parser (HO)
+)) (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/filehook\filehook.sty
+Package: filehook 2022/10/25 v0.8b Hooks for input files
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/filehook\filehook-2020.sty
+Package: filehook-2020 2022/10/25 v0.8b Hooks for input files
+))
+\c@currfiledepth=\count283
+) (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/gincltex\gincltex.sty (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/svn-prov\svn-prov.sty
+Package: svn-prov 2010/04/24 v3.1862 Package Date/Version from SVN Keywords
+)
+Package: gincltex 2011/09/04 v0.3 Include external LaTeX files like graphics
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/adjustbox\adjustbox.sty
+Package: adjustbox 2022/10/17 v1.3a Adjusting TeX boxes (trim, clip, ...)
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/adjustbox\adjcalc.sty
+Package: adjcalc 2012/05/16 v1.1 Provides advanced setlength with multiple back-ends (calc, etex, pgfmath)
+) (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/adjustbox\trimclip.sty
+Package: trimclip 2020/08/19 v1.2 Trim and clip general TeX material
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/collectbox\collectbox.sty
+Package: collectbox 2022/10/17 v0.4c Collect macro arguments as boxes
+\collectedbox=\box56
+)
+\tc@llx=\dimen174
+\tc@lly=\dimen175
+\tc@urx=\dimen176
+\tc@ury=\dimen177
+Package trimclip Info: Using driver 'tc-pdftex.def'.
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/adjustbox\tc-pdftex.def
+File: tc-pdftex.def 2019/01/04 v2.2 Clipping driver for pdftex
+))
+\adjbox@Width=\dimen178
+\adjbox@Height=\dimen179
+\adjbox@Depth=\dimen180
+\adjbox@Totalheight=\dimen181
+\adjbox@pwidth=\dimen182
+\adjbox@pheight=\dimen183
+\adjbox@pdepth=\dimen184
+\adjbox@ptotalheight=\dimen185
+ (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/ifoddpage\ifoddpage.sty
+Package: ifoddpage 2022/10/18 v1.2 Conditionals for odd/even page detection
+\c@checkoddpage=\count284
+) (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/varwidth\varwidth.sty
+Package: varwidth 2009/03/30 ver 0.92;  Variable-width minipages
+\@vwid@box=\box57
+\sift@deathcycles=\count285
+\@vwid@loff=\dimen186
+\@vwid@roff=\dimen187
+))
+\gincltex@box=\box58
+) (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/filemod\filemod-expmin.sty
+Package: filemod-expmin 2011/09/19 v1.2 Get and compare file modification times (expandable; minimal)
+)) (main.aux)
+\openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 304.
-LaTeX Font Info:    ... okay on input line 304.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 304.
-LaTeX Font Info:    ... okay on input line 304.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 304.
-LaTeX Font Info:    ... okay on input line 304.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 304.
-LaTeX Font Info:    ... okay on input line 304.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 304.
-LaTeX Font Info:    ... okay on input line 304.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 304.
-LaTeX Font Info:    ... okay on input line 304.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 304.
-LaTeX Font Info:    ... okay on input line 304.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 306.
+LaTeX Font Info:    ... okay on input line 306.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 306.
+LaTeX Font Info:    ... okay on input line 306.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 306.
+LaTeX Font Info:    ... okay on input line 306.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 306.
+LaTeX Font Info:    ... okay on input line 306.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 306.
+LaTeX Font Info:    ... okay on input line 306.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 306.
+LaTeX Font Info:    ... okay on input line 306.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 306.
+LaTeX Font Info:    ... okay on input line 306.
 
 -- Lines per column: 56 (exact).
 (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count282
-\scratchdimen=\dimen174
-\scratchbox=\box56
-\nofMPsegments=\count283
-\nofMParguments=\count284
-\everyMPshowfont=\toks24
-\MPscratchCnt=\count285
-\MPscratchDim=\dimen175
-\MPnumerator=\count286
-\makeMPintoPDFobject=\count287
-\everyMPtoPDFconversion=\toks25
+\scratchcounter=\count286
+\scratchdimen=\dimen188
+\scratchbox=\box59
+\nofMPsegments=\count287
+\nofMParguments=\count288
+\everyMPshowfont=\toks26
+\MPscratchCnt=\count289
+\MPscratchDim=\dimen189
+\MPnumerator=\count290
+\makeMPintoPDFobject=\count291
+\everyMPtoPDFconversion=\toks27
 ) (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/epstopdf-pkg\epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.
  (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/00miktex\epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
-LaTeX Font Info:    Trying to load font information for OMS+ptm on input line 347.
+LaTeX Font Info:    Trying to load font information for OMS+ptm on input line 349.
  (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\omsptm.fd
 File: omsptm.fd 
 )
 LaTeX Font Info:    Font shape `OMS/ptm/m/n' in size <10> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 347.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 349.
 
-Overfull \hbox (1.99783pt too wide) in paragraph at lines 347--347
+Overfull \hbox (1.99783pt too wide) in paragraph at lines 349--349
  [] 
  []
 
 
-Overfull \hbox (1.99783pt too wide) in paragraph at lines 347--347
+Overfull \hbox (1.99783pt too wide) in paragraph at lines 349--349
  [] 
  []
 
 
-Overfull \hbox (1.99783pt too wide) in paragraph at lines 347--347
+Overfull \hbox (1.99783pt too wide) in paragraph at lines 349--349
  [] 
  []
 
+(../sections/abstract/abstract.tex)
 <PSCC_logo.png, id=1, 416.55624pt x 415.5525pt>
 File: PSCC_logo.png Graphic file (type png)
 <use PSCC_logo.png>
-Package pdftex.def Info: PSCC_logo.png  used on input line 369.
+Package pdftex.def Info: PSCC_logo.png  used on input line 370.
 (pdftex.def)             Requested size: 24.9923pt x 24.93207pt.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <9> on input line 369.
+(Font)              <9> on input line 370.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 369.
+(Font)              <6> on input line 370.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 369.
+(Font)              <5> on input line 370.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <7> on input line 369.
-[1{C:/Users/Aryan Ritwajeet Jha/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{C:/Users/Aryan Ritwajeet Jha/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/base/8r.enc}
+(Font)              <7> on input line 370.
+ [1{C:/Users/Aryan Ritwajeet Jha/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{C:/Users/Aryan Ritwajeet Jha/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/base/8r.enc}
 
 
  <./PSCC_logo.png>]
-LaTeX Font Info:    Trying to load font information for OT1+pcr on input line 378.
+LaTeX Font Info:    Trying to load font information for OT1+pcr on input line 379.
  (C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\ot1pcr.fd
 File: ot1pcr.fd 2001/06/04 font definitions for OT1/pcr.
 )
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <8> on input line 397.
 File: PSCC_logo.png Graphic file (type png)
 <use PSCC_logo.png>
-Package pdftex.def Info: PSCC_logo.png  used on input line 388.
+Package pdftex.def Info: PSCC_logo.png  used on input line 510.
 (pdftex.def)             Requested size: 24.9923pt x 24.93207pt.
- [2]
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 396.
-
-Underfull \hbox (badness 10000) in paragraph at lines 564--565
-\OT1/ptm/m/n/8 Con-tents, [][]\OT1/pcr/m/n/8 http://www.ieee.org/conferences_events/
- []
-
+ [2] (main.bbl)
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -301,24 +373,26 @@ Before submitting the final camera ready copy, remember to:
 
 File: PSCC_logo.png Graphic file (type png)
 <use PSCC_logo.png>
-Package pdftex.def Info: PSCC_logo.png  used on input line 579.
+Package pdftex.def Info: PSCC_logo.png  used on input line 544.
 (pdftex.def)             Requested size: 24.9923pt x 24.93207pt.
-[3] (pscc2022_template.aux)
+[3
+
+] (main.aux)
  ***********
 LaTeX2e <2023-06-01> patch level 1
 L3 programming layer <2023-06-30>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 3336 strings out of 475551
- 61057 string characters out of 5755911
+ 5486 strings out of 475551
+ 103086 string characters out of 5755910
  1934238 words of memory out of 5000000
- 24533 multiletter control sequences out of 15000+600000
- 599486 words of font info for 106 fonts, out of 8000000 for 9000
+ 26591 multiletter control sequences out of 15000+600000
+ 597287 words of font info for 102 fonts, out of 8000000 for 9000
  1144 hyphenation exceptions out of 8191
- 79i,13n,93p,853b,448s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 95i,13n,93p,840b,505s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Aryan Ritwajeet Jha/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Users/Aryan Ritwajeet Jha/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/Aryan Ritwajeet Jha/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr7.pfb><C:/Users/Aryan Ritwajeet Jha/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/Aryan Ritwajeet Jha/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy7.pfb><C:/Users/Aryan Ritwajeet Jha/AppData/Local/Programs/MiKTeX/fonts/type1/urw/courier/ucrr8a.pfb><C:/Users/Aryan Ritwajeet Jha/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmb8a.pfb><C:/Users/Aryan Ritwajeet Jha/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/Aryan Ritwajeet Jha/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmr8a.pfb><C:/Users/Aryan Ritwajeet Jha/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmri8a.pfb>
-Output written on pscc2022_template.pdf (3 pages, 135611 bytes).
+Output written on main.pdf (3 pages, 131015 bytes).
 PDF statistics:
  66 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)

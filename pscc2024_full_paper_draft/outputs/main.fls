@@ -1,7 +1,7 @@
 PWD c:\Users\Aryan Ritwajeet Jha\Documents\documents_general\PowerEdu\Reports\pscc2024_full_paper_draft\outputs
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\MiKTeX\miktex\data\le\pdftex\pdflatex.fmt
-INPUT c:\Users\Aryan Ritwajeet Jha\Documents\documents_general\PowerEdu\Reports\pscc2024_full_paper_draft\outputs\pscc2022_template.tex
-OUTPUT pscc2022_template.log
+INPUT c:\Users\Aryan Ritwajeet Jha\Documents\documents_general\PowerEdu\Reports\pscc2024_full_paper_draft\outputs\main.tex
+OUTPUT main.log
 INPUT .\IEEEtran4PSCC.cls
 INPUT IEEEtran4PSCC.cls
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\psnfss\ot1ptm.fd
@@ -81,10 +81,62 @@ INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\l3bac
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\l3backend\l3backend-pdftex.def
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\lipsum\lipsum.ltd.tex
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\lipsum\lipsum.ltd.tex
-INPUT .\pscc2022_template.aux
-INPUT .\pscc2022_template.aux
-INPUT pscc2022_template.aux
-OUTPUT pscc2022_template.aux
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\import\import.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\import\import.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\standalone\standalone.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\standalone\standalone.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\tools\shellesc.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\tools\shellesc.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\tools\shellesc.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\generic\iftex\ifluatex.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\generic\iftex\ifluatex.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\generic\iftex\ifluatex.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\generic\iftex\iftex.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\generic\iftex\iftex.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\xkeyval\xkeyval.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\xkeyval\xkeyval.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\generic\xkeyval\xkeyval.tex
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\generic\xkeyval\xkvutils.tex
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\currfile\currfile.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\currfile\currfile.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\kvoptions\kvoptions.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\kvoptions\kvoptions.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\generic\ltxcmds\ltxcmds.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\generic\ltxcmds\ltxcmds.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\kvsetkeys\kvsetkeys.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\kvsetkeys\kvsetkeys.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\filehook\filehook.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\filehook\filehook.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\filehook\filehook-2020.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\filehook\filehook-2020.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\gincltex\gincltex.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\gincltex\gincltex.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\gincltex\gincltex.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\svn-prov\svn-prov.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\svn-prov\svn-prov.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\adjustbox\adjustbox.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\adjustbox\adjustbox.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\adjustbox\adjcalc.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\adjustbox\adjcalc.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\adjustbox\trimclip.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\adjustbox\trimclip.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\collectbox\collectbox.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\collectbox\collectbox.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\adjustbox\tc-pdftex.def
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\adjustbox\tc-pdftex.def
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\adjustbox\tc-pdftex.def
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\ifoddpage\ifoddpage.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\ifoddpage\ifoddpage.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\ifoddpage\ifoddpage.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\varwidth\varwidth.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\varwidth\varwidth.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\varwidth\varwidth.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\filemod\filemod-expmin.sty
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\filemod\filemod-expmin.sty
+INPUT .\main.aux
+INPUT .\main.aux
+INPUT main.aux
+OUTPUT main.aux
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\context\base\mkii\supp-pdf.mkii
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\context\base\mkii\supp-pdf.mkii
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\context\base\mkii\supp-pdf.mkii
@@ -96,12 +148,15 @@ INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\00mik
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\psnfss\omsptm.fd
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\psnfss\omsptm.fd
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\psnfss\omsptm.fd
+INPUT ..\sections\abstract\abstract.tex
+INPUT ..\sections\abstract\abstract.tex
+INPUT ..\sections\abstract\abstract.tex
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\times\ptmrc7t.tfm
 INPUT .\PSCC_logo.png
 INPUT .\PSCC_logo.png
 INPUT .\PSCC_logo.png
 INPUT .\PSCC_logo.png
-OUTPUT pscc2022_template.pdf
+OUTPUT main.pdf
 INPUT .\PSCC_logo.png
 INPUT .\PSCC_logo.png
 INPUT .\PSCC_logo.png
@@ -131,39 +186,36 @@ INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\psnfs
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\psnfss\ot1pcr.fd
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\tex\latex\psnfss\ot1pcr.fd
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\courier\pcrr7t.tfm
-INPUT .\PSCC_logo.png
-INPUT .\PSCC_logo.png
-INPUT .\PSCC_logo.png
-INPUT .\PSCC_logo.png
-INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\vf\adobe\times\ptmr7t.vf
-INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\times\ptmr8r.tfm
-INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\vf\adobe\times\ptmri7t.vf
-INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\times\ptmri8r.tfm
-INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\vf\adobe\courier\pcrr7t.vf
-INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\courier\pcrr8r.tfm
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\public\cm\cmr8.tfm
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\public\cm\cmmi8.tfm
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\public\cm\cmsy8.tfm
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\times\ptmr7t.tfm
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\times\ptmrc7t.tfm
-INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\courier\pcrr7t.tfm
-INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\times\ptmri7t.tfm
 INPUT .\PSCC_logo.png
 INPUT .\PSCC_logo.png
 INPUT .\PSCC_logo.png
 INPUT .\PSCC_logo.png
-INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\vf\adobe\times\ptmr7t.vf
-INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\vf\adobe\times\ptmrc7t.vf
-INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\times\ptmr8r.tfm
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\vf\adobe\times\ptmr7t.vf
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\times\ptmr8r.tfm
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\vf\adobe\times\ptmri7t.vf
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\times\ptmri8r.tfm
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\vf\adobe\courier\pcrr7t.vf
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\courier\pcrr8r.tfm
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\vf\adobe\times\ptmr7t.vf
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\times\ptmr8r.tfm
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\vf\adobe\times\ptmr7t.vf
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\vf\adobe\times\ptmrc7t.vf
+INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\times\ptmr8r.tfm
+INPUT .\main.bbl
+INPUT .\main.bbl
+INPUT main.bbl
+INPUT .\PSCC_logo.png
+INPUT .\PSCC_logo.png
+INPUT .\PSCC_logo.png
+INPUT .\PSCC_logo.png
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\vf\adobe\times\ptmri7t.vf
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\tfm\adobe\times\ptmri8r.tfm
-INPUT pscc2022_template.aux
+INPUT main.aux
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\type1\public\amsfonts\cm\cmmi10.pfb
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\type1\public\amsfonts\cm\cmmi10.pfb
 INPUT C:\Users\Aryan Ritwajeet Jha\AppData\Local\Programs\MiKTeX\fonts\type1\public\amsfonts\cm\cmr10.pfb
