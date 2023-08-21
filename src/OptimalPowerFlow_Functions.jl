@@ -1,41 +1,45 @@
 # Optimal Power Flow Functions
 
 using Symbolics
-using ForwardDiff
-using NLsolve
 
-function objective(p)
-    P1, P2 = p
-    F1 = 0.004 * P1^2 + 8 * P1
-    F2 = 0.0048 * P2^2 + 6.4 * P2
-    return F1 + F2
+include("Helper_Functions.jl")
+
+
+function solveForEconomicDispatch(CDF_DF_File_pu::Vector{DataFrame},
+    x::Vector{Num}, f::Num, h::Vector{Num};
+    verbose::Bool=false)
+
+    grad_f = Symbolics.gradient(f, x)
+    jacobian_h = Symbolics.jacobian(h, x)
+    @show @variables lambda[1:length(h)]  # Lagrange multipliers
+    if length(h) == 1
+        myprintln(verbose, "Okay, just a single equality.")
+        lambda = lambda[1]
+        jacobian_h = vec(jacobian_h)
+    end
+    # @variables lambda
+    @show jacobian_h
+    KKT_conditions = vec([grad_f - jacobian_h*lambda; h])
+    myprintln(verbose, KKT_conditions)
+    println([x; lambda])
+    println(KKT_conditions)
+    solutions = Symbolics.solve_for(KKT_conditions, [x; lambda])
+
+    myprintln(true, "Generator 1: $(solutions[1]) MW")
+    myprintln(true, "Generator 2: $(solutions[2]) MW")
+    myprintln(true, "Marginal Cost of Generation = \$ $(solutions[3]).")
+    return solutions
 end
 
-gradient_objective = p -> ForwardDiff.gradient(objective, p)
-
-function system_of_equations!(F, p)
-    grad = gradient_objective(p)
-    F[1] = grad[1] - grad[2]
-    F[2] = p[1] + p[2] - 259.0
-end
-
-initial_guess = [130.0, 130.0]  # starting with a simple guess
-result = nlsolve(system_of_equations!, initial_guess);
-optimal_p = result.zero
-
-# function solveForEconomicDispatch(CDF_DF_File_pu::Vector{DataFrame},
-#     x:Vector, f;
-#     verbose=false)
-
-#     df_dx = Symbolics.jacobian([f], x);
-#     solutions = Symbolics.solve_for(df_dx, x);
-#     return solutions
-# end
-
-function objective(p)
-    f[1] = 0.004p[1] + 8p[1]
-    f[2] = 0.0048p[2] + 6.4p[2]
-    f = sum(f)
-    return f
-end
-
+# PL = 259;
+# @variables P1 P2;
+# x = [P1, P2];
+# f₁ = 0.004P1^2 + 8P1;
+# f₂ = 0.0048P2^2 + 6.4P2;
+# h₁ = P1 + P2 - Pₗ₁;
+# h₂ = h₁;
+# # h = [h₁];
+# h = [h₁, h₂];
+# f = f₁ + f₂;
+# solutions1 = solveForEconomicDispatch(dfpu, x, f, h, verbose=true);
+# P1′, P2′, lambda₁′ = solutions1;

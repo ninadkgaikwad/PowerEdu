@@ -9,7 +9,7 @@ using Plots
 using Statistics
 using LaTeXStrings
 using Symbolics
-using ForwarDiff
+using ForwardDiff
 using NLsolve
 
 include("src/Helper_Functions.jl");
@@ -18,7 +18,8 @@ include("src/IEEE_CDF_Parser.jl");
 include("src/SparseTechniques_Functions.jl");
 include("src/Jacobian_Builder.jl");
 include("src/LU_Factorization.jl");
-include("src/BasicPowerFlow_Functions.jl")
+include("src/BasicPowerFlow_Functions.jl");
+include("src/OptimalPowerFlow_Functions.jl");
 
 folderInput = "data/";
 folder_processedData = "processedData/";
@@ -39,16 +40,24 @@ results = solveForPowerFlow_Sparse(dfpu, verbose=false)
 
 plotBuswiseDifferences(dfpu, results, savePlots=false)
 
-solutions = solveForEconomicDispatch(dfpu, x, f, h)
+Pₗ₁ = 259;
+@variables P₁ P₂;
+x = [P₁, P₂];
+f₁ = 0.004P₁^2 + 8P₁;
+f₂ = 0.0048P₂^2 + 6.4P₂;
+h₁ = P₁ + P₂ - Pₗ₁;
+# h₂ = h₁;
+h = [h₁];
+# h = [h₁, h₂];
+f = f₁ + f₂;
+solutions1 = solveForEconomicDispatch(dfpu, x, f, h, verbose=true);
+P₁′, P₂′, λ₁′ = solutions1;
 
-# @variables P₁ P₂ λ₁;
-# x = [P₁, P₂, λ₁];
-# f₁ = 0.004P₁^2 + 8P₁;
-# f₂ = 0.0048P₂^2 + 6.4P₂;
-h₁ = P₁ + P₂ - Pₗ;
-# f = f₁ + f₂ - λ₁*h₁;
-
-
-# P₁′, P₂′, λ₁′ = solutions;
+MVA_B = getBaseMVA(dfpu);
+Pₗ₂ = sum(results.P[1:2])*MVA_B;
+h₂ = P₁ + P₂ - Pₗ₂;
+h = [h₂];
+solutions2 = solveForEconomicDispatch(dfpu, x, f, h, verbose=false);    
+P₁′, P₂′, λ₁′ = solutions2;
 
 
