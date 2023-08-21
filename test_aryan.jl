@@ -8,6 +8,9 @@ using BenchmarkTools
 using Plots
 using Statistics
 using LaTeXStrings
+using Symbolics
+using ForwarDiff
+using NLsolve
 
 include("src/Helper_Functions.jl");
 include("src/Ybus_Builder.jl");
@@ -30,8 +33,22 @@ createFolderIfNotExisting(systemName, folder_processedData)
 fileType_CDFFile = ".txt";
 filename_CDFFile = folderInput*systemName*"/"*systemName*"_Data"*fileType_CDFFile
 CDF_DF_List = CDF_Parser(filename_CDFFile);
-CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List);
+dfpu = CDF_pu_Converter(CDF_DF_List);
 
-results = solveForPowerFlow_Sparse(CDF_DF_List_pu, verbose=false)
+results = solveForPowerFlow_Sparse(dfpu, verbose=false)
 
-plotBuswiseDifferences(CDF_DF_List_pu, results, savePlots=false)
+plotBuswiseDifferences(dfpu, results, savePlots=false)
+
+solutions = solveForEconomicDispatch(dfpu, x, f, h)
+
+# @variables P₁ P₂ λ₁;
+# x = [P₁, P₂, λ₁];
+# f₁ = 0.004P₁^2 + 8P₁;
+# f₂ = 0.0048P₂^2 + 6.4P₂;
+h₁ = P₁ + P₂ - Pₗ;
+# f = f₁ + f₂ - λ₁*h₁;
+
+
+# P₁′, P₂′, λ₁′ = solutions;
+
+
