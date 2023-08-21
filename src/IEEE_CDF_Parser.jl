@@ -306,7 +306,7 @@ function CDF_Parser(CDF_FilePath;
         end
 
         # Ordering BusDataCard_DF: PQ->PV->Slack
-        sort!(BusDataCard_DF, [order(:Type)])
+        # sort!(BusDataCard_DF, [order(:Type)])
 
 
         # Filling up BranchDataCard_DF
@@ -431,12 +431,15 @@ function CDF_pu_Converter(CDF_DF_List;
         saveLocation = "processedData/")
 
         # Getting required data from CDF_DF_List
-        TitleCard_DF = CDF_DF_List[1]
-        BusDataCard_DF = CDF_DF_List[2]
-        BranchDataCard_DF = CDF_DF_List[3]
-        LossZonesCard_DF = CDF_DF_List[4]
-        InterchangeDataCard_DF = CDF_DF_List[5]
-        TieLinesDataCard_DF = CDF_DF_List[6]
+        # WARNING: Be very very careful when copying arrays in Julia
+        # Here without deepcopy, the original arguments were modified too,
+        # leading to values like Gen_MW = 0.02324 in CDF_DF_List[2]
+        TitleCard_DF = deepcopy(CDF_DF_List[1])
+        BusDataCard_DF = deepcopy(CDF_DF_List[2])
+        BranchDataCard_DF = deepcopy(CDF_DF_List[3])
+        LossZonesCard_DF = deepcopy(CDF_DF_List[4])
+        InterchangeDataCard_DF = deepcopy(CDF_DF_List[5])
+        TieLinesDataCard_DF = deepcopy(CDF_DF_List[6])
 
         systemName = extractSystemName(CDF_DF_List)
 
@@ -447,13 +450,13 @@ function CDF_pu_Converter(CDF_DF_List;
         for ii in 1:length(BusDataCard_DF.Bus_Num)
 
                 # Converting Load MW/MVAR and Gen MW/MVAR to pu
-                BusDataCard_DF.Load_MW[ii] = BusDataCard_DF.Load_MW[ii]/Base_MVA
+                BusDataCard_DF.Load_MW[ii] /= Base_MVA
 
-                BusDataCard_DF.Load_MVAR[ii] = BusDataCard_DF.Load_MVAR[ii]/Base_MVA
+                BusDataCard_DF.Load_MVAR[ii] /= Base_MVA
 
-                BusDataCard_DF.Gen_MW[ii] = BusDataCard_DF.Gen_MW[ii]/Base_MVA
+                BusDataCard_DF.Gen_MW[ii] /= Base_MVA
 
-                BusDataCard_DF.Gen_MVAR[ii] = BusDataCard_DF.Gen_MVAR[ii]/Base_MVA
+                BusDataCard_DF.Gen_MVAR[ii] /= Base_MVA
 
                 # Converting Max_MVAR_V and Min_MVAR_V to pu
                 if (BusDataCard_DF.Type[ii] == 0) # Unregulated PQ
@@ -541,6 +544,11 @@ function CDF_pu_Converter(CDF_DF_List;
         return CDF_DF_List_pu
 end
 
-# test the parser
+# # test the parser
 # CDF_DF_List = CDF_Parser("data/IEEE_14/IEEE_14_Data.txt")
-# CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List, saveTables = true)
+# busData = CDF_DF_List[2]
+# busData.Gen_MW
+
+# CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List)
+# busData_pu = CDF_DF_List_pu[2]
+# busData_pu.Gen_MW

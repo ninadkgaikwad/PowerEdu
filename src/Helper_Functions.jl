@@ -73,58 +73,42 @@ function extractSystemName(CDF_DF_List::Vector{DataFrame})
 end
 
 """
-initializeVectors_pu
+    initializeVectors_pu(CDF_DF_List_pu::Vector{DataFrame};
+    busTypes::String = "current") :: NamedTuple{(:PSpecified, :QSpecified, :V, :delta, :listOfSlackBuses, :listOfPVBuses, :listOfPQBuses, :listOfNonSlackBuses, :nSlack, :nPV, :nPQ), Tuple{Vector{Float64}, Vector{Float64}, Vector{Float64}, Vector{Float64}, Vector{Int64}, Vector{Int64}, Vector{Int64}, Vector{Int64}, Int64, Int64, Int64}}
 
-This function initializes various vectors and variables based on the input `CDF_DF_List_pu`.
+Initialize vectors for power system analysis in per unit (pu) values.
 
-# Parameters
-- `CDF_DF_List_pu`: A list containing the data for power system buses in the per unit (pu) system. It should be a two-dimensional array-like object where each row represents a bus and each column represents a specific attribute of the bus.
+## Arguments
+- `CDF_DF_List_pu::Vector{DataFrame}`: A vector of DataFrames containing bus and branch data in per unit values.
+- `busTypes::String`: Optional. The category of bus types to consider. Default is "current". Possible values are "current" and "original".
 
-# Returns
-- A list containing the following vectors and variables:
-  - `PSpecified`: An array of size `N` representing the specified active power injections (in MW) for each bus.
-  - `QSpecified`: An array of size `N` representing the specified reactive power injections (in MVAR) for each bus.
-  - `V`: An array of size `N` representing the initial voltage magnitudes (in pu) for each bus.
-  - `delta`: An array of size `N` representing the initial voltage phase angles (in radians) for each bus.
-  - `listOfSlackBuses`: An array containing the bus numbers of the slack buses in the system.
-  - `listOfPVBuses`: An array containing the bus numbers of the PV buses in the system.
-  - `listOfPQBuses`: An array containing the bus numbers of the PQ buses in the system.
-  - `listOfNonSlackBuses`: An array containing the bus numbers of the non-slack buses in the system.
-  - `nSlack`: The number of slack buses in the system.
-  - `nPV`: The number of PV buses in the system.
-  - `nPQ`: The number of PQ buses in the system.
+## Returns
+- `PSpecified::Vector{Float64}`: A vector representing the specified active power values for each bus.
+- `QSpecified::Vector{Float64}`: A vector representing the specified reactive power values for each bus.
+- `V::Vector{Float64}`: A vector representing the voltage magnitudes for each bus.
+- `delta::Vector{Float64}`: A vector representing the voltage phase angles for each bus.
+- `listOfSlackBuses::Vector{Int64}`: A vector containing the bus numbers of the slack buses.
+- `listOfPVBuses::Vector{Int64}`: A vector containing the bus numbers of the PV buses.
+- `listOfPQBuses::Vector{Int64}`: A vector containing the bus numbers of the PQ buses.
+- `listOfNonSlackBuses::Vector{Int64}`: A vector containing the bus numbers of the non-slack buses.
+- `nSlack::Int64`: The number of slack buses.
+- `nPV::Int64`: The number of PV buses.
+- `nPQ::Int64`: The number of PQ buses.
 
-# Description
-The `initializeVectors_pu` function takes the input `CDF_DF_List_pu`, which represents the data for power system buses in the per unit (pu) system, and initializes various vectors and variables based on this data. The function iterates over each bus in the system and performs the following steps:
+## Details
+The `initializeVectors_pu` function initializes the vectors required for power system analysis in per unit (pu) values. It extracts relevant information from the provided `CDF_DF_List_pu` vector of DataFrames, including bus data.
 
-1. Retrieves the bus data for the current bus from `busData_pu`.
-2. Sets the initial value of `delta` (voltage phase angle) for the current bus to zero.
-3. Checks the type of the current bus:
-   - If the bus type is 0, it is a PQ bus.
-     - Increments the count of PQ buses (`nPQ`).
-     - Adds the bus number to the `listOfPQBuses`.
-     - Adds the bus number to the `listOfNonSlackBuses`.
-     - Sets the initial value of voltage magnitude `V` for the bus to 1.0000 pu.
-   - If the bus type is 2, it is a PV bus.
-     - Increments the count of PV buses (`nPV`).
-     - Adds the bus number to the `listOfPVBuses`.
-     - Adds the bus number to the `listOfNonSlackBuses`.
-     - Sets the initial value of voltage magnitude `V` for the bus to the desired voltage magnitude specified in `busData_pu`.
-   - If the bus type is 3, it is a slack bus.
-     - Increments the count of slack buses (`nSlack`).
-     - Adds the bus number to the `listOfSlackBuses`.
-     - Sets the initial value of voltage magnitude `V` for the bus to the desired voltage magnitude specified in `busData_pu`.
-4. Calculates the specified active power injection `PSpecified` for the bus by subtracting the load active power from the generator active power specified in `busData_pu`.
-5. Calculates the specified reactive power injection `QSpecified` for the bus by subtracting the load reactive power from the generator reactive power specified in `busData_pu`.
+The function iterates over each bus in the system and populates the vectors `PSpecified`, `QSpecified`, `V`, and `delta` with the corresponding values based on the bus type.
 
-After iterating over all buses, the function performs the following additional operations:
+The `busTypes` argument allows specifying the category of bus types to consider. If set to "current" (default), it considers the current bus types. If set to "original", it considers the original bus types.
 
-- Reshapes `listOfSlackBuses`, `listOfPVBuses`, `listOfPQBuses`, and `listOfNonSlackBuses` to remove any unused elements.
-- Returns all the calculated vectors and variables as a list.
+The resulting vectors are returned as a named tuple containing the initialized vectors and additional information about the bus categories and counts.
 
-Please note that the documentation assumes some familiarity with power system analysis terminology and concepts.
+```julia
+initializeVectors_pu(CDF_DF_List_pu, busTypes="current")
 """
-function initializeVectors_pu(CDF_DF_List_pu)
+function initializeVectors_pu(CDF_DF_List_pu::Vector{DataFrame};
+    busTypes::String="current"):: NamedTuple{(:PSpecified, :QSpecified, :V, :delta, :listOfSlackBuses, :listOfPVBuses, :listOfPQBuses, :listOfNonSlackBuses, :nSlack, :nPV, :nPQ), Tuple{Vector{Float64}, Vector{Float64}, Vector{Float64}, Vector{Float64}, Vector{Int64}, Vector{Int64}, Vector{Int64}, Vector{Int64}, Int64, Int64, Int64}}
     
     busData_pu = CDF_DF_List_pu[2]
 
@@ -142,34 +126,167 @@ function initializeVectors_pu(CDF_DF_List_pu)
     listOfNonSlackBuses = zeros(Int64, N)
     listOfSlackBuses = zeros(Int64, N)
 
+    if busTypes == "current"
+        busType = busData_pu.Type
+    elseif busTypes == "original"
+        busType = busData_pu.Type_Original
+    else
+        error("Unknown category of busTypes.")
+    end
+    
     for i = 1:N
         bus = busData_pu.Bus_Num[i]
         delta[bus] = 0.0000
-        if busData_pu.Type[i] == 0
+
+        if busType[i] == 0
             nPQ += 1
-            listOfPQBuses[nPQ] = bus
+            push!(listOfPQBuses, bus)
             n += 1
-            listOfNonSlackBuses[n] = bus
+            push!(listOfNonSlackBuses, bus)
             V[bus] = 1.0000
-        elseif busData_pu.Type[i] == 2
+        elseif busType[i] == 2
             nPV += 1
-            listOfPVBuses[nPV] = bus
+            push!(listOfPVBuses, bus)
             n += 1
-            listOfNonSlackBuses[n] = bus
+            push!(listOfNonSlackBuses, bus)
             V[bus] = busData_pu.Desired_V_pu[i]
-        elseif busData_pu.Type[i] == 3
+        elseif busType[i] == 3
             nSlack += 1
-            listOfSlackBuses[nSlack] = bus
+            push!(listOfSlackBuses, bus)
             V[bus] = busData_pu.Desired_V_pu[i]
         end
+
         PSpecified[bus] = busData_pu.Gen_MW[i] - busData_pu.Load_MW[i]
         QSpecified[bus] = busData_pu.Gen_MVAR[i] - busData_pu.Load_MVAR[i]
     end
 
-    listOfSlackBuses = reshape(listOfSlackBuses[1:nSlack], nSlack)
-    listOfSlackBuses = reshape(listOfSlackBuses[1:nSlack], nSlack)
-    listOfPVBuses = reshape(listOfPVBuses[1:nPV], nPV)
-    listOfPQBuses = reshape(listOfPQBuses[1:nPQ], nPQ)
+    listOfSlackBuses = sort!(reshape(listOfSlackBuses[1:nSlack], nSlack))
+    listOfNonSlackBuses = sort!(reshape(listOfNonSlackBuses[1:n], n))
+    listOfPVBuses = sort!(reshape(listOfPVBuses[1:nPV], nPV))
+    listOfPQBuses = sort!(reshape(listOfPQBuses[1:nPQ], nPQ))
 
-    return [PSpecified, QSpecified, V, delta, listOfSlackBuses, listOfPVBuses, listOfPQBuses, listOfNonSlackBuses, nSlack, nPV, nPQ]
+    return (PSpecified=PSpecified, QSpecified=QSpecified, V=V, delta=delta, 
+    listOfSlackBuses=listOfSlackBuses, listOfPVBuses=listOfPVBuses, 
+    listOfPQBuses=listOfPQBuses, listOfNonSlackBuses=listOfNonSlackBuses,
+    nSlack=nSlack, nPV=nPV, nPQ=nPQ)
+end
+
+"""
+    getPVBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "current")
+    
+    Retrieve the list of PV buses from the CDF data.
+
+## Arguments
+- `CDF_Data_List_pu::Vector{DataFrame}`: A vector of DataFrames containing the CDF data in per-unit (pu) format.
+- `busTypes::String`: Optional. The category of bus types to consider. Default is "current". Possible values are "current" and "original".
+
+## Returns
+- `result.listOfPVBuses::Vector{Int64}`: A list of PV buses extracted from the CDF data.
+"""
+function getPVBuses(CDF_Data_List_pu::Vector{DataFrame}; 
+    busTypes::String = "current") :: Vector{Int64}
+    result = initializeVectors_pu(CDF_Data_List_pu; busTypes)
+    return result.listOfPVBuses
+end
+
+"""
+    getPQBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "current")
+
+Retrieve the list of PQ (Load) buses from the CDF data.
+
+## Arguments
+- `CDF_Data_List_pu::Vector{DataFrame}`: A vector of DataFrames containing the CDF data in per-unit (pu) format.
+- `busTypes::String`: Optional. The category of bus types to consider. Default is "current". Possible values are "current" and "original".
+
+## Returns
+- `result.listOfPQBuses::Vector{Int64}`: A list of PQ (Load) buses extracted from the CDF data.
+"""
+function getPQBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "current") :: Vector{Int64}
+    result = initializeVectors_pu(CDF_Data_List_pu; busTypes)
+    return result.listOfPQBuses
+end
+
+"""
+    getNonSlackBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "current")
+
+Retrieve the list of non-slack buses (PV and PQ) from the CDF data.
+
+## Arguments
+- `CDF_Data_List_pu::Vector{DataFrame}`: A vector of DataFrames containing the CDF data in per-unit (pu) format.
+- `busTypes::String`: Optional. The category of bus types to consider. Default is "current". Possible values are "current" and "original".
+
+## Returns
+- `result.listOfNonSlackBuses::Vector{Int64}`: A list of non-slack buses (PV and PQ) extracted from the CDF data.
+"""
+function getNonSlackBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "current") :: Vector{Int64}
+    result = initializeVectors_pu(CDF_Data_List_pu; busTypes)
+    return result.listOfNonSlackBuses
+end
+
+"""
+    getSlackBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "current")
+
+Retrieve the list of slack buses from the CDF data.
+
+## Arguments
+- `CDF_Data_List_pu::Vector{DataFrame}`: A vector of DataFrames containing the CDF data in per-unit (pu) format.
+- `busTypes::String`: Optional. The category of bus types to consider. Default is "current". Possible values are "current" and "original".
+
+## Returns
+- `result.listOfSlackBuses::Vector{Int64}`: A list of slack buses extracted from the CDF data.
+"""
+function getSlackBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "current") :: Vector{Int64}
+    result = initializeVectors_pu(CDF_Data_List_pu; busTypes)
+    return result.listOfSlackBuses
+end
+
+"""
+    numSlackBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "current")
+
+Retrieve the number of slack buses from the CDF data.
+
+## Arguments
+- `CDF_Data_List_pu::Vector{DataFrame}`: A vector of DataFrames containing the CDF data in per-unit (pu) format.
+- `busTypes::String`: Optional. The category of bus types to consider. Default is "current". Possible values are "current" and "original".
+
+## Returns
+- `result.nSlack::Int64`: The number of slack buses extracted from the CDF data.
+"""
+function numSlackBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "current") :: Int64
+    result = initializeVectors_pu(CDF_Data_List_pu; busTypes)
+    return result.nSlack
+end
+
+"""
+    numPVBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "current")
+
+Retrieve the number of PV buses from the CDF data.
+
+## Arguments
+- `CDF_Data_List_pu::Vector{DataFrame}`: A vector of DataFrames containing the CDF data in per-unit (pu) format.
+- `busTypes::String`: Optional. The category of bus types to consider. Default is "current". Possible values are "current" and "original".
+
+## Returns
+- `result.nPV::Int64`: The number of PV buses extracted from the CDF data.
+"""
+function numPVBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "current") :: Int64
+    result = initializeVectors_pu(CDF_Data_List_pu; busTypes)
+    return result.nPV
+end
+
+"""
+    numPQBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "current")
+
+Retrieve the number of PQ (Load) buses from the CDF data.
+
+## Arguments
+- `CDF_Data_List_pu::Vector{DataFrame}`: A vector of DataFrames containing the CDF data in per-unit (pu) format.
+- `busTypes::String`: Optional. The category of bus types to consider. Default is "current". Possible values are "current" and "original".
+
+## Returns
+- `result.nPQ::Int64`: The number of PQ (Load) buses extracted from the CDF data.
+"""
+function numPQBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "current") :: Int64
+    result = initializeVectors_pu(CDF_Data_List_pu; busTypes)
+    return result.nPQ
 end

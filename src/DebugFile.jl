@@ -6,6 +6,16 @@ using DataFrames
 
 using DelimitedFiles
 
+folderInput = "data/"
+folder_processedData = "processedData/";
+systemName = "IEEE_14";
+# systemName = "IEEE_30";
+
+# createFolderIfNotExisting(systemName, folder_processedData)
+
+fileType_CDFFile = ".txt";
+filename_CDFFile = folderInput*systemName*"/"*systemName*"_Data"*fileType_CDFFile
+
 # Which Code to Debug
 Debug_Indicator = 4
 
@@ -35,7 +45,6 @@ elseif (Debug_Indicator == 2) # CDF Parser
     ## Debugging CDF Parser
 
     CDF_FilePath = "C:/Users/ninad/Dropbox (Personal)/NinadGaikwad_PhD/Gaikwad_Research/Gaikwad_Research_Work/PowerSystemsAnalysis/data/IEEE14/IEEE_14_Data.txt"
-
     CDF_DF_List = PowerSystemsAnalysis.CDF_Parser(CDF_FilePath)
 
     CDF_DF_List_pu = PowerSystemsAnalysis.CDF_pu_Converter(CDF_DF_List)
@@ -82,6 +91,8 @@ elseif (Debug_Indicator == 4) # Create Initial Solution Vector
 
      # Debugging YBus Builder
      CDF_FilePath = "D:/Sajjad_Work/Projects/Project_PowerEdu/PowerEdu/data/IEEE_14/IEEE_14_Data.txt"
+    #  @show pwd()
+    #  CDF_FilePath = "data/IEEE_14/IEEE_14_Data.txt"
 
      Ybus_Taps_Indicator = 1
 
@@ -91,6 +102,7 @@ elseif (Debug_Indicator == 4) # Create Initial Solution Vector
 
      Tol_Num = 0
      
-     PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
+    #  PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
+     PowerSystemsAnalysis.PowerFlow_MainFunction(filename_CDFFile, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
 
 end
