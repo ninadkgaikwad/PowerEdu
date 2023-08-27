@@ -117,14 +117,16 @@ function initializeVectors_pu(CDF_DF_List_pu::Vector{DataFrame};
     QSpecified = zeros(N)
     V = zeros(N)
     delta = zeros(N)
-    listOfPQBuses = zeros(Int64, N)
-    listOfPVBuses = zeros(Int64, N)
-    nPQ = 0
-    nPV = 0
-    n = 0
+
+    listOfSlackBuses = zeros(Int64, 0)
+    listOfPVBuses = zeros(Int64, 0)
+    listOfPQBuses = zeros(Int64, 0)
+    listOfNonSlackBuses = zeros(Int64, 0)
+    
     nSlack = 0
-    listOfNonSlackBuses = zeros(Int64, N)
-    listOfSlackBuses = zeros(Int64, N)
+    nPV = 0
+    nPQ = 0
+    n = 0
 
     if busTypes == "current"
         busType = busData_pu.Type
@@ -290,3 +292,16 @@ function numPQBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "cur
     result = initializeVectors_pu(CDF_Data_List_pu; busTypes)
     return result.nPQ
 end
+
+function get_position(matrix, position::String)
+    nrows, ncols = size(matrix)
+    positions = Dict(
+        "northeast" => (nrows * 0.9, ncols * 0.9),
+        "northwest" => (nrows * 0.9, ncols * 0.1),
+        "southeast" => (nrows * 0.1, ncols * 0.9),
+        "southwest" => (nrows * 0.1, ncols * 0.1)
+        # Add more if needed
+    )
+    return positions[position]
+end
+
