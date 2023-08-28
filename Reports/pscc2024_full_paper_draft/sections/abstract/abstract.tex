@@ -1,0 +1,30 @@
+% \documentclass[class=IEEEtran4PSCC]{standalone}
+% \documentclass[article]{standalone}
+\documentclass{article}
+\ifdefined\packageName
+\else
+    \newcommand{\packageName}[1]{PowerEdu.jl}
+\fi
+
+\begin{document}
+    We introduce PowerEdu.jl, an open-source, beginner-friendly package in the Julia
+    programming language designed for budding power system engineers. This package 
+    addresses the current gap in accessible and comprehensive tools for transmission network
+    computations. PowerEdu.jl covers Power Flow using innovative dense 
+    and sparse data structures, Continuation Power Flow, State Estimation, Optimal 
+    Power Flow, Small-Signal Stability, and Transient Stability Analysis. Notably, 
+    the package is scalable, allowing for analysis of systems of varying 
+    sizes. User interaction with component modules is highly customizable; for example, 
+    users can opt to print detailed intermediary steps, such as Jacobians and mismatches, 
+    in Power Flow calculations. We use DataFrames for intuitive and visually 
+    appealing data representation. In this paper, we detail the key modules of 
+    PowerEdu.jl, elaborate on the special data structures implemented, and demonstrate 
+    the breadth and flexibility of algorithm customization available to users. Our 
+    package has been rigorously validated against established benchmarks, affirming 
+    its reliability and effectiveness as a powerful training tool for the next generation 
+    of power system engineers. Mention the network and key finding in one line.
+
+    Why Julia?
+
+\end{document}
+
