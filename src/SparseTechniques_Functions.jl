@@ -821,11 +821,7 @@ function constructSparseJacobianSubMatrix(CDF_DF_List_pu::Vector{DataFrame},
     nnzYBus = sparYBus.nnzVec
 
     powSysData = initializeVectors_pu(CDF_DF_List_pu)
-    nPV = powSysData.nPV
     nPQ = powSysData.nPQ
-    lPV = powSysData.listOfPVBuses
-    lPQ = powSysData.listOfPQBuses
-    lNonSlack = powSysData.listOfNonSlackBuses
 
     if type == "J11"
         JSub = sparseMatrixConstructor(N-1, N-1, T=Float64)
