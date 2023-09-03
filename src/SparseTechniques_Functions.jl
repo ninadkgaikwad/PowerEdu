@@ -811,15 +811,16 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
         error("Unknown combination order.")
     end
 
-    JSparseTables = [J.NVec, J.MVec, J.nnzVec]
-    systemName = extractSystemName(CDF_DF_List_pu)
-    filenames = ["JSparseNVec", "JSparseMVec", "JSparseNNZVec"]
-    extension = ".csv"
-    if saveTables
-        for (df, filename) in zip(JSparseTables, filenames)
-            CSV.write(saveLocation*systemName*"/"*filename*"_itr_$(itr)"*extension, df)
-        end
-    end
+    # JSparseTables = [J.NVec, J.MVec, J.nnzVec]
+    # systemName = extractSystemName(CDF_DF_List_pu)
+    # filenames = ["JSparseNVec", "JSparseMVec", "JSparseNNZVec"]
+    # extension = ".csv"
+    # if saveTables
+    #     for (df, filename) in zip(JSparseTables, filenames)
+    #         CSV.write(saveLocation*systemName*"/"*filename*"_itr_$(itr)"*extension, df)
+    #     end
+    # end
+    saveSparseTables(J, CDF_DF_List_pu, "JSparse", saveTables=saveTables, itr=itr, saveLocation=saveLocation)
 
     return J
 end
@@ -1970,3 +1971,51 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
     return results
 
 end;
+
+"""
+    saveSparseTables(A::SparseMatrix, CDF_DF_List_pu::Vector{DataFrame},prefix::String;    
+    saveTables::Bool=false,
+    itr::Int64=0, 
+    extension::String=".csv", 
+    saveLocation::String="processedData/")
+
+Save tables from a given SparseMatrix to CSV files.
+
+# Arguments:
+- `A::SparseMatrix`: A custom data structure containing the sparse matrix details.
+- `CDF_DF_List_pu::Vector{DataFrame}`: A list of DataFrames used to extract the system name.
+- `prefix::String`: A string that indicates the nature of the SparseMatrix and is used to prefix the filenames.
+
+# Keyword Arguments:
+- `saveTables::Bool=false`: Determines whether the tables should be saved to CSV files. Defaults to `false`.
+- `itr::Int64=0`: Iteration index used in naming the saved CSV files. Defaults to `0`.
+- `extension::String=".csv"`: The file extension for the saved tables. Defaults to ".csv".
+- `saveLocation::String="processedData/"`: Location where the CSV files will be saved. Defaults to `"processedData/"`.
+
+# Notes:
+The function saves tables derived from the SparseMatrix to CSV files, appending an iteration index to the filenames. 
+The CSV file names will be prepended by the system name extracted from `CDF_DF_List_pu` and the provided prefix.
+
+Example:
+```julia
+saveSparseTables(mySparseMatrix, myCDF_DF_List, "JSparse", saveTables=true, itr=5, extension=".csv", saveLocation="myDirectory/")
+"""
+function saveSparseTables(A::SparseMatrix, CDF_DF_List_pu::Vector{DataFrame},
+    prefix::String; saveTables::Bool=false, itr::Int64=0, saveLocation::String="processedData/",
+    extension::String=".csv")
+    # Convert the SparseMatrix attributes into a list
+    ASparseTables = [A.NVec, A.MVec, A.nnzVec]
+
+    # Extract the system name
+    systemName = extractSystemName(CDF_DF_List_pu)
+
+    # Define the filenames
+    filenames = ["$(prefix)NVec", "$(prefix)MVec", "$(prefix)NNZVec"]
+
+    # Save the tables to CSV files if saveTables is true
+    if saveTables
+        for (df, filename) in zip(ASparseTables, filenames)
+            CSV.write(saveLocation*systemName*"/"*filename*"_itr_$(itr)"*extension, df)
+        end
+    end
+end
