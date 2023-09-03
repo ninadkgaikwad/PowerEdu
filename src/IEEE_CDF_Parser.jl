@@ -312,7 +312,13 @@ function CDF_Parser(CDF_FilePath::String;
         end
 
         # Ordering BusDataCard_DF: PQ->PV->Slack
-        # sort!(BusDataCard_DF, [order(:Type)])
+        if sortingOrder == "busTypes"
+                sort!(BusDataCard_DF, [order(:Type)])
+        elseif sortingOrder == "busNums"
+                # keep same order
+        else
+                error("Unknown sorting order.");        
+        end
 
 
         # Filling up BranchDataCard_DF
@@ -421,7 +427,8 @@ Converts the provided data frames into per-unit (pu) system based on the MVA bas
 
 # Notes:
 The function converts all the actual values from the provided DataFrames into a per-unit system. It utilizes the MVA base
-from the TitleCard_DF (first DataFrame in the list) to perform the conversion.
+
+from the `TitleCard_DF` (first DataFrame in the list) to perform the conversion.
 """
 function CDF_pu_Converter(CDF_DF_List::Vector{DataFrame};
         saveTables::Bool=false, 

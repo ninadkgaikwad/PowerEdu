@@ -11,6 +11,8 @@ folder_processedData = "processedData/";
 systemName = "IEEE_14";
 # systemName = "IEEE_30";
 
+SortValue = 1
+
 # createFolderIfNotExisting(systemName, folder_processedData)
 
 fileType_CDFFile = ".txt";
@@ -90,9 +92,9 @@ elseif (Debug_Indicator == 3) # YBus Ybus_Builder
 elseif (Debug_Indicator == 4) # Create Initial Solution Vector
 
      # Debugging YBus Builder
-     CDF_FilePath = "D:/Sajjad_Work/Projects/Project_PowerEdu/PowerEdu/data/IEEE_14/IEEE_14_Data.txt"
+     #CDF_FilePath = "D:/Sajjad_Work/Projects/Project_PowerEdu/PowerEdu/data/IEEE_14/IEEE_14_Data.txt"
     #  @show pwd()
-    #  CDF_FilePath = "data/IEEE_14/IEEE_14_Data.txt"
+    CDF_FilePath = "data/IEEE_14/IEEE_14_Data.txt"
 
      Ybus_Taps_Indicator = 1
 
@@ -101,8 +103,12 @@ elseif (Debug_Indicator == 4) # Create Initial Solution Vector
      Tolerance = 0.001
 
      Tol_Num = 0
+
+     SortValue = 1
+     
+     BusSwitching = 1
      
     #  PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
-     PowerSystemsAnalysis.PowerFlow_MainFunction(filename_CDFFile, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
+     PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, SortValue, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num, BusSwitching)
 
 end
