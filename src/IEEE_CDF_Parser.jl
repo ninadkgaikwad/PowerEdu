@@ -6,23 +6,29 @@
 # include("Ybus_Builder.jl")
 
 """
-        CDF_Parser(CDF_FilePath)
+CDF_Parser(CDF_FilePath::String; sortingOrder::String = `"busNums"`, saveTables::Bool = `false`, saveLocation::String = `"processedData/"`)
 
-Creates Julia Dataframe from the IEEE Common Data Format (CDF) text file.
+Parse the provided IEEE CDF (Common Data Format) file to extract the relevant data.
 
-'''
-# Arguments
-        - 'CDF_FilePath': File path to the IEEE CDF text file.
-'''
-'''
-# Output
-        - 'CDF_DF_List': IEEE CDF file in List of Dataframe format according to
-        Data Card types in IEEE CDF file : [TitleCard_DF, BusDataCard_DF,
-        BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
-        TieLinesDataCard_DF].
-'''
+# Arguments:
+- `CDF_FilePath::String`: Path to the IEEE CDF file.
+
+# Keyword Arguments:
+- `sortingOrder::String`: Determines how the bus data should be sorted. Accepts two values:
+    * `"busNums"`: Default, orders data by bus numbers.
+    * `"busTypes"`: Orders data first by bus types (PQ->PV->Slack).
+- `saveTables::Bool`: Flag to determine if the parsed tables should be saved. Default is `false`.
+- `saveLocation::String`: Directory path where the parsed tables should be saved, if `saveTables` is set to `true`. Default is `"processedData/"`.
+
+# Returns:
+This function will return the parsed data in a structured format. Exact return type and structure are dependent on further implementation details.
+
+# Example:
+```julia
+CDF_Parser("path_to_CDF_file.txt", sortingOrder="busTypes", saveTables=true)
 """
-function CDF_Parser(CDF_FilePath;
+function CDF_Parser(CDF_FilePath::String;
+        sortingOrder::String="busNums",
         saveTables::Bool=false, 
         saveLocation = "processedData/")
         
@@ -379,6 +385,14 @@ function CDF_Parser(CDF_FilePath;
 
         end
 
+        if sortingOrder == "busTypes"
+                sort!(BusDataCard_DF, [order(:Type)])
+        elseif sortingOrder == "busNums"
+                # do nothing
+        else
+                error("Unknown sorting order.")
+        end
+
         CDF_DF_List = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
         systemName = extractSystemName(CDF_DF_List)
 
@@ -395,38 +409,21 @@ function CDF_Parser(CDF_FilePath;
 end
 
 """
-        CDF_pu_Converter(CDF_DF_List; saveTables::Bool=false, saveLocation="processedData/")
+Converts the provided data frames into per-unit (pu) system based on the MVA base of the system.
 
-Converts the actual value columns of a Common Data Format (CDF) DataFrame list to per unit (pu) values.
+# Arguments:
+- `CDF_DF_List::Vector{DataFrame}`: A list of DataFrames corresponding to different parts of the power system.
+- `saveTables::Bool=false`: Determines whether the converted tables should be saved to CSV files.
+- `saveLocation = "processedData/"`: Location where the CSV files will be saved, if `saveTables` is set to true.
 
-## Arguments
-        - `CDF_DF_List`: A list of DataFrames representing the CDF data. The list should contain the following DataFrames in the specified order:
-        - `TitleCard_DF`: DataFrame representing the title card data.
-        - `BusDataCard_DF`: DataFrame representing the bus data card.
-        - `BranchDataCard_DF`: DataFrame representing the branch data card.
-        - `LossZonesCard_DF`: DataFrame representing the loss zones card.
-        - `InterchangeDataCard_DF`: DataFrame representing the interchange data card.
-        - `TieLinesDataCard_DF`: DataFrame representing the tie lines data card.
-        - `saveTables::Bool` (optional, default=false): A flag indicating whether to save the converted DataFrames as CSV files.
-        - `saveLocation` (optional, default="processedData/"): The directory path where the converted CSV files will be saved.
+# Returns:
+- A list of DataFrames converted into pu system.
 
-## Returns
-        - `CDF_DF_List_pu`: A list of DataFrames with the actual value columns converted to per unit (pu) values.
-
-## Note
-This function assumes that the input DataFrames have specific column names and structures. Make sure the input DataFrames match the expected format.
-
-## Example
-```julia
-# Assuming you have loaded the CDF data into the CDF_DF_List
-
-# Convert the actual value columns to per unit (pu) values
-CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List, saveTables=true, saveLocation="processedData/")
-
-# CDF_DF_List_pu contains the converted DataFrames
-# The converted DataFrames are also saved as CSV files in the "processedData" directory
+# Notes:
+The function converts all the actual values from the provided DataFrames into a per-unit system. It utilizes the MVA base
+from the TitleCard_DF (first DataFrame in the list) to perform the conversion.
 """
-function CDF_pu_Converter(CDF_DF_List;
+function CDF_pu_Converter(CDF_DF_List::Vector{DataFrame};
         saveTables::Bool=false, 
         saveLocation = "processedData/")
 
