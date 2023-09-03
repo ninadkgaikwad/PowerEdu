@@ -791,7 +791,7 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
     verbose::Bool=false,
     combinationOrder::String="hcat-then-vcat",
     saveTables::Bool=false,
-    processedDataFolder::String="processedData/",
+    saveLocation::String="processedData/",
     itr::Int64=0)
 
     J11 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J11", verbose=verbose)
@@ -809,6 +809,16 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
         J = hcatSparse(JLeft, JRight, verbose=verbose)
     else
         error("Unknown combination order.")
+    end
+
+    JSparseTables = [J.NVec, J.MVec, J.nnzVec]
+    systemName = extractSystemName(CDF_DF_List_pu)
+    filenames = ["JSparseNVec", "JSparseMVec", "JSparseNNZVec"]
+    extension = ".csv"
+    if saveTables
+        for (df, filename) in zip(JSparseTables, filenames)
+            CSV.write(saveLocation*systemName*"/"*filename*"_itr_$(itr)"*extension, df)
+        end
     end
 
     return J
@@ -1897,7 +1907,8 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
     itrMax::Int64=30,
     verbose::Bool=false,
     roundDigits::Int64=0,
-    saveYBus::Bool=false)
+    saveYBus::Bool=false,
+    saveJacobian::Bool=false)
 
     powSysData = initializeVectors_pu(CDF_DF_List_pu);
     PSpecified = powSysData.PSpecified;
@@ -1931,7 +1942,7 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
         myprintln(verbose, "Iteration $(itr): P = $([round(x, digits=roundDigits) for x in P])")
         myprintln(verbose, "Iteration $(itr): Q = $([round(x, digits=roundDigits) for x in Q])")
 
-        J = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, δ, sparYBus, itr=itr);
+        J = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, δ, sparYBus, saveTables=saveJacobian, itr=itr);
 
         myprintln(verbose, "Iteration $(itr): Jacobian = $([round(x, digits=roundDigits) for x in spar2Full(J)])")
         correction = solveUsingSparseLU(J, mismatch, verbose=verbose).x

@@ -36,7 +36,8 @@ filename_CDFFile = folderInput*systemName*"/"*systemName*"_Data"*fileType_CDFFil
 CDF_DF_List = CDF_Parser(filename_CDFFile);
 dfpu = CDF_pu_Converter(CDF_DF_List);
 
-results = solveForPowerFlow_Sparse(dfpu, verbose=false, saveYBus=true)
+results = solveForPowerFlow_Sparse(dfpu, verbose=false, saveYBus=true, 
+saveJacobian=true)
 
 plotBuswiseDifferences(dfpu, results, savePlots=true);
 
