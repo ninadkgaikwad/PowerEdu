@@ -170,7 +170,7 @@ sparYBus = constructSparseYBus(CDF_DF_List_pu);
 # ╔═╡ bdaebe7a-ac92-434a-a3e6-4ff8cdba68fa
 sparsityYBus = computeSparsity(sparYBus, returnValue=returnValue);
 
-# ╔═╡ 459956ea-be4b-4d03-91c8-21ff1c77f973
+# ╔═╡ 3aab5f0f-0759-4f6b-858f-d0102ea39c1c
 @info sparsityYBus
 
 # ╔═╡ e193276a-fa6a-481a-9b47-7d68882e52f2
@@ -314,8 +314,6 @@ begin
 					:right, 
 					:green) ))
 
-	end
-
 	plot(pJ, pQ, layout=(1, 2))
 
 end
@@ -343,7 +341,7 @@ end
 # ╟─672d5107-496d-407c-9908-da9bf9149f81
 # ╟─a52fc0f5-1797-4fa9-8674-306a96da363b
 # ╟─75d68fa7-7a13-4356-a619-30cd7f662dc0
-# ╠═6fe55bc7-11e4-4ef4-8c3e-8ca822b72535
+# ╟─6fe55bc7-11e4-4ef4-8c3e-8ca822b72535
 # ╟─933a3383-5023-4df2-9a46-cdfdcb7087af
 # ╟─533cca13-03ef-4ad6-9d0c-1ed1f9176483
 # ╟─da3cfa14-9b0a-4b27-b680-de8f76ae58f1
@@ -364,7 +362,8 @@ end
 # ╟─0f6544d3-186f-4093-a5cf-e61f8bb36c94
 # ╠═3646b871-c83a-410a-af4b-b1ff4dd86540
 # ╠═bdaebe7a-ac92-434a-a3e6-4ff8cdba68fa
-# ╠═459956ea-be4b-4d03-91c8-21ff1c77f973
+
+# ╠═3aab5f0f-0759-4f6b-858f-d0102ea39c1c
 # ╠═e193276a-fa6a-481a-9b47-7d68882e52f2
 # ╟─ee890880-88c9-480a-bc95-ab0bb268efcd
 # ╟─311abf2d-5249-4e80-a97b-b809a79d7107
