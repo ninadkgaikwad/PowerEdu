@@ -5,5 +5,7 @@
 		}
 	],
 	"settings": {
+		"editor.codeActionsOnSave": {},
+		"workbench.colorTheme": "2077"
 	}
 }
