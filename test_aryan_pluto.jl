@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.26
+# v0.19.27
 
 #> [frontmatter]
 #> title = "Sparse Data Structures and Linear System Techniques for Power Systems"
@@ -158,6 +158,38 @@ sparYBus = constructSparseYBus(CDF_DF_List_pu);
 # ╔═╡ bdaebe7a-ac92-434a-a3e6-4ff8cdba68fa
 sparsityYBus = computeSparsity(sparYBus, returnValue=returnValue);
 
+# ╔═╡ 3aab5f0f-0759-4f6b-858f-d0102ea39c1c
+@info sparsityYBus
+
+# ╔═╡ e193276a-fa6a-481a-9b47-7d68882e52f2
+begin
+
+	YBusSpar2FullMags = abs.(spar2Full(sparYBus))
+	
+	markerSize1 = 4 ;
+	
+	pYBus = spy(YBusSpar2FullMags, 
+		marker=:square, 
+		markersize=markerSize1, 
+		title=L"Sparsity Pattern of $Y_{Bus}$", 
+		titlefont=("sans-serif", 18),
+		gap="thiredy",
+		color=:green);
+	
+	if returnValue == "return value only" || returnValue == "return value and print"
+		annotate!(pYBus, ( (0.75, 0.1),
+		text("Sparsity = $(@sprintf("%.2f", sparsityYBus/100))", 
+		   	family="serif", 
+            12, 
+			:right, 
+			:green) ))
+	end
+	
+	
+	plot(pYBus, layout=(1, 1))
+
+end
+
 # ╔═╡ ee890880-88c9-480a-bc95-ab0bb268efcd
 if displayYBus
 	# display(sparYBus.NVec)
@@ -239,61 +271,40 @@ begin
 		title=L"Sparsity Pattern of $J$", 
 		color=:green);
 
-	annotate!(pJ, size(JSpar2Full, 1), 5,
-		text("Sparsity = $(@sprintf("%.2f", sparsityJ/100))", 
-			family="serif", 
-			12, 
-			:right, 
-			:green))
-	
 	pQ = spy(QSpar2Full, 
-		marker=:square, 
-		markersize=markerSize, 
-		title=L"Sparsity Pattern of $LU$ Factors", 
-		color=:green);
+	marker=:square, 
+	markersize=markerSize, 
+	title=L"Sparsity Pattern of $LU$ Factors", 
+	color=:green);
 
-	annotate!(pQ, size(JSpar2Full, 1)*0.75, 5,
-		text("Fill-ins = $(qluJ.α)", 
-			family="serif", 
-			12, 
-			:right, 
-			:red))
-	
-	annotate!(pQ, 200, -20,
-			text("Sparsity = $(@sprintf("%.2f", sparsityQ/100))", 
+	if returnValue == "return value only" || returnValue == "return value and print"
+
+		annotate!(pJ, ( (0.85, -0.25) ,
+			text("Sparsity = $(@sprintf("%.2f", sparsityJ/100))", 
 				family="serif", 
 				12, 
 				:right, 
-				:green))
+				:green) ) )
+
+	
+
+		annotate!(pQ, ( (0.85, -0.15),
+			text("Fill-ins = $(qluJ.α)", 
+				family="serif", 
+				12, 
+				:right, 
+				:red)))
+	
+		annotate!(pQ, ( (0.85, -0.25),
+				text("Sparsity = $(@sprintf("%.2f", sparsityQ/100))", 
+					family="serif", 
+					12, 
+					:right, 
+					:green) ))
+
+	end
 
 	plot(pJ, pQ, layout=(1, 2))
-
-end
-
-# ╔═╡ e193276a-fa6a-481a-9b47-7d68882e52f2
-begin
-
-	YBusSpar2FullMags = abs.(spar2Full(sparYBus))
-	
-	markerSize1 = 4 ;
-	
-	pYBus = spy(YBusSpar2FullMags, 
-		marker=:square, 
-		markersize=markerSize, 
-		title=L"Sparsity Pattern of $Y_{Bus}$", 
-		color=:green);
-
-	@show get_position(YBusSpar2FullMags, "southwest")
-	@show size(YBusSpar2FullMags, 1)
-	annotate!(pYBus, size(YBusSpar2FullMags, 1)*0.75, 5,
-		text("Sparsity = $(@sprintf("%.2f", sparsityYBus/100))", 
-			family="serif", 
-			12, 
-			:right, 
-			:green))
-	
-	
-	plot(pYBus, layout=1)
 
 end
 
@@ -320,7 +331,7 @@ end
 # ╟─3e99b6c8-a1c9-43d5-9b54-06d0aaa49147
 # ╟─a52fc0f5-1797-4fa9-8674-306a96da363b
 # ╟─75d68fa7-7a13-4356-a619-30cd7f662dc0
-# ╠═6fe55bc7-11e4-4ef4-8c3e-8ca822b72535
+# ╟─6fe55bc7-11e4-4ef4-8c3e-8ca822b72535
 # ╟─933a3383-5023-4df2-9a46-cdfdcb7087af
 # ╟─533cca13-03ef-4ad6-9d0c-1ed1f9176483
 # ╟─da3cfa14-9b0a-4b27-b680-de8f76ae58f1
@@ -341,6 +352,7 @@ end
 # ╟─0f6544d3-186f-4093-a5cf-e61f8bb36c94
 # ╠═3646b871-c83a-410a-af4b-b1ff4dd86540
 # ╠═bdaebe7a-ac92-434a-a3e6-4ff8cdba68fa
+# ╠═3aab5f0f-0759-4f6b-858f-d0102ea39c1c
 # ╠═e193276a-fa6a-481a-9b47-7d68882e52f2
 # ╟─ee890880-88c9-480a-bc95-ab0bb268efcd
 # ╟─311abf2d-5249-4e80-a97b-b809a79d7107

@@ -38,7 +38,7 @@ dfpu = CDF_pu_Converter(CDF_DF_List);
 
 results = solveForPowerFlow_Sparse(dfpu, verbose=false)
 
-plotBuswiseDifferences(dfpu, results, savePlots=false)
+plotBuswiseDifferences(dfpu, results, savePlots=true);
 
 Pₗ₁ = 259;
 @variables P₁ P₂;
@@ -59,5 +59,3 @@ h₂ = P₁ + P₂ - Pₗ₂;
 h = [h₂];
 solutions2 = solveForEconomicDispatch(dfpu, x, f, h, verbose=false);    
 P₁′, P₂′, λ₁′ = solutions2;
-
-
