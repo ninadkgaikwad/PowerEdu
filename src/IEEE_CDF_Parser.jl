@@ -12,7 +12,9 @@ Creates Julia Dataframe from the IEEE Common Data Format (CDF) text file.
 
 '''
 # Arguments
-        - 'CDF_FilePath': File path to the IEEE CDF text file.
+- 'CDF_FilePath': File path to the IEEE CDF text file.
+- 'SortValue': 1 - Sort CDF File according to Bus Type PQ->PV->Slack, any other value - do not sort
+
 '''
 '''
 # Output
@@ -22,7 +24,8 @@ Creates Julia Dataframe from the IEEE Common Data Format (CDF) text file.
         TieLinesDataCard_DF].
 '''
 """
-function CDF_Parser(CDF_FilePath;
+function CDF_Parser(CDF_FilePath,
+        SortValue;
         saveTables::Bool=false, 
         saveLocation = "processedData/")
         
@@ -306,7 +309,11 @@ function CDF_Parser(CDF_FilePath;
         end
 
         # Ordering BusDataCard_DF: PQ->PV->Slack
-        # sort!(BusDataCard_DF, [order(:Type)])
+        if (SortValue == 1)
+        
+                sort!(BusDataCard_DF, [order(:Type)])
+
+        end
 
 
         # Filling up BranchDataCard_DF
