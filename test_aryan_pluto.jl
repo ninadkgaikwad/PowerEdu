@@ -20,8 +20,11 @@ macro bind(def, element)
     end
 end
 
-# ╔═╡ ecd816ef-75dd-45f5-b255-89d22324066e
-using Pkg
+# ╔═╡ f5f02417-00b9-4c2d-ae80-ea31b5abda5e
+using Pkg;
+
+# ╔═╡ 26ee4f30-e1f7-45fa-8c72-50b811e5c8bc
+Pkg.activate(".")
 
 # ╔═╡ 8899d627-5781-42dd-a8d1-02a6061465f5
 # ╠═╡ show_logs = false
@@ -29,6 +32,9 @@ Pkg.activate("sparseTechniques");
 
 # ╔═╡ 01f8bcc0-633f-46df-9bee-ed3961da4b2a
 using Revise
+
+# ╔═╡ 896971e8-70f3-411b-90b7-276a3149a286
+using PlutoUI;
 
 # ╔═╡ 59abea63-093a-44e2-a63d-673fb8c5c294
 using LaTeXStrings
@@ -45,9 +51,6 @@ using LinearAlgebra;
 # ╔═╡ 672d5107-496d-407c-9908-da9bf9149f81
 # ╠═╡ show_logs = false
 using Plots;
-
-# ╔═╡ 3e99b6c8-a1c9-43d5-9b54-06d0aaa49147
-using PlutoUI;
 
 # ╔═╡ a52fc0f5-1797-4fa9-8674-306a96da363b
 using SparseArrays;
@@ -67,6 +70,9 @@ include("src/SparseTechniques_Functions.jl");
 
 # ╔═╡ 8ccc68a2-302c-4607-9622-318c523897cc
 md"# Sparse Matrix Solution Techniques for Power Systems"
+
+# ╔═╡ fade459d-91b9-440b-907b-766a4baa4a1a
+Pkg.status();
 
 # ╔═╡ 37dfb22b-a604-45ef-8b78-6bcb192e5883
 md" Julia implementations from Chapter 04: Sparse Matrix Solution Techniques from [Mariesa L. Crow's](https://www.linkedin.com/in/mariesa-crow-17a72895/) book [Computational Methods for Electric Power Systems](https://www.amazon.com/Computational-Methods-Electric-Systems-Engineering/dp/1032098228#customerReviews)"
@@ -98,6 +104,12 @@ md"## Using Packages and Modules"
 
 # ╔═╡ 938ab111-da12-42ae-8da0-31aae092fae8
 md" (Not Displayed)"
+
+# ╔═╡ ecd816ef-75dd-45f5-b255-89d22324066e
+# ╠═╡ disabled = true
+#=╠═╡
+using Pkg
+  ╠═╡ =#
 
 # ╔═╡ da3cfa14-9b0a-4b27-b680-de8f76ae58f1
 md"### Housekeeping"
@@ -302,17 +314,16 @@ begin
 					:right, 
 					:green) ))
 
-	end
-
 	plot(pJ, pQ, layout=(1, 2))
 
 end
 
-# ╔═╡ 43226284-bc3e-4288-8c99-443bfea5419d
-
-
 # ╔═╡ Cell order:
 # ╟─8ccc68a2-302c-4607-9622-318c523897cc
+# ╠═f5f02417-00b9-4c2d-ae80-ea31b5abda5e
+# ╠═26ee4f30-e1f7-45fa-8c72-50b811e5c8bc
+# ╠═fade459d-91b9-440b-907b-766a4baa4a1a
+# ╠═896971e8-70f3-411b-90b7-276a3149a286
 # ╟─37dfb22b-a604-45ef-8b78-6bcb192e5883
 # ╟─5bf19ff7-4547-4718-bbc8-db563f2abc12
 # ╟─e42b3750-5a62-45bf-88e3-c72c8478a1c0
@@ -328,7 +339,6 @@ end
 # ╟─e8281b42-2efa-4f5d-9c79-1459efa303ab
 # ╟─7ed6c943-816c-422d-8128-125775f3f606
 # ╟─672d5107-496d-407c-9908-da9bf9149f81
-# ╟─3e99b6c8-a1c9-43d5-9b54-06d0aaa49147
 # ╟─a52fc0f5-1797-4fa9-8674-306a96da363b
 # ╟─75d68fa7-7a13-4356-a619-30cd7f662dc0
 # ╟─6fe55bc7-11e4-4ef4-8c3e-8ca822b72535
@@ -352,6 +362,7 @@ end
 # ╟─0f6544d3-186f-4093-a5cf-e61f8bb36c94
 # ╠═3646b871-c83a-410a-af4b-b1ff4dd86540
 # ╠═bdaebe7a-ac92-434a-a3e6-4ff8cdba68fa
+
 # ╠═3aab5f0f-0759-4f6b-858f-d0102ea39c1c
 # ╠═e193276a-fa6a-481a-9b47-7d68882e52f2
 # ╟─ee890880-88c9-480a-bc95-ab0bb268efcd
@@ -373,4 +384,3 @@ end
 # ╠═8a301f36-d59e-4cd1-9301-7257e3258b92
 # ╠═1492fa9f-2ed8-4c64-a507-b23155df5bbd
 # ╠═bdeae12a-e105-46b8-b91b-8bd06da8ffd6
-# ╠═43226284-bc3e-4288-8c99-443bfea5419d
