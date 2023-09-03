@@ -782,12 +782,6 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
     saveTable::Bool=false,
     processedDataFolder::String="processedData/")
 
-    # powSysData = initializeVectors_pu(CDF_DF_List_pu)
-    # nPV = powSysData.nPV
-    # nPQ = powSysData.nPQ
-    # lPV = powSysData.listOfPVBuses
-    # lPQ = powSysData.listOfPQBuses
-
     J11 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J11", verbose=verbose)
     J12 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J12", verbose=verbose)
     J21 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J21", verbose=verbose)
