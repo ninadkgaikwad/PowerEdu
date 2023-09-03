@@ -1,4 +1,4 @@
-module PowerSystemsAnalysis
+module PowerEdu
 
 # Importing External Modules
 using DataFrames
