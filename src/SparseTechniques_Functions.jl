@@ -782,25 +782,25 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
     saveTable::Bool=false,
     processedDataFolder::String="processedData/")
 
-    powSysData = initializeVectors_pu(CDF_DF_List_pu)
-    nPV = powSysData.nPV
-    nPQ = powSysData.nPQ
-    lPV = powSysData.listOfPVBuses
-    lPQ = powSysData.listOfPQBuses
+    # powSysData = initializeVectors_pu(CDF_DF_List_pu)
+    # nPV = powSysData.nPV
+    # nPQ = powSysData.nPQ
+    # lPV = powSysData.listOfPVBuses
+    # lPQ = powSysData.listOfPQBuses
 
-    J11 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J11")
-    J12 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J12")
-    J21 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J21")
-    J22 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J22")
+    J11 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J11", verbose=verbose)
+    J12 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J12", verbose=verbose)
+    J21 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J21", verbose=verbose)
+    J22 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J22", verbose=verbose)
 
     if combinationOrder == "hcat-then-vcat"
-        JTop = hcatSparse(J11, J12)
-        JBottom = hcatSparse(J21, J22)
-        J = vcatSparse(JTop, JBottom)
+        JTop = hcatSparse(J11, J12, verbose=verbose)
+        JBottom = hcatSparse(J21, J22, verbose=verbose)
+        J = vcatSparse(JTop, JBottom, verbose=verbose)
     elseif combinationOrder == "vcat-then-hcat"
-        JLeft = vcatSparse(J11, J21)
-        JRight = vcatSparse(J12, J22)
-        J = hcatSparse(JLeft, JRight)
+        JLeft = vcatSparse(J11, J21, verbose=verbose)
+        JRight = vcatSparse(J12, J22, verbose=verbose)
+        J = hcatSparse(JLeft, JRight, verbose=verbose)
     else
         error("Unknown combination order.")
     end
