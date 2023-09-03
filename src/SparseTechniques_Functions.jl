@@ -1910,8 +1910,8 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
     nSlack = powSysData.nSlack;
     nNonSlack = nPV+nPQ;
     N = nSlack + nNonSlack;
-    P = deepcopy(PSpecified)
-    Q = deepcopy(QSpecified)
+    P = similar(PSpecified)
+    Q = similar(QSpecified)
     sparYBus = constructSparseYBus(CDF_DF_List_pu);
 
     residual = 100
