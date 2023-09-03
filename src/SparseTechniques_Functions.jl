@@ -644,7 +644,8 @@ function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
     sortBy::String = "busNumbers",
     verbose::Bool = false,
     saveTables::Bool = false,
-    saveLocation::String = "processedData/")
+    saveLocation::String = "processedData/",
+    itr::Int64=0)
 
     systemName = extractSystemName(CDF_DF_List_pu)
     busData_pu = CDF_DF_List_pu[2]
@@ -702,6 +703,16 @@ function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
         sparMat = updateSparse(sparMat, nnzElem, type="add", verbose=false)
     end
 
+    ybusSparseTables = [sparMat.NVec, sparMat.MVec, sparMat.nnzVec]
+    systemName = extractSystemName(CDF_DF_List_pu)
+
+    filenames = ["ybusSparseNVec", "ybusSparseMVec", "ybusSparseNNZVec"]
+    extension = ".csv"
+    if saveTables
+        for (df, filename) in zip(ybusSparseTables, filenames)
+            CSV.write(saveLocation*systemName*"/"*filename*"_itr_$(itr)"*extension, df)
+        end
+    end
     return sparMat
 end
 
@@ -779,8 +790,9 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
     YBus::SparseMatrix;
     verbose::Bool=false,
     combinationOrder::String="hcat-then-vcat",
-    saveTable::Bool=false,
-    processedDataFolder::String="processedData/")
+    saveTables::Bool=false,
+    processedDataFolder::String="processedData/",
+    itr::Int64=0)
 
     J11 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J11", verbose=verbose)
     J12 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J12", verbose=verbose)
@@ -1884,7 +1896,8 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
     tolerance::Float64=1e-5,
     itrMax::Int64=30,
     verbose::Bool=false,
-    roundDigits::Int64=0)
+    roundDigits::Int64=0,
+    saveYBus::Bool=false)
 
     powSysData = initializeVectors_pu(CDF_DF_List_pu);
     PSpecified = powSysData.PSpecified;
@@ -1902,10 +1915,11 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
     N = nSlack + nNonSlack;
     P = similar(PSpecified)
     Q = similar(QSpecified)
-    sparYBus = constructSparseYBus(CDF_DF_List_pu);
 
     residual = 100
     itr = 1
+    sparYBus = constructSparseYBus(CDF_DF_List_pu, saveTables=saveYBus, itr=itr);
+
     while itr ≤ itrMax && residual > tolerance
         myprintln(verbose, "Iteration $(itr) of Power flow.")
 
@@ -1917,7 +1931,7 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
         myprintln(verbose, "Iteration $(itr): P = $([round(x, digits=roundDigits) for x in P])")
         myprintln(verbose, "Iteration $(itr): Q = $([round(x, digits=roundDigits) for x in Q])")
 
-        J = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, δ, sparYBus);
+        J = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, δ, sparYBus, itr=itr);
 
         myprintln(verbose, "Iteration $(itr): Jacobian = $([round(x, digits=roundDigits) for x in spar2Full(J)])")
         correction = solveUsingSparseLU(J, mismatch, verbose=verbose).x
