@@ -32,7 +32,7 @@ systemName = "IEEE_14";
 createFolderIfNotExisting(systemName, folder_processedData)
 
 fileType_CDFFile = ".txt";
-filename_CDFFile = folderInput*systemName*"/"*systemName*"_Data"*fileType_CDFFile
+filename_CDFFile = folderInput*systemName*"/"*systemName*"_Data"*fileType_CDFFile;
 CDF_DF_List = CDF_Parser(filename_CDFFile);
 dfpu = CDF_pu_Converter(CDF_DF_List);
 
