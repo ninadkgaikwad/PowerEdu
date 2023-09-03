@@ -105,12 +105,6 @@ md"## Using Packages and Modules"
 # ╔═╡ 938ab111-da12-42ae-8da0-31aae092fae8
 md" (Not Displayed)"
 
-# ╔═╡ ecd816ef-75dd-45f5-b255-89d22324066e
-# ╠═╡ disabled = true
-#=╠═╡
-using Pkg
-  ╠═╡ =#
-
 # ╔═╡ da3cfa14-9b0a-4b27-b680-de8f76ae58f1
 md"### Housekeeping"
 

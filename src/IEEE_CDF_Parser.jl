@@ -6,7 +6,7 @@
 # include("Ybus_Builder.jl")
 
 """
-    CDF_Parser(CDF_FilePath::String; sortingOrder::String = "busNums", saveTables::Bool = false, saveLocation::String = "processedData/")
+CDF_Parser(CDF_FilePath::String; sortingOrder::String = `"busNums"`, saveTables::Bool = `false`, saveLocation::String = `"processedData/"`)
 
 Parse the provided IEEE CDF (Common Data Format) file to extract the relevant data.
 
@@ -15,8 +15,8 @@ Parse the provided IEEE CDF (Common Data Format) file to extract the relevant da
 
 # Keyword Arguments:
 - `sortingOrder::String`: Determines how the bus data should be sorted. Accepts two values:
-    * "busNums": Default, orders data by bus numbers.
-    * "busTypes": Orders data first by bus types (PQ->PV->Slack).
+    * `"busNums"`: Default, orders data by bus numbers.
+    * `"busTypes"`: Orders data first by bus types (PQ->PV->Slack).
 - `saveTables::Bool`: Flag to determine if the parsed tables should be saved. Default is `false`.
 - `saveLocation::String`: Directory path where the parsed tables should be saved, if `saveTables` is set to `true`. Default is `"processedData/"`.
 
@@ -391,6 +391,14 @@ function CDF_Parser(CDF_FilePath::String;
 
         end
 
+        if sortingOrder == "busTypes"
+                sort!(BusDataCard_DF, [order(:Type)])
+        elseif sortingOrder == "busNums"
+                # do nothing
+        else
+                error("Unknown sorting order.")
+        end
+
         CDF_DF_List = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
         systemName = extractSystemName(CDF_DF_List)
 
@@ -419,6 +427,7 @@ Converts the provided data frames into per-unit (pu) system based on the MVA bas
 
 # Notes:
 The function converts all the actual values from the provided DataFrames into a per-unit system. It utilizes the MVA base
+
 from the `TitleCard_DF` (first DataFrame in the list) to perform the conversion.
 """
 function CDF_pu_Converter(CDF_DF_List::Vector{DataFrame};

@@ -50,7 +50,7 @@ h₁ = P₁ + P₂ - Pₗ₁;
 h = [h₁];
 # h = [h₁, h₂];
 f = f₁ + f₂;
-solutions1 = solveForEconomicDispatch(dfpu, x, f, h, verbose=true);
+solutions1 = solveForEconomicDispatch(dfpu, x, f, h, verbose=false);
 P₁′, P₂′, λ₁′ = solutions1;
 
 MVA_B = getBaseMVA(dfpu);
