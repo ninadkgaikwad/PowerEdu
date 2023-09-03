@@ -84,8 +84,9 @@ function Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_NR)
 
         # Creating SolutionVector_V, SolutionVector_Delta
         SolutionVector_Delta =  vcat([0.0], SolutionVector_NR[1:(N_Bus-1),1])
+        
         SolutionVector_V[1:(N_PQ_Bus+1),1] =  vcat([BusDataCard_DF.Final_V_pu_Original[end]], SolutionVector_NR[(N_Bus-1)+1:end,1])
-
+        
         for ii in N_PQ_Bus+1+1:N_Bus # For each current PV Bus
 
                 if (BusDataCard_DF.Type_Original[ii-1] == 1) # PQ Converted to PV
@@ -175,12 +176,12 @@ type: Slack->PQ->PV.
 """
 function Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
 #     @show Ybus
-    @show SolutionVector_Delta
-    @show typeof(SolutionVector_Delta)
-    @show size(SolutionVector_Delta)
-    @show SolutionVector_V
-    @show typeof(SolutionVector_V)
-    @show size(SolutionVector_Delta)
+    #@show SolutionVector_Delta
+    #@show typeof(SolutionVector_Delta)
+    #@show size(SolutionVector_Delta)
+    #@show SolutionVector_V
+    #@show typeof(SolutionVector_V)
+    #@show size(SolutionVector_Delta)
     # Initializing PQ_BusArray
     PQ_BusArray = Array{Float64}(undef, length(SolutionVector_V), 2)
 
@@ -285,7 +286,9 @@ function Compute_PQ_MismatchVector(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V
                                 if ((BusDataCard_DF.Type[PQ_PV_Counter] != BusDataCard_DF.Type_Original[PQ_PV_Counter]) && (BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter]  != -9999)) # Q Limit Violation
 
                                         # Computing Q Mismatch
-                                        PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter]
+                                        # PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter]
+
+                                        PQ_MismatchVector[ii] = BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter] - PQ_BusArray[PQ_PV_Counter,2]
 
                                 else # No Q Limit Violation
 
@@ -296,11 +299,12 @@ function Compute_PQ_MismatchVector(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V
 
                         elseif (NR_Type == 3) # Fast-Decoupled NR
 
-                                if ((BusDataCard_DF.Type[PQ_PV_Counter
-                                        ] != BusDataCard_DF.Type_Original[PQ_PV_Counter]) && (BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter]  != -9999)) # Q Limit Violation
+                                if ((BusDataCard_DF.Type[PQ_PV_Counter] != BusDataCard_DF.Type_Original[PQ_PV_Counter]) && (BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter]  != -9999)) # Q Limit Violation
 
                                         # Computing Q Mismatch
-                                        PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter]) / (SolutionVector_V[PQ_PV_Counter+1])
+                                        # PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter]) - BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter]) / (SolutionVector_V[PQ_PV_Counter+1])
+
+                                        PQ_MismatchVector[ii] = (BusDataCard_DF.MVAR_V_Limit[PQ_PV_Counter] - PQ_BusArray[PQ_PV_Counter+1,2]) / (SolutionVector_V[PQ_PV_Counter+1])
 
                                 else # No Q Limit Violation
 
@@ -336,6 +340,7 @@ type: Slack->PQ->PV.
 3 -> Fast Decoupled Newton-Raphson
 - 'SolutionVector_NR': Voltage and Angle at each bus ordered according to bus
 type: PQ->PV.
+- 'BusSwitching': 1 -> Bus Switching Employed, any other -> Bus Switching not Employed
 '''
 '''
 # Output
@@ -355,7 +360,7 @@ type: Slack->PQ->PV.
 type: Slack->PQ->PV.
 '''
 """
-function PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Type, NR_Type, SolutionVector_NR)
+function PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Type, NR_Type, SolutionVector_NR, BusSwitching)
 
         # Getting required data from CDF_DF_List
         BusDataCard_DF = CDF_DF_List_pu[2]
@@ -387,125 +392,314 @@ function PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Type, NR_Type, Soluti
                 end
 
         end
+        
 
-        #  Compute P-Q at Buses
-        PQ_BusArray = Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
+        if (BusSwitching == 1) # Employ Bus Switching
 
-        # Checking and Modifying Bus Types
-        Bus_Modification_Counter = 0
+                #  Compute P-Q at Buses
+                PQ_BusArray = Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
 
-        #= for ii in 1:(N_Bus-1)
+                # Checking and Modifying Bus Types
 
-                if (BusDataCard_DF.Type_Original[ii] == 1) # Hold MVAR generation within voltage limits, (PQ)
+                for ii in 1:(N_Bus-1)
 
-                        # Getting V_Bus
-                        V_Bus = SolutionVector_V[ii+1,1]
+                        if (BusDataCard_DF.Type_Original[ii] == 1) # Hold MVAR generation within voltage limits, (PQ)
 
-                        # Getting VAR Limits
-                        Max_V = BusDataCard_DF.Max_MVAR_V[ii]
-                        Min_V = BusDataCard_DF.Min_MVAR_V[ii]
+                                # Getting V_Bus
+                                V_Bus = SolutionVector_V[ii+1,1]
 
-                        # Checking V Limit Violation
-                        if ((V_Bus <= Max_V) && (V_Bus >= Min_V)) # Within Limits
+                                # Getting Q_set/Q_i
+                                Q_set = BusDataCard_DF.Gen_MVAR[ii] - BusDataCard_DF.Load_MVAR[ii]
+                                Q_i = PQ_BusArray[ii+1,2]
 
-                                # Keep the current Type to Original Type
-                                BusDataCard_DF.Type[ii] = 1
+                                # Getting VAR Limits
+                                Max_V = BusDataCard_DF.Max_MVAR_V[ii]
+                                Min_V = BusDataCard_DF.Min_MVAR_V[ii]
 
-                                # Reinitialize MVAR_V_Limit
-                                BusDataCard_DF.MVAR_V_Limit[ii] = -9999
+                                # Checking V Limit Violation
+                                if (BusDataCard_DF.Type[ii] == 1) # Currently PQ Bus is PQ
 
-                        else # Outside Limit
+                                        if (V_Bus <= Min_V)
 
-                                if (V_Bus > Max_V) # Above Upper Limit
+                                                # Switiching PQ to PV
+                                                BusDataCard_DF.Type[ii] = 2
 
-                                        # Incrementing Bus_Modification_Counter
-                                        Bus_Modification_Counter = Bus_Modification_Counter +1
+                                                # Change MVAR_V_Limit to V_Min
+                                                BusDataCard_DF.MVAR_V_Limit[ii] = Min_V
 
-                                        # Change the current Type to PV
-                                        BusDataCard_DF.Type[ii] = 2
+                                                BusDataCard_DF.Final_V_pu[ii] = Min_V
 
-                                        # Change MVAR_V_Limit to MVAR_Max
-                                        BusDataCard_DF.MVAR_V_Limit[ii] = Max_V
 
-                                        # Change Final_V_pu to Max_V
-                                        BusDataCard_DF.Final_V_pu[ii] = Max_V
+                                        elseif (V_Bus >= Max_V)
 
-                                else # Below Lower Limit
+                                                # Switiching PQ to PV
+                                                BusDataCard_DF.Type[ii] = 2
 
-                                        # Incrementing Bus_Modification_Counter
-                                        Bus_Modification_Counter = Bus_Modification_Counter +1
+                                                # Change MVAR_V_Limit to V_Max
+                                                BusDataCard_DF.MVAR_V_Limit[ii] = Max_V
 
-                                        # Change the current Type to PV
-                                        BusDataCard_DF.Type[ii] = 2
+                                                BusDataCard_DF.Final_V_pu[ii] = Max_V
 
-                                        # Change MVAR_V_Limit to MVAR_Min
-                                        BusDataCard_DF.MVAR_V_Limit[ii] = Min_V
+                                        else
 
-                                        # Change Final_V_pu to Min_V
-                                        BusDataCard_DF.Final_V_pu[ii] = Min_V
+                                                # Keep the current Type to Original Type
+                                                BusDataCard_DF.Type[ii] = 1
 
-                                end
+                                                # Reinitialize MVAR_V_Limit
+                                                BusDataCard_DF.MVAR_V_Limit[ii] = -9999
 
+                                                BusDataCard_DF.Final_V_pu[ii] = BusDataCard_DF.Final_V_pu[ii]
+
+                                        end
+
+                                elseif (BusDataCard_DF.Type[ii] == 2) # Currently PQ Bus is PV
+
+                                        if (BusDataCard_DF.MVAR_V_Limit[ii] == Min_V)
+
+                                                if (Q_i >= Q_set)
+
+                                                        # Switiching PQ to PV
+                                                        BusDataCard_DF.Type[ii] = 2
+
+                                                        # Change MVAR_V_Limit to V_Min
+                                                        BusDataCard_DF.MVAR_V_Limit[ii] = Min_V
+
+                                                        BusDataCard_DF.Final_V_pu[ii] = Min_V
+
+                                                elseif (Q_i < Q_set)
+
+                                                        if (V_Bus <= Min_V)
+
+                                                                # Switiching PQ to PV
+                                                                BusDataCard_DF.Type[ii] = 2
+
+                                                                # Change MVAR_V_Limit to V_Min
+                                                                BusDataCard_DF.MVAR_V_Limit[ii] = Min_V
+
+                                                                BusDataCard_DF.Final_V_pu[ii] = Min_V
+
+                                                        elseif (V_Bus >= Max_V)
+
+                                                                # Switiching PV to PQ
+                                                                BusDataCard_DF.Type[ii] = 2
+
+                                                                # Change MVAR_V_Limit to V_Max
+                                                                BusDataCard_DF.MVAR_V_Limit[ii] = Max_V
+
+                                                                BusDataCard_DF.Final_V_pu[ii] = Max_V
+
+                                                        else
+
+                                                                # Keep the current Type to Original Type
+                                                                BusDataCard_DF.Type[ii] = 1
+
+                                                                # Reinitialize MVAR_V_Limit
+                                                                BusDataCard_DF.MVAR_V_Limit[ii] = -9999
+
+                                                                BusDataCard_DF.Final_V_pu[ii] = BusDataCard_DF.Final_V_pu[ii]
+
+                                                        end
+
+                                                end
+
+                                        elseif (BusDataCard_DF.MVAR_V_Limit[ii] == Max_V)
+
+                                                if (Q_i <= Q_set)
+
+                                                        # Switiching PQ to PV
+                                                        BusDataCard_DF.Type[ii] = 2
+
+                                                        # Change MVAR_V_Limit to V_Max
+                                                        BusDataCard_DF.MVAR_V_Limit[ii] = Max_V
+
+                                                        BusDataCard_DF.Final_V_pu[ii] = Max_V
+
+                                                elseif (Q_i > Q_set)
+
+                                                        if (V_Bus <= Min_V)
+
+                                                                # Switiching PQ to PV
+                                                                BusDataCard_DF.Type[ii] = 2
+
+                                                                # Change MVAR_V_Limit to V_Min
+                                                                BusDataCard_DF.MVAR_V_Limit[ii] = Min_V
+
+                                                                BusDataCard_DF.Final_V_pu[ii] = Min_V
+
+                                                        elseif (V_Bus >= Max_V)
+
+                                                                # Switiching PQ to PV
+                                                                BusDataCard_DF.Type[ii] = 2
+
+                                                                # Change MVAR_V_Limit to V_Max
+                                                                BusDataCard_DF.MVAR_V_Limit[ii] = Max_V
+
+                                                                BusDataCard_DF.Final_V_pu[ii] = Max_V
+
+                                                        else
+
+                                                                # Keep the current Type to Original Type
+                                                                BusDataCard_DF.Type[ii] = 1
+
+                                                                # Reinitialize MVAR_V_Limit
+                                                                BusDataCard_DF.MVAR_V_Limit[ii] = -9999
+
+                                                                BusDataCard_DF.Final_V_pu[ii] = BusDataCard_DF.Final_V_pu[ii]
+
+                                                        end
+
+                                                end
+
+                                        end
+
+                                end  
+
+
+                        elseif (BusDataCard_DF.Type_Original[ii] == 0) # Unregulated (load, PQ)
+
+                                # No changes required
+
+                        elseif (BusDataCard_DF.Type_Original[ii] == 2) # Hold voltage within VAR limits (gen, PV)
+
+                                # Getting Q_Bus
+                                Q_Bus = PQ_BusArray[ii+1,2]
+
+                                # Getting V_set/V_i
+                                V_set = BusDataCard_DF.Final_V_pu_Original[ii]
+                                V_i = BusDataCard_DF.Final_V_pu[ii]
+                                
+                                # Getting VAR Limits
+                                Max_VAR = BusDataCard_DF.Max_MVAR_V[ii]
+                                Min_VAR = BusDataCard_DF.Min_MVAR_V[ii]
+
+                                # Checking VAR Limit Violation
+                                if (BusDataCard_DF.Type[ii] == 2) # Currently PV Bus is PV
+
+                                        if (Q_Bus <= Min_VAR)
+
+                                                # Switiching PV to PQ
+                                                BusDataCard_DF.Type[ii] = 0
+
+                                                # Change MVAR_V_Limit to MVAR_Min
+                                                BusDataCard_DF.MVAR_V_Limit[ii] = Min_VAR
+
+
+                                        elseif (Q_Bus >= Max_VAR)
+
+                                                # Switiching PV to PQ
+                                                BusDataCard_DF.Type[ii] = 0
+
+                                                # Change MVAR_V_Limit to MVAR_Max
+                                                BusDataCard_DF.MVAR_V_Limit[ii] = Max_VAR
+
+                                        else
+
+                                                # Keep the current Type to Original Type
+                                                BusDataCard_DF.Type[ii] = 2
+
+                                                # Reinitialize MVAR_V_Limit
+                                                BusDataCard_DF.MVAR_V_Limit[ii] = -9999
+
+                                                BusDataCard_DF.Final_V_pu[ii] = V_set
+
+                                        end
+
+                                elseif (BusDataCard_DF.Type[ii] == 0) # Currently PV Bus is PQ
+
+                                        if (BusDataCard_DF.MVAR_V_Limit[ii] == Min_VAR)
+
+                                                if (V_i >= V_set)
+
+                                                        # Switiching PV to PQ
+                                                        BusDataCard_DF.Type[ii] = 0
+
+                                                        # Change MVAR_V_Limit to MVAR_Min
+                                                        BusDataCard_DF.MVAR_V_Limit[ii] = Min_VAR
+
+                                                elseif (V_i < V_set)
+
+                                                        if (Q_Bus <= Min_VAR)
+
+                                                                # Switiching PV to PQ
+                                                                BusDataCard_DF.Type[ii] = 0
+
+                                                                # Change MVAR_V_Limit to MVAR_Min
+                                                                BusDataCard_DF.MVAR_V_Limit[ii] = Min_VAR
+
+                                                        elseif (Q_Bus >= Max_VAR)
+
+                                                                # Switiching PV to PQ
+                                                                BusDataCard_DF.Type[ii] = 0
+
+                                                                # Change MVAR_V_Limit to MVAR_Max
+                                                                BusDataCard_DF.MVAR_V_Limit[ii] = Max_VAR
+
+                                                        else
+
+                                                                # Keep the current Type to Original Type
+                                                                BusDataCard_DF.Type[ii] = 2
+
+                                                                # Reinitialize MVAR_V_Limit
+                                                                BusDataCard_DF.MVAR_V_Limit[ii] = -9999
+
+                                                                BusDataCard_DF.Final_V_pu[ii] = V_set
+
+                                                        end
+
+                                                end
+
+                                        elseif (BusDataCard_DF.MVAR_V_Limit[ii] == Max_VAR)
+
+                                                if (V_i <= V_set)
+
+                                                        # Switiching PV to PQ
+                                                        BusDataCard_DF.Type[ii] = 0
+
+                                                        # Change MVAR_V_Limit to MVAR_Min
+                                                        BusDataCard_DF.MVAR_V_Limit[ii] = Max_VAR
+
+                                                elseif (V_i > V_set)
+
+                                                        if (Q_Bus <= Min_VAR)
+
+                                                                # Switiching PV to PQ
+                                                                BusDataCard_DF.Type[ii] = 0
+
+                                                                # Change MVAR_V_Limit to MVAR_Min
+                                                                BusDataCard_DF.MVAR_V_Limit[ii] = Min_VAR
+
+                                                        elseif (Q_Bus >= Max_VAR)
+
+                                                                # Switiching PV to PQ
+                                                                BusDataCard_DF.Type[ii] = 0
+
+                                                                # Change MVAR_V_Limit to MVAR_Max
+                                                                BusDataCard_DF.MVAR_V_Limit[ii] = Max_VAR
+
+                                                        else
+
+                                                                # Keep the current Type to Original Type
+                                                                BusDataCard_DF.Type[ii] = 2
+
+                                                                # Reinitialize MVAR_V_Limit
+                                                                BusDataCard_DF.MVAR_V_Limit[ii] = -9999
+
+                                                                BusDataCard_DF.Final_V_pu[ii] = V_set
+
+                                                        end
+
+                                                end
+
+                                        end
+
+                                end                        
+                                
                         end
 
-
-                elseif (BusDataCard_DF.Type_Original[ii] == 0) # Unregulated (load, PQ)
-
-                        # No changes required
-
-                elseif (BusDataCard_DF.Type_Original[ii] == 2) # Hold voltage within VAR limits (gen, PV)
-
-                        # Getting Q_Bus
-                        Q_Bus = PQ_BusArray[ii+1,2]
-
-                        # Getting VAR Limits
-                        Max_VAR = BusDataCard_DF.Max_MVAR_V[ii]
-                        Min_VAR = BusDataCard_DF.Min_MVAR_V[ii]
-
-                        # Checking VAR Limit Violation
-                        if ((Q_Bus <= Max_VAR) && (Q_Bus >= Min_VAR)) # Within Limits
-
-                                # Keep the current Type to Original Type
-                                BusDataCard_DF.Type[ii] = 2
-
-                                # Reinitialize MVAR_V_Limit
-                                BusDataCard_DF.MVAR_V_Limit[ii] = -9999
-
-                        else # Outside Limit
-
-                                if (Q_Bus > Max_VAR) # Above Upper Limit
-
-                                        # Incrementing Bus_Modification_Counter
-                                        Bus_Modification_Counter = Bus_Modification_Counter +1
-
-                                        # Change the current Type to PQ
-                                        BusDataCard_DF.Type[ii] = 0
-
-                                        # Change MVAR_V_Limit to MVAR_Max
-                                        BusDataCard_DF.MVAR_V_Limit[ii] = Max_VAR
-
-                                else # Below Lower Limit
-
-                                        # Incrementing Bus_Modification_Counter
-                                        Bus_Modification_Counter = Bus_Modification_Counter +1
-
-                                        # Change the current Type to PQ
-                                        BusDataCard_DF.Type[ii] = 0
-
-                                        # Change MVAR_V_Limit to MVAR_Min
-                                        BusDataCard_DF.MVAR_V_Limit[ii] = Min_VAR
-
-                                end
-
-                        end
-
-                end
-
-        end =#
+                end 
 
 
-        # Making Changes based on Bus_Modification_Counter
-        if (Bus_Modification_Counter>0)
+                # Making Changes based on Bus_Modification_Counter        
 
                 # ReOrdering BusDataCard_DF: PQ->PV->Slack
                 sort!(BusDataCard_DF, [order(:Type)])
@@ -539,8 +733,10 @@ function PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Type, NR_Type, Soluti
                 #  Compute PQ Mistmatch
                 PQ_MismatchVector = Compute_PQ_MismatchVector(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V, NR_Type)
 
-
         else
+
+                #  Compute P-Q at Buses
+                PQ_BusArray = Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
 
                 #  Compute PQ Mistmatch
                 PQ_MismatchVector = Compute_PQ_MismatchVector(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V, NR_Type)
@@ -564,10 +760,8 @@ BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
 TieLinesDataCard_DF].
 - 'Ybus': A complex array of Ybus elements ordered according to bus
 type: Slack->PQ->PV.
-- 'SolutionVector_V': Voltage at each bus ordered according to bus
-type: Slack->PQ->PV.
-- 'SolutionVector_Delta': Voltage Angle at each bus ordered according to bus
-type: Slack->PQ->PV.
+- 'SolutionVector_NR': Voltage and Angle at each bus ordered according to bus
+type: PQ->PV.
 '''
 '''
 # Output
@@ -579,20 +773,46 @@ TieLinesDataCard_DF]. Changed with changes in Line flows
 according to Branch Data Card.
 '''
 """
-function Compute_LineFlows(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVector_Delta)
+function Compute_LineFlows(CDF_DF_List_pu, Ybus, SolutionVector_NR)
 
         # Getting required data from CDF_DF_List
         BusDataCard_DF = CDF_DF_List_pu[2]
 
         BranchDataCard_DF = CDF_DF_List_pu[3]
 
+        # Creating SolutionVector_V and SolutionVector_Delta
+        SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_NR)
+
         # Number of Buses and Lines
         N_Bus = nrow(BusDataCard_DF)
 
         N_Lines = nrow(BranchDataCard_DF)
 
+        # Updating Final_V_pu and Final_A_deg
+        for ii in 1:N_Bus
+
+                if (ii == N_Bus)
+
+                        BusDataCard_DF.Final_V_pu[ii] = SolutionVector_V[1,1]
+
+                        BusDataCard_DF.Final_A_deg[ii] = SolutionVector_Delta[1,1]
+
+                else
+
+                        BusDataCard_DF.Final_V_pu[ii] = SolutionVector_V[ii+1,1]
+
+                        BusDataCard_DF.Final_A_deg[ii] = SolutionVector_Delta[ii+1,1]
+
+                end
+
+        end        
+
         # Initializing LineFlow_Array
         LineFlow_Array = Array{Float64}(undef, N_Lines,2)
+
+        # Initializing Bus_i_Index/Bus_j_Index - for getting reference outside For Loop
+        Bus_i_Index = 0
+        Bus_j_Index = 0
 
         # Computing Elements of LineFlow_Array
         for ii in 1:N_Lines # Through Rows of BranchDataCard_DF/LineFlow_Array
@@ -828,7 +1048,7 @@ function plotBuswiseDifferences(CDF_DF_List_pu::Vector{DataFrame},
         "for the $(systemName) Bus System.",
         titlefontsize=12,
         xticks=1:N,
-        label=L"$\frac{ΔV}{V} * 100 \% $ where $ΔV = V_{computed} - V_{CDF}$",
+        label=L"$ \frac{ΔV}{V} * 100 \% $ where $ΔV = V_{computed} - V_{CDF}$",
         legendfontsize=8);
 
         p2 = bar(1:N, abs_diff_δ, color=:orange,
@@ -850,4 +1070,5 @@ function plotBuswiseDifferences(CDF_DF_List_pu::Vector{DataFrame},
                 filename = processedDataFolder*"results_"*systemName*"_sparse"*fileExtension;
                 savefig(p, filename)   
         end
-end;
+end
+
