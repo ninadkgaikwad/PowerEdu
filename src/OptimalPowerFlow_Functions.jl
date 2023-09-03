@@ -11,18 +11,18 @@ function solveForEconomicDispatch(CDF_DF_File_pu::Vector{DataFrame},
 
     grad_f = Symbolics.gradient(f, x)
     jacobian_h = Symbolics.jacobian(h, x)
-    @show @variables lambda[1:length(h)]  # Lagrange multipliers
+    @variables lambda[1:length(h)]  # Lagrange multipliers
     if length(h) == 1
         myprintln(verbose, "Okay, just a single equality.")
-        lambda = lambda[1]
+        lambda = lambda[1];
         jacobian_h = vec(jacobian_h)
     end
     # @variables lambda
-    @show jacobian_h
+    # @show jacobian_h
     KKT_conditions = vec([grad_f - jacobian_h*lambda; h])
     myprintln(verbose, KKT_conditions)
-    println([x; lambda])
-    println(KKT_conditions)
+    # println([x; lambda])
+    # println(KKT_conditions)
     solutions = Symbolics.solve_for(KKT_conditions, [x; lambda])
 
     myprintln(true, "Generator 1: $(solutions[1]) MW")
