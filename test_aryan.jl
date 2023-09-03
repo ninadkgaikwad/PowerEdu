@@ -32,13 +32,13 @@ systemName = "IEEE_14";
 createFolderIfNotExisting(systemName, folder_processedData)
 
 fileType_CDFFile = ".txt";
-filename_CDFFile = folderInput*systemName*"/"*systemName*"_Data"*fileType_CDFFile
+filename_CDFFile = folderInput*systemName*"/"*systemName*"_Data"*fileType_CDFFile;
 CDF_DF_List = CDF_Parser(filename_CDFFile);
 dfpu = CDF_pu_Converter(CDF_DF_List);
 
 results = solveForPowerFlow_Sparse(dfpu, verbose=false)
 
-plotBuswiseDifferences(dfpu, results, savePlots=false)
+plotBuswiseDifferences(dfpu, results, savePlots=true);
 
 Pₗ₁ = 259;
 @variables P₁ P₂;
@@ -50,7 +50,7 @@ h₁ = P₁ + P₂ - Pₗ₁;
 h = [h₁];
 # h = [h₁, h₂];
 f = f₁ + f₂;
-solutions1 = solveForEconomicDispatch(dfpu, x, f, h, verbose=true);
+solutions1 = solveForEconomicDispatch(dfpu, x, f, h, verbose=false);
 P₁′, P₂′, λ₁′ = solutions1;
 
 MVA_B = getBaseMVA(dfpu);
@@ -59,5 +59,3 @@ h₂ = P₁ + P₂ - Pₗ₂;
 h = [h₂];
 solutions2 = solveForEconomicDispatch(dfpu, x, f, h, verbose=false);    
 P₁′, P₂′, λ₁′ = solutions2;
-
-

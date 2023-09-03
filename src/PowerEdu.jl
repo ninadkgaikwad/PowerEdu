@@ -1,12 +1,10 @@
-module PowerSystemsAnalysis
+module PowerEdu
 
 # Importing External Modules
 using DataFrames
 using LinearAlgebra
 using TickTock
 using CSV
-using Plots
-using LaTeXStrings
 
 # Export Functions from Included Files
 export CDF_Parser,
@@ -59,13 +57,11 @@ Creates Ybus without taps for a power system network.
 '''
 # Arguments
 - 'CDF_FilePath': File path to the IEEE CDF text file.
-- 'SortValue': 1 -> Sort CDF File according to Bus Type PQ->PV->Slack, any other value -> do not sort
 - 'Ybus_Taps_Indicator': 1 - Ybus with no taps, 2 - Ybus with Taps
 - 'NR_Type': 1 -> Full Newton-Raphson, 2-> Decoupled Newton-Raphson,
 3 -> Fast Decoupled Newton-Raphson
 - 'Tolerance': Tolerance level for stopping criterion of Newton-Raphson Method.
 - 'Tol_Num': Tolerance for being near zero
-- 'BusSwitching': 1 -> Bus Switching Employed, any other -> Bus Switching not Employed
 '''
 '''
 # Output
@@ -79,10 +75,10 @@ according to Branch Data Card.
 Time in seconds for each iteration.
 '''
 """
-function PowerFlow_MainFunction(CDF_FilePath, SortValue, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num, BusSwitching)
+function PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
 
     # Reading IEEE CDF File
-    CDF_DF_List = CDF_Parser(CDF_FilePath, SortValue)
+    CDF_DF_List = CDF_Parser(CDF_FilePath)
 
     # Converting CDF DataFrame to PU
     CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List)
@@ -114,9 +110,6 @@ function PowerFlow_MainFunction(CDF_FilePath, SortValue, Ybus_Taps_Indicator, NR
     # Creating Initial Solution Vector for Power Flow
     Initial_SolutionVector_NR = Create_Initial_SolutionVector_NR(CDF_DF_List_pu)
 
-    # Initializing SolutionVector_NR - For getting reference outside While Loop
-    SolutionVector_NR = 0
-
     # Initializing Tolerance_Satisfaction
     Tolerance_Satisfaction = false
 
@@ -139,12 +132,12 @@ function PowerFlow_MainFunction(CDF_FilePath, SortValue, Ybus_Taps_Indicator, NR
             if (WhileLoop_Counter == 1)
 
                     # Compute Mismatch
-                    CDF_DF_List_pu, Ybus, PQ_BusArray, PQ_MismatchVector, SolutionVector_V, SolutionVector_Delta = PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Taps_Indicator, NR_Type, Initial_SolutionVector_NR, BusSwitching)
+                    CDF_DF_List_pu, Ybus, PQ_BusArray, PQ_MismatchVector, SolutionVector_V, SolutionVector_Delta = PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Taps_Indicator, NR_Type, Initial_SolutionVector_NR)
 
             else
 
                     # Compute Mismatch
-                    CDF_DF_List_pu, Ybus, PQ_BusArray, PQ_MismatchVector, SolutionVector_V, SolutionVector_Delta = PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Taps_Indicator, NR_Type, SolutionVector_NR, BusSwitching)
+                    CDF_DF_List_pu, Ybus, PQ_BusArray, PQ_MismatchVector, SolutionVector_V, SolutionVector_Delta = PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Taps_Indicator, NR_Type, SolutionVector_NR)
 
                     # Increasing  PowerFlow_IterationTimeInfo_Array Size
                     PowerFlow_IterationTimeInfo_Array = vcat(PowerFlow_IterationTimeInfo_Array, zeros(1,2))
@@ -206,8 +199,9 @@ function PowerFlow_MainFunction(CDF_FilePath, SortValue, Ybus_Taps_Indicator, NR
 
     end
 
+
     # Compute Line Flows
-    CDF_DF_List_pu, LineFlow_Array = Compute_LineFlows(CDF_DF_List_pu, Ybus, SolutionVector_NR)
+    CDF_DF_List_pu, LineFlow_Array = Compute_LineFlows(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVector_Delta)
 
     # ReOrdering BusDataCard_DF: PQ->PV->Slack
     sort!(BusDataCard_DF, [order(:Type_Original)])
