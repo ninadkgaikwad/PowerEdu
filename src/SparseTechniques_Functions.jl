@@ -1965,7 +1965,7 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
         @show correction = solveUsingSparseLU(J, mismatch, verbose=false).x
         myprintln(false, "Iteration $(itr): Correction = $([round(x, digits=roundDigits) for x in correction])")
 
-        residual = mean(abs.(correction))
+        residual = maximum(abs.(correction))
         myprintln(verbose, "Iteration $(itr): Residual = $(round(residual, digits=6))")
 
         Δδ = correction[1:nNonSlack];
