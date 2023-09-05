@@ -1946,12 +1946,14 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
             under_bound, over_bound = checkPVBounds(dfpu, Q, lPV, verbose=verbose)
 
             if !isempty(under_bound)
-                myprintln(verbose, "Lower Q Limits violated!")
+                # myprintln(verbose, "Lower Q Limits violated!")
+                @warn "Lower Q Limits violated and there's nothing you're doing about it"
                 println("PV buses with Q < Min_MVAR: ", under_bound)
             end
 
             if !isempty(over_bound)
-                myprintln(verbose, "Upper Q Limits violated!")
+                # myprintln(verbose, "Upper Q Limits violated!")
+                @warn "Upper Q Limits violated and there's nothing you're doing about it"
                 println("PV buses with Q > Max_MVAR: ", over_bound)
             end
         end
