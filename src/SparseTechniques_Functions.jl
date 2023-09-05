@@ -618,17 +618,17 @@ function sparseMatrixConstructor(N::Int64, M::Int64; T::DataType=ComplexF64)
 end
 
 """
-    constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
+    constructSparseYBus(cdf_pu::Vector{DataFrame};
     disableTaps::Bool = false,
     sortBy::String = "busNumbers",
     verbose::Bool = false,
     saveTables::Bool = false,
     saveLocation::String = "processedData/")
 
-This function constructs a sparse YBus representation from the provided `busData` and `branchData` extracted from `CDF_DF_List_pu`.
+This function constructs a sparse YBus representation from the provided `busData` and `branchData` extracted from `cdf_pu`.
 
 ## Arguments:
-- `CDF_DF_List_pu::Vector{DataFrame}`: A vector of DataFrames containing `busData` and `branchData`.
+- `cdf_pu::Vector{DataFrame}`: A vector of DataFrames containing `busData` and `branchData`.
 - `disableTaps::Bool`: A boolean flag indicating whether to disable taps. Default is `false`.
 - `sortBy::String`: A string indicating the sorting order. Default is `"busNumbers"`.
 - `verbose::Bool`: A boolean flag indicating whether to print verbose output. Default is `false`.
@@ -639,7 +639,7 @@ This function constructs a sparse YBus representation from the provided `busData
 - `NVec::DataFrame`: A `DataFrame` representing the N vector of the YBus matrix.
 - `nnzVec::DataFrame`: A `DataFrame` representing the non-zero values of the YBus matrix.
 """
-function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
+function constructSparseYBus(cdf_pu::Vector{DataFrame};
     disableTaps::Bool = false,
     sortBy::String = "busNumbers",
     verbose::Bool = false,
@@ -647,9 +647,9 @@ function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
     saveLocation::String = "processedData/",
     itr::Int64=0)
 
-    systemName = extractSystemName(CDF_DF_List_pu)
-    busData_pu = CDF_DF_List_pu[2]
-    branchData_pu = CDF_DF_List_pu[3]
+    systemName = extractSystemName(cdf_pu)
+    busData_pu = cdf_pu[2]
+    branchData_pu = cdf_pu[3]
     N = size(busData_pu, 1)
     numBranch = size(branchData_pu, 1)
 
@@ -704,7 +704,7 @@ function constructSparseYBus(CDF_DF_List_pu::Vector{DataFrame};
     end
 
     ybusSparseTables = [sparMat.NVec, sparMat.MVec, sparMat.nnzVec]
-    systemName = extractSystemName(CDF_DF_List_pu)
+    systemName = extractSystemName(cdf_pu)
 
     filenames = ["ybusSparseNVec", "ybusSparseMVec", "ybusSparseNNZVec"]
     extension = ".csv"
@@ -782,7 +782,7 @@ function computeMismatchesViaSparseYBus(PSpecified::Vector{Float64},
     return deltaP, deltaQ
 end
 
-function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
+function constructSparseJacobian(cdf_pu::Vector{DataFrame},
     P::Vector{Float64},
     Q::Vector{Float64},
     V::Vector{Float64},
@@ -794,10 +794,10 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
     saveLocation::String="processedData/",
     itr::Int64=0)
 
-    J11 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J11", verbose=verbose)
-    J12 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J12", verbose=verbose)
-    J21 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J21", verbose=verbose)
-    J22 = constructSparseJacobianSubMatrix(CDF_DF_List_pu, P, Q, V, delta, YBus, type="J22", verbose=verbose)
+    J11 = constructSparseJacobianSubMatrix(cdf_pu, P, Q, V, delta, YBus, type="J11", verbose=verbose)
+    J12 = constructSparseJacobianSubMatrix(cdf_pu, P, Q, V, delta, YBus, type="J12", verbose=verbose)
+    J21 = constructSparseJacobianSubMatrix(cdf_pu, P, Q, V, delta, YBus, type="J21", verbose=verbose)
+    J22 = constructSparseJacobianSubMatrix(cdf_pu, P, Q, V, delta, YBus, type="J22", verbose=verbose)
 
     if combinationOrder == "hcat-then-vcat"
         JTop = hcatSparse(J11, J12, verbose=verbose)
@@ -812,7 +812,7 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
     end
 
     # JSparseTables = [J.NVec, J.MVec, J.nnzVec]
-    # systemName = extractSystemName(CDF_DF_List_pu)
+    # systemName = extractSystemName(cdf_pu)
     # filenames = ["JSparseNVec", "JSparseMVec", "JSparseNNZVec"]
     # extension = ".csv"
     # if saveTables
@@ -820,12 +820,12 @@ function constructSparseJacobian(CDF_DF_List_pu::Vector{DataFrame},
     #         CSV.write(saveLocation*systemName*"/"*filename*"_itr_$(itr)"*extension, df)
     #     end
     # end
-    saveSparseTables(J, CDF_DF_List_pu, "JSparse", saveTables=saveTables, itr=itr, saveLocation=saveLocation)
+    saveSparseTables(J, cdf_pu, "JSparse", saveTables=saveTables, itr=itr, saveLocation=saveLocation)
 
     return J
 end
 
-function constructSparseJacobianSubMatrix(CDF_DF_List_pu::Vector{DataFrame},
+function constructSparseJacobianSubMatrix(cdf_pu::Vector{DataFrame},
     P::Vector{Float64},
     Q::Vector{Float64},
     V::Vector{Float64},
@@ -834,16 +834,16 @@ function constructSparseJacobianSubMatrix(CDF_DF_List_pu::Vector{DataFrame},
     type::String="J11",
     verbose::Bool=false)
 
-    busData_pu = CDF_DF_List_pu[2]
+    busData_pu = cdf_pu[2]
     N = size(busData_pu, 1)
 
-    busPositions = busPositionsForJacobian(CDF_DF_List_pu)
+    busPositions = busPositionsForJacobian(cdf_pu)
 
     NYBus = sparYBus.NVec
     MYBus = sparYBus.MVec
     nnzYBus = sparYBus.nnzVec
 
-    powSysData = initializeVectors_pu(CDF_DF_List_pu)
+    powSysData = initializeVectors_pu(cdf_pu)
     nPQ = powSysData.nPQ
 
     if type == "J11"
@@ -923,14 +923,14 @@ function constructSparseJacobianSubMatrix(CDF_DF_List_pu::Vector{DataFrame},
     return JSub
 end
 
-function busPositionsForJacobian(CDF_DF_List_pu::Vector{DataFrame};
+function busPositionsForJacobian(cdf_pu::Vector{DataFrame};
     verbose::Bool=true)
 
     busPositions = DataFrame(busNum = Int64[], nonSlackBusIdx = Int64[], PQBusIdx = Int64[])
     counterPQ = 0
     counterPV = 0
 
-    busData = CDF_DF_List_pu[2]
+    busData = cdf_pu[2]
     N = size(busData, 1)
 
     for busNum = 1:N
@@ -1903,7 +1903,7 @@ function compareSparseAndDense(ASpar::SparseMatrix, ADense::Matrix)
     return non_zero_elements
 end
 
-function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
+function solveForPowerFlow_Sparse(cdf_pu::Vector{DataFrame};
     tolerance::Float64=1e-5,
     itrMax::Int64=30,
     verbose::Bool=false,
@@ -1914,7 +1914,7 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
     residual = 100
     itr = 1
 
-    powSysData = initializeVectors_pu(CDF_DF_List_pu);
+    powSysData = initializeVectors_pu(cdf_pu);
     PSpecified = powSysData.PSpecified;
     QSpecified = powSysData.QSpecified;
     V = powSysData.V;
@@ -1937,7 +1937,7 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
     while itr ≤ itrMax && residual > tolerance
         myprintln(verbose, "Iteration $(itr) of Power flow.")
 
-        sparYBus = constructSparseYBus(CDF_DF_List_pu, saveTables=saveYBus, itr=itr);
+        sparYBus = constructSparseYBus(cdf_pu, saveTables=saveYBus, itr=itr);
 
         ΔP, ΔQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, δ, sparYBus);
         mismatch = vcat(ΔP[lNonSlack], ΔQ[lPQ])
@@ -1946,7 +1946,7 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
         Q = QSpecified - ΔQ;
 
         if itr > 1
-            powSysData = initializeVectors_pu(CDF_DF_List_pu);
+            powSysData = initializeVectors_pu(cdf_pu);
             PSpecified = powSysData.PSpecified;
             QSpecified = powSysData.QSpecified;
             lSlack = powSysData.listOfSlackBuses;
@@ -1977,7 +1977,7 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
         myprintln(verbose, "Iteration $(itr): P = $([round(x, digits=roundDigits) for x in P])")
         myprintln(verbose, "Iteration $(itr): Q = $([round(x, digits=roundDigits) for x in Q])")
 
-        J = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, δ, sparYBus, saveTables=saveJacobian, itr=itr, verbose=false);
+        J = constructSparseJacobian(cdf_pu, P, Q, V, δ, sparYBus, saveTables=saveJacobian, itr=itr, verbose=false);
 
         myprintln(false, "Iteration $(itr): Jacobian = $([round(x, digits=roundDigits) for x in spar2Full(J)])")
         @show correction = solveUsingSparseLU(J, mismatch, verbose=false).x
@@ -2010,28 +2010,43 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
 end;
 
 """
-    checkPVBounds(ldf::Vector{DataFrame}, Q::Vector{Float64}, lPV::Vector{Int64})
+    checkPVBounds(ldf::Vector{DataFrame}, Q::Vector{Float64}, lPV::Vector{Int64}; verbose::Bool=false)
 
-Check if Q values at PV buses are out of bounds. If yes, retrieve those elements.
+Check if the reactive power `Q` values of PV buses are within the specified minimum and maximum bounds.
 
-# Arguments:
-- `ldf::Vector{DataFrame}`: List of DataFrames parsed from the CDF File.
-- `Q::Vector`: A vector representing Q values.
-- `lPV::Vector{Int}`: Indices of PV buses.
+## Arguments:
 
-# Returns:
-A tuple containing two lists:
-1. A list of PV buses where Q is less than the corresponding Min_MVAR_V.
-2. A list of PV buses where Q is greater than the corresponding Max_MVAR_V.
+- `ldf::Vector{DataFrame}`: A list of DataFrames. The second element of this list (`ldf[2]`) is expected to contain bus data with columns `Min_MVAR_V` and `Max_MVAR_V`.
+- `Q::Vector{Float64}`: A vector representing reactive power (Q) values for buses.
+- `lPV::Vector{Int64}`: A vector of indices indicating the positions of PV buses in the `Q` vector.
 
+## Keyword Arguments:
+
+- `verbose::Bool`: (default `false`) If set to `true`, it provides verbose output. Currently not used in the function.
+
+## Returns:
+
+- A named tuple with two vectors:
+    - `under_bound`: Indices of PV buses where `Q` is below the minimum reactive power bound.
+    - `over_bound`: Indices of PV buses where `Q` is above the maximum reactive power bound.
+
+## Example:
+
+```julia
+ldf = [DataFrame(...), DataFrame(Min_MVAR_V=[...], Max_MVAR_V=[...]), ...]
+Q = [0.5, 0.7, 1.0, ...]
+lPV = [2, 4, 5, ...]
+bounds = checkPVBounds(ldf, Q, lPV)
+println(bounds.under_bound)  # Prints indices of PV buses below minimum bound
+println(bounds.over_bound)   # Prints indices of PV buses above maximum bound
 """
-function checkPVBounds(ldf::Vector{DataFrame}, 
+function checkPVBounds(cdf_pu::Vector{DataFrame}, 
     Q::Vector{Float64}, 
     lPV::Vector{Int64};
     verbose::Bool=false)
 
     # Check bounds
-    busData = ldf[2]
+    busData = cdf_pu[2]
     under_bound = [i for i in lPV if Q[i] < busData.Min_MVAR_V[i]]
     over_bound = [i for i in lPV if Q[i] > busData.Max_MVAR_V[i]]
 
@@ -2040,7 +2055,7 @@ end
 
 
 """
-    saveSparseTables(A::SparseMatrix, CDF_DF_List_pu::Vector{DataFrame},prefix::String;    
+    saveSparseTables(A::SparseMatrix, cdf_pu::Vector{DataFrame},prefix::String;    
     saveTables::Bool=false,
     itr::Int64=0, 
     extension::String=".csv", 
@@ -2050,7 +2065,7 @@ Save tables from a given SparseMatrix to CSV files.
 
 # Arguments:
 - `A::SparseMatrix`: A custom data structure containing the sparse matrix details.
-- `CDF_DF_List_pu::Vector{DataFrame}`: A list of DataFrames used to extract the system name.
+- `cdf_pu::Vector{DataFrame}`: A list of DataFrames used to extract the system name.
 - `prefix::String`: A string that indicates the nature of the SparseMatrix and is used to prefix the filenames.
 
 # Keyword Arguments:
@@ -2061,20 +2076,20 @@ Save tables from a given SparseMatrix to CSV files.
 
 # Notes:
 The function saves tables derived from the SparseMatrix to CSV files, appending an iteration index to the filenames. 
-The CSV file names will be prepended by the system name extracted from `CDF_DF_List_pu` and the provided prefix.
+The CSV file names will be prepended by the system name extracted from `cdf_pu` and the provided prefix.
 
 Example:
 ```julia
 saveSparseTables(mySparseMatrix, myCDF_DF_List, "JSparse", saveTables=true, itr=5, extension=".csv", saveLocation="myDirectory/")
 """
-function saveSparseTables(A::SparseMatrix, CDF_DF_List_pu::Vector{DataFrame},
+function saveSparseTables(A::SparseMatrix, cdf_pu::Vector{DataFrame},
     prefix::String; saveTables::Bool=false, itr::Int64=0, saveLocation::String="processedData/",
     extension::String=".csv")
     # Convert the SparseMatrix attributes into a list
     ASparseTables = [A.NVec, A.MVec, A.nnzVec]
 
     # Extract the system name
-    systemName = extractSystemName(CDF_DF_List_pu)
+    systemName = extractSystemName(cdf_pu)
 
     # Define the filenames
     filenames = ["$(prefix)NVec", "$(prefix)MVec", "$(prefix)NNZVec"]
