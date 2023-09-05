@@ -811,15 +811,6 @@ function constructSparseJacobian(cdf_pu::Vector{DataFrame},
         error("Unknown combination order.")
     end
 
-    # JSparseTables = [J.NVec, J.MVec, J.nnzVec]
-    # systemName = extractSystemName(cdf_pu)
-    # filenames = ["JSparseNVec", "JSparseMVec", "JSparseNNZVec"]
-    # extension = ".csv"
-    # if saveTables
-    #     for (df, filename) in zip(JSparseTables, filenames)
-    #         CSV.write(saveLocation*systemName*"/"*filename*"_itr_$(itr)"*extension, df)
-    #     end
-    # end
     saveSparseTables(J, cdf_pu, "JSparse", saveTables=saveTables, itr=itr, saveLocation=saveLocation)
 
     return J
