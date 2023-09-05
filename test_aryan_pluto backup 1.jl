@@ -164,6 +164,9 @@ sparYBus = constructSparseYBus(CDF_DF_List_pu);
 # ╔═╡ bdaebe7a-ac92-434a-a3e6-4ff8cdba68fa
 sparsityYBus = computeSparsity(sparYBus, returnValue=returnValue);
 
+# ╔═╡ 3aab5f0f-0759-4f6b-858f-d0102ea39c1c
+@info sparsityYBus
+
 # ╔═╡ e193276a-fa6a-481a-9b47-7d68882e52f2
 begin
 
@@ -192,6 +195,76 @@ begin
 	plot(pYBus, layout=(1, 1))
 
 end
+
+# ╔═╡ ee890880-88c9-480a-bc95-ab0bb268efcd
+if displayYBus
+	# display(sparYBus.NVec)
+	# display(sparYBus.MVec)
+	# display(sparYBus.nnzVec)
+	sparYBus
+end
+
+# ╔═╡ 311abf2d-5249-4e80-a97b-b809a79d7107
+PowSysData = initializeVectors_pu(CDF_DF_List_pu);
+
+# ╔═╡ 4727e699-d15e-48e6-b112-5526af6b4d8e
+begin
+	PSpecified = PowSysData.PSpecified;
+	QSpecified = PowSysData.QSpecified;
+	V = PowSysData.V;
+	delta = PowSysData.delta;
+end;
+
+# ╔═╡ 4021a781-b33c-43a3-8893-3620306f7635
+md" ### Compute Mismatches"
+
+# ╔═╡ cc18a9dc-c35c-481e-a030-3fe919834b38
+md" (Not Displayed)"
+
+# ╔═╡ 8fda426a-5b55-4daa-8f0b-404290c14520
+deltaP, deltaQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, delta, sparYBus);
+
+# ╔═╡ 9aeffbaf-3223-45da-9d9f-6f7e6f9745e2
+begin
+	P = PSpecified - deltaP
+	Q = QSpecified - deltaQ
+end;
+
+# ╔═╡ 4beab547-1b67-4de9-b667-f959fcd5177d
+md" ## Construct Sparse Jacobian"
+
+# ╔═╡ 77a35fcf-b866-48b1-8dc3-c303c799e9f5
+sparJ = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
+
+# ╔═╡ 8eb2435e-eaa4-4d4a-8da0-f125c3125237
+sparsityJ = computeSparsity(sparJ, returnValue=returnValue);
+
+# ╔═╡ f42085e4-0615-4dca-8c2a-2e2eeaf1dcd7
+if displayJacobian
+	# display(sparJ)
+	sparJ
+end
+
+# ╔═╡ 7fabe75c-5c86-4315-9b5c-0c6856ed4a8d
+md"### Convert Sparse Jacobian into Sparse LU Factors"
+
+# ╔═╡ 8c064aa3-ae32-4736-bb54-5e1b9acf891b
+qluJ = sparLU(sparJ);
+
+# ╔═╡ faeaf70f-a09d-4dae-8931-8f71035e2207
+QJ = qluJ.Q;
+
+# ╔═╡ 160ef94f-2ce8-4466-a080-99a046e4183f
+sparsityQ = computeSparsity(QJ, returnValue=returnValue);
+
+# ╔═╡ e5b94da1-be60-4d49-9a36-a0099c37fca9
+md" #### Vizualising the sparse matrices"
+
+# ╔═╡ 8a301f36-d59e-4cd1-9301-7257e3258b92
+JSpar2Full = spar2Full(sparJ);
+
+# ╔═╡ 1492fa9f-2ed8-4c64-a507-b23155df5bbd
+QSpar2Full = spar2Full(QJ);
 
 # ╔═╡ bdeae12a-e105-46b8-b91b-8bd06da8ffd6
 begin
@@ -239,79 +312,6 @@ begin
 
 end
 
-# ╔═╡ 3aab5f0f-0759-4f6b-858f-d0102ea39c1c
-@info sparsityYBus
-
-# ╔═╡ 4beab547-1b67-4de9-b667-f959fcd5177d
-md" ## Construct Sparse Jacobian"
-
-# ╔═╡ 4021a781-b33c-43a3-8893-3620306f7635
-md" ### Compute Mismatches"
-
-# ╔═╡ ee890880-88c9-480a-bc95-ab0bb268efcd
-if displayYBus
-	# display(sparYBus.NVec)
-	# display(sparYBus.MVec)
-	# display(sparYBus.nnzVec)
-	sparYBus
-end
-
-# ╔═╡ 311abf2d-5249-4e80-a97b-b809a79d7107
-PowSysData = initializeVectors_pu(CDF_DF_List_pu);
-
-# ╔═╡ 4727e699-d15e-48e6-b112-5526af6b4d8e
-begin
-	PSpecified = PowSysData.PSpecified;
-	QSpecified = PowSysData.QSpecified;
-	V = PowSysData.V;
-	delta = PowSysData.delta;
-end;
-
-# ╔═╡ cc18a9dc-c35c-481e-a030-3fe919834b38
-md" (Not Displayed)"
-
-# ╔═╡ 8fda426a-5b55-4daa-8f0b-404290c14520
-deltaP, deltaQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, delta, sparYBus);
-
-# ╔═╡ 9aeffbaf-3223-45da-9d9f-6f7e6f9745e2
-begin
-	P = PSpecified - deltaP
-	Q = QSpecified - deltaQ
-end;
-
-# ╔═╡ 77a35fcf-b866-48b1-8dc3-c303c799e9f5
-sparJ = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, delta, sparYBus);
-
-# ╔═╡ 8a301f36-d59e-4cd1-9301-7257e3258b92
-JSpar2Full = spar2Full(sparJ);
-
-# ╔═╡ f42085e4-0615-4dca-8c2a-2e2eeaf1dcd7
-if displayJacobian
-	# display(sparJ)
-	sparJ
-end
-
-# ╔═╡ 8c064aa3-ae32-4736-bb54-5e1b9acf891b
-qluJ = sparLU(sparJ);
-
-# ╔═╡ 8eb2435e-eaa4-4d4a-8da0-f125c3125237
-sparsityJ = computeSparsity(sparJ, returnValue=returnValue);
-
-# ╔═╡ e5b94da1-be60-4d49-9a36-a0099c37fca9
-md" #### Vizualising the sparse matrices"
-
-# ╔═╡ 7fabe75c-5c86-4315-9b5c-0c6856ed4a8d
-md"### Convert Sparse Jacobian into Sparse LU Factors"
-
-# ╔═╡ faeaf70f-a09d-4dae-8931-8f71035e2207
-QJ = qluJ.Q;
-
-# ╔═╡ 1492fa9f-2ed8-4c64-a507-b23155df5bbd
-QSpar2Full = spar2Full(QJ);
-
-# ╔═╡ 160ef94f-2ce8-4466-a080-99a046e4183f
-sparsityQ = computeSparsity(QJ, returnValue=returnValue);
-
 # ╔═╡ Cell order:
 # ╟─8ccc68a2-302c-4607-9622-318c523897cc
 # ╠═f5f02417-00b9-4c2d-ae80-ea31b5abda5e
@@ -325,6 +325,7 @@ sparsityQ = computeSparsity(QJ, returnValue=returnValue);
 # ╟─b3bc7313-0a3c-4996-a71c-602e240bc61e
 # ╟─6fdad9d2-50de-4b55-bbeb-3bd3b431dff5
 # ╟─938ab111-da12-42ae-8da0-31aae092fae8
+# ╟─ecd816ef-75dd-45f5-b255-89d22324066e
 # ╟─01f8bcc0-633f-46df-9bee-ed3961da4b2a
 # ╟─59abea63-093a-44e2-a63d-673fb8c5c294
 # ╟─8899d627-5781-42dd-a8d1-02a6061465f5
@@ -355,24 +356,25 @@ sparsityQ = computeSparsity(QJ, returnValue=returnValue);
 # ╟─0f6544d3-186f-4093-a5cf-e61f8bb36c94
 # ╠═3646b871-c83a-410a-af4b-b1ff4dd86540
 # ╠═bdaebe7a-ac92-434a-a3e6-4ff8cdba68fa
-# ╠═9aeffbaf-3223-45da-9d9f-6f7e6f9745e2
-# ╠═8a301f36-d59e-4cd1-9301-7257e3258b92
-# ╠═e193276a-fa6a-481a-9b47-7d68882e52f2
-# ╠═bdeae12a-e105-46b8-b91b-8bd06da8ffd6
+
 # ╠═3aab5f0f-0759-4f6b-858f-d0102ea39c1c
+# ╠═e193276a-fa6a-481a-9b47-7d68882e52f2
+# ╟─ee890880-88c9-480a-bc95-ab0bb268efcd
+# ╟─311abf2d-5249-4e80-a97b-b809a79d7107
+# ╟─4727e699-d15e-48e6-b112-5526af6b4d8e
+# ╟─4021a781-b33c-43a3-8893-3620306f7635
+# ╟─cc18a9dc-c35c-481e-a030-3fe919834b38
+# ╟─8fda426a-5b55-4daa-8f0b-404290c14520
+# ╟─9aeffbaf-3223-45da-9d9f-6f7e6f9745e2
+# ╟─4beab547-1b67-4de9-b667-f959fcd5177d
 # ╠═77a35fcf-b866-48b1-8dc3-c303c799e9f5
-# ╠═f42085e4-0615-4dca-8c2a-2e2eeaf1dcd7
-# ╠═4727e699-d15e-48e6-b112-5526af6b4d8e
-# ╠═4beab547-1b67-4de9-b667-f959fcd5177d
-# ╠═8c064aa3-ae32-4736-bb54-5e1b9acf891b
-# ╠═4021a781-b33c-43a3-8893-3620306f7635
-# ╠═ee890880-88c9-480a-bc95-ab0bb268efcd
-# ╠═1492fa9f-2ed8-4c64-a507-b23155df5bbd
-# ╠═311abf2d-5249-4e80-a97b-b809a79d7107
-# ╠═160ef94f-2ce8-4466-a080-99a046e4183f
-# ╠═cc18a9dc-c35c-481e-a030-3fe919834b38
 # ╠═8eb2435e-eaa4-4d4a-8da0-f125c3125237
-# ╠═8fda426a-5b55-4daa-8f0b-404290c14520
-# ╠═e5b94da1-be60-4d49-9a36-a0099c37fca9
-# ╠═7fabe75c-5c86-4315-9b5c-0c6856ed4a8d
+# ╟─f42085e4-0615-4dca-8c2a-2e2eeaf1dcd7
+# ╟─7fabe75c-5c86-4315-9b5c-0c6856ed4a8d
+# ╠═8c064aa3-ae32-4736-bb54-5e1b9acf891b
 # ╠═faeaf70f-a09d-4dae-8931-8f71035e2207
+# ╠═160ef94f-2ce8-4466-a080-99a046e4183f
+# ╟─e5b94da1-be60-4d49-9a36-a0099c37fca9
+# ╠═8a301f36-d59e-4cd1-9301-7257e3258b92
+# ╠═1492fa9f-2ed8-4c64-a507-b23155df5bbd
+# ╠═bdeae12a-e105-46b8-b91b-8bd06da8ffd6
