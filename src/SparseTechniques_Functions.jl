@@ -1911,6 +1911,9 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
     saveYBus::Bool=false,
     saveJacobian::Bool=false)
 
+    residual = 100
+    itr = 1
+
     powSysData = initializeVectors_pu(CDF_DF_List_pu);
     PSpecified = powSysData.PSpecified;
     QSpecified = powSysData.QSpecified;
@@ -1927,40 +1930,56 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
     N = nSlack + nNonSlack;
     P = similar(PSpecified)
     Q = similar(QSpecified)
-
-    residual = 100
-    itr = 1
-    sparYBus = constructSparseYBus(CDF_DF_List_pu, saveTables=saveYBus, itr=itr);
-
+    
     while itr ≤ itrMax && residual > tolerance
         myprintln(verbose, "Iteration $(itr) of Power flow.")
+
+        sparYBus = constructSparseYBus(CDF_DF_List_pu, saveTables=saveYBus, itr=itr);
 
         ΔP, ΔQ = computeMismatchesViaSparseYBus(PSpecified, QSpecified, V, δ, sparYBus);
         mismatch = vcat(ΔP[lNonSlack], ΔQ[lPQ])
         myprintln(verbose, "Iteration $(itr): Mismatch = $([round(x, digits=roundDigits) for x in mismatch])")
         P = PSpecified - ΔP;
         Q = QSpecified - ΔQ;
+
+        if itr > 1
+            under_bound, over_bound = checkPVBounds(dfpu, Q, lPV, verbose=verbose)
+
+            if !isempty(under_bound)
+                myprintln(verbose, "Lower Q Limits violated!")
+                println("PV buses with Q < Min_MVAR: ", under_bound)
+            end
+
+            if !isempty(over_bound)
+                myprintln(verbose, "Upper Q Limits violated!")
+                println("PV buses with Q > Max_MVAR: ", over_bound)
+            end
+        end
+
         myprintln(verbose, "Iteration $(itr): P = $([round(x, digits=roundDigits) for x in P])")
         myprintln(verbose, "Iteration $(itr): Q = $([round(x, digits=roundDigits) for x in Q])")
 
-        J = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, δ, sparYBus, saveTables=saveJacobian, itr=itr);
+        J = constructSparseJacobian(CDF_DF_List_pu, P, Q, V, δ, sparYBus, saveTables=saveJacobian, itr=itr, verbose=false);
 
-        myprintln(verbose, "Iteration $(itr): Jacobian = $([round(x, digits=roundDigits) for x in spar2Full(J)])")
-        correction = solveUsingSparseLU(J, mismatch, verbose=verbose).x
-        myprintln(verbose, "Iteration $(itr): Correction = $([round(x, digits=roundDigits) for x in correction])")
-        residual = max(abs.(correction))
-        myprintln(verbose, "Iteration $(itr): Residual = $([round(x, digits=6) for x in residual])")
+        myprintln(false, "Iteration $(itr): Jacobian = $([round(x, digits=roundDigits) for x in spar2Full(J)])")
+        @show correction = solveUsingSparseLU(J, mismatch, verbose=false).x
+        myprintln(false, "Iteration $(itr): Correction = $([round(x, digits=roundDigits) for x in correction])")
+
+        residual = mean(abs.(correction))
+        myprintln(verbose, "Iteration $(itr): Residual = $(round(residual, digits=6))")
+
         Δδ = correction[1:nNonSlack];
         ΔVbyV = correction[N:N+nPQ-1];
         δ[lNonSlack] = δ[lNonSlack] + Δδ;
         V[lPQ] .*= (1 .+ (ΔVbyV));
-        DataFrame(i=1:N, P=P, Q=Q, V=V, δ=δ)
+
+        # DataFrame(i=1:N, P=P, Q=Q, V=V, δ=δ)
         itr += 1
     end
     
     if residual ≥ tolerance
-        warning("Convergence NOT achieved even after $(itrMax) iterations.\n"*
-        "Abandoning run and returning current state variables.")
+        @warn "Convergence NOT achieved even after $(itrMax) iterations.\n"*
+        "Abandoning run and returning current state variables."
     elseif residual < tolerance
         myprintln(true, "Convergence achieved after $(itr) iterations.\n") # always true 
     else
@@ -1971,6 +1990,36 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
     return results
 
 end;
+
+"""
+    checkPVBounds(ldf::Vector{DataFrame}, Q::Vector{Float64}, lPV::Vector{Int64})
+
+Check if Q values at PV buses are out of bounds. If yes, retrieve those elements.
+
+# Arguments:
+- `ldf::Vector{DataFrame}`: List of DataFrames parsed from the CDF File.
+- `Q::Vector`: A vector representing Q values.
+- `lPV::Vector{Int}`: Indices of PV buses.
+
+# Returns:
+A tuple containing two lists:
+1. A list of PV buses where Q is less than the corresponding Min_MVAR_V.
+2. A list of PV buses where Q is greater than the corresponding Max_MVAR_V.
+
+"""
+function checkPVBounds(ldf::Vector{DataFrame}, 
+    Q::Vector{Float64}, 
+    lPV::Vector{Int64};
+    verbose::Bool=false)
+
+    # Check bounds
+    busData = ldf[2]
+    under_bound = [i for i in lPV if Q[i] < busData.Min_MVAR_V[i]]
+    over_bound = [i for i in lPV if Q[i] > busData.Max_MVAR_V[i]]
+
+    return (under_bound=under_bound, over_bound=over_bound)
+end
+
 
 """
     saveSparseTables(A::SparseMatrix, CDF_DF_List_pu::Vector{DataFrame},prefix::String;    
