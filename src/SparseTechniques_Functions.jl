@@ -1928,9 +1928,12 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
     nSlack = powSysData.nSlack;
     nNonSlack = nPV+nPQ;
     N = nSlack + nNonSlack;
-    P = similar(PSpecified)
+    P = similar(PSpecified) # Juila will refuse to recognize P and Q outside the powerflow loop if I don't define them outside the loop first #JustJuliaThings
     Q = similar(QSpecified)
-    
+    busesSwitched = Int64[]
+    ob_busesSwitched = Int64[]
+    ub_busesSwitched = Int64[]
+
     while itr ≤ itrMax && residual > tolerance
         myprintln(verbose, "Iteration $(itr) of Power flow.")
 
@@ -1943,6 +1946,19 @@ function solveForPowerFlow_Sparse(CDF_DF_List_pu::Vector{DataFrame};
         Q = QSpecified - ΔQ;
 
         if itr > 1
+            powSysData = initializeVectors_pu(CDF_DF_List_pu);
+            PSpecified = powSysData.PSpecified;
+            QSpecified = powSysData.QSpecified;
+            lSlack = powSysData.listOfSlackBuses;
+            lPV = powSysData.listOfPVBuses;
+            lPQ = powSysData.listOfPQBuses;
+            lNonSlack = powSysData.listOfNonSlackBuses;
+            nPV = powSysData.nPV;
+            nPQ = powSysData.nPQ;
+            nSlack = powSysData.nSlack;
+            nNonSlack = nPV+nPQ;
+            N = nSlack + nNonSlack;
+
             under_bound, over_bound = checkPVBounds(dfpu, Q, lPV, verbose=verbose)
 
             if !isempty(under_bound)

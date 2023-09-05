@@ -37,7 +37,7 @@ CDF_DF_List = CDF_Parser(filename_CDFFile);
 dfpu = CDF_pu_Converter(CDF_DF_List);
 
 results = solveForPowerFlow_Sparse(dfpu, verbose=true, saveYBus=true, 
-saveJacobian=true)
+saveJacobian=false)
 
 plotBuswiseDifferences(dfpu, results, savePlots=true);
 
