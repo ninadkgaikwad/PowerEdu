@@ -67,7 +67,7 @@ function extractSystemName(CDF_DF_List::Vector{DataFrame})
         bus_number = match_obj.captures[2]
         bus_name = string(prefix, "_", bus_number)
         return bus_name
-    elsen
+    else
         return "Bus number not found.\n"
     end
 end

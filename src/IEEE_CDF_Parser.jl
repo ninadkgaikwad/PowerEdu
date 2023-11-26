@@ -13,7 +13,7 @@ Creates Julia Dataframe from the IEEE Common Data Format (CDF) text file.
 '''
 # Arguments
 - 'CDF_FilePath': File path to the IEEE CDF text file.
-- 'SortValue': 1 - Sort CDF File according to Bus Type PQ->PV->Slack, any other value - do not sort
+- 'SortValue': True - Sort CDF File according to Bus Type PQ->PV->Slack, False - do not sort
 '''
 '''
 # Output
@@ -24,7 +24,7 @@ TieLinesDataCard_DF].
 '''
 """
 function CDF_Parser(CDF_FilePath,
-        SortValue;
+        SortValue ;
         saveTables::Bool=false, 
         saveLocation = "processedData/")
         
@@ -201,6 +201,8 @@ function CDF_Parser(CDF_FilePath,
                                  LZ_Num = Int64[],
                                  Type = Int64[],
                                  Type_Original = Int64[],
+                                 SE_V_pu = Float64[],
+                                 SE_A_deg = Float64[],
                                  Final_V_pu = Float64[],
                                  Final_A_deg = Float64[],
                                  Final_V_pu_Original = Float64[],
@@ -245,8 +247,10 @@ function CDF_Parser(CDF_FilePath,
                                     StepSize = Float64[],
                                     Min_MVAR_MW_V = Float64[],
                                     Max_MVAR_MW_V = Float64[],
-                                    Line_Flow_P = Float64[],
-                                    Line_Flow_Q = Float64[],
+                                    Line_Flow_P_ij = Float64[],
+                                    Line_Flow_Q_ij = Float64[],
+                                    Line_Flow_P_ji = Float64[],
+                                    Line_Flow_Q_ji = Float64[],
                                     Line_Flow_Pos_P = Float64[],
                                     Line_Flow_Neg_P = Float64[],
                                     Line_Flow_Pos_Q = Float64[],
@@ -286,6 +290,8 @@ function CDF_Parser(CDF_FilePath,
                                       parse(Float64,BusDataCard_Array[ii][34:40]),
                                       parse(Float64,BusDataCard_Array[ii][28:33]),
                                       parse(Float64,BusDataCard_Array[ii][34:40]),
+                                      parse(Float64,BusDataCard_Array[ii][28:33]),
+                                      parse(Float64,BusDataCard_Array[ii][34:40]),
                                       parse(Float64,BusDataCard_Array[ii][41:49]),
                                       parse(Float64,BusDataCard_Array[ii][50:59]),
                                       parse(Float64,BusDataCard_Array[ii][60:67]),
@@ -308,7 +314,7 @@ function CDF_Parser(CDF_FilePath,
         end
 
         # Ordering BusDataCard_DF: PQ->PV->Slack
-        if (SortValue == 1)
+        if (SortValue == true)
         
                 sort!(BusDataCard_DF, [order(:Type)])
 
@@ -339,6 +345,8 @@ function CDF_Parser(CDF_FilePath,
                                       parse(Float64,BranchDataCard_Array[ii][106:111]),
                                       parse(Float64,BranchDataCard_Array[ii][113:118]),
                                       parse(Float64,BranchDataCard_Array[ii][120:end]),
+                                      0.0,
+                                      0.0,
                                       0.0,
                                       0.0,
                                       -9999,
