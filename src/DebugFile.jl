@@ -19,7 +19,7 @@ fileType_CDFFile = ".txt";
 filename_CDFFile = folderInput*systemName*"/"*systemName*"_Data"*fileType_CDFFile
 
 # Which Code to Debug
-Debug_Indicator = 4
+Debug_Indicator = 6
 
 if (Debug_Indicator == 1) # LU Factorization
 
@@ -56,7 +56,7 @@ elseif (Debug_Indicator == 3) # YBus Ybus_Builder
     # Debugging YBus Builder
     CDF_FilePath = "C:/Users/ninad/Dropbox (Personal)/NinadGaikwad_PhD/Gaikwad_Research/Gaikwad_Research_Work/PowerSystemsAnalysis/data/IEEE14/IEEE_14_Data.txt"
 
-    Ybus_Taps_Indicator = 2
+    Ybus_Taps_Indicator = false
 
     # Reading IEEE CDF File
     CDF_DF_List = PowerSystemsAnalysis.CDF_Parser(CDF_FilePath)
@@ -89,26 +89,82 @@ elseif (Debug_Indicator == 3) # YBus Ybus_Builder
 
     end
 
-elseif (Debug_Indicator == 4) # Create Initial Solution Vector
+elseif (Debug_Indicator == 4) # Full Power Flow
 
      # Debugging YBus Builder
      #CDF_FilePath = "D:/Sajjad_Work/Projects/Project_PowerEdu/PowerEdu/data/IEEE_14/IEEE_14_Data.txt"
     #  @show pwd()
     CDF_FilePath = "data/IEEE_14/IEEE_14_Data.txt"
 
-     Ybus_Taps_Indicator = 1
+     Ybus_Taps_Indicator_User = false
 
-     NR_Type = 1
+     NR_Type_User = 1
 
-     Tolerance = 0.001
+     Tolerance_User = 0.0001
 
-     Tol_Num = 0
+     Tol_Num_User = 0
 
-     SortValue = 1
+     SortValue_User = true
      
-     BusSwitching = 1
+     BusSwitching_User = false
      
     #  PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
-     PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, SortValue, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num, BusSwitching)
+     PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath,  Ybus_Taps_Indicator=Ybus_Taps_Indicator_User, NR_Type=NR_Type_User, Tolerance=Tolerance_User, Tol_Num=Tol_Num_User,SortValue=SortValue_User, BusSwitching=BusSwitching_User)
+
+elseif (Debug_Indicator == 5) # Full Continuation Power Flow
+
+    # Debugging YBus Builder
+    #CDF_FilePath = "D:/Sajjad_Work/Projects/Project_PowerEdu/PowerEdu/data/IEEE_14/IEEE_14_Data.txt"
+    #  @show pwd()
+    CDF_FilePath = "data/IEEE_14/IEEE_14_Data.txt"
+
+    PQ_V_Curve_Tuple = (10, 'P')
+
+    Ybus_Taps_Indicator = false
+
+    StepSize_CPF = 0.1
+
+    Tolerance_NR = 0.1
+
+    Tol_Num = 0
+
+    PostCriticalPoint_Counter_Input = 10
+
+    SortValue = true
+    
+    BusSwitching = false
+    
+    #  PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
+    PowerSystemsAnalysis.ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus_Taps_Indicator, StepSize_CPF, Tolerance_NR, Tol_Num, PostCriticalPoint_Counter_Input, SortValue, BusSwitching)
+
+elseif (Debug_Indicator == 6) # Full State Estimation
+
+
+     # Debugging YBus Builder
+     #CDF_FilePath = "D:/Sajjad_Work/Projects/Project_PowerEdu/PowerEdu/data/IEEE_14/IEEE_14_Data.txt"
+    #  @show pwd()
+    CDF_FilePath = "data/IEEE_14/IEEE_14_Data.txt"
+
+    Measurement_Error_Variance = [0.015, 0.02, 0.02]
+
+    Bad_Bus_Measurement_Input = [6 200 1 1; 7 300 1 1]
+    
+    Bad_Branch_Measurement_Input = [1 2 1 100 1 1; 2 3 1 1 1000 1]
+
+    Tolerance_SE = 0.01
+
+    Ybus_Taps_Indicator = false
+
+    Tolerance_NR = 0.1
+
+    Tol_Num = 0
+
+    SortValue = true
+    
+    BusSwitching = false
+     
+    #  PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
+     PowerSystemsAnalysis.PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Measurement_Error_Variance, Bad_Bus_Measurement_Input, Bad_Branch_Measurement_Input, Tolerance_SE, Ybus_Taps_Indicator, Tolerance_NR, Tol_Num, SortValue, BusSwitching)
+
 
 end

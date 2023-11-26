@@ -1,7 +1,5 @@
 # BasicPowerFlow_Functions.jl
 
-using LaTeXStrings
-
 """
     Create_Initial_SolutionVector_NR(CDF_DF_List_pu)
 
@@ -210,6 +208,19 @@ function Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
 
     end
 
+    # Addressing Machine Precision Problem
+    for ii in 1:size(PQ_BusArray)[1]
+
+        if (abs(PQ_BusArray[ii,1]) < 1e-12)
+                PQ_BusArray[ii,1] = 0
+        end
+
+        if (abs(PQ_BusArray[ii,2]) < 1e-12)
+                PQ_BusArray[ii,2] = 0
+        end
+
+    end
+
     return PQ_BusArray
 
 end
@@ -324,6 +335,76 @@ function Compute_PQ_MismatchVector(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V
 
 end
 
+function Compute_PQ_MismatchVector1(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V, NR_Type)
+
+        # Getting required data from CDF_DF_List
+        BusDataCard_DF = CDF_DF_List_pu[2]
+
+        # Number of Buses
+        N_Bus = nrow(BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
+
+        # Length of PQ_MismatchVector
+        Len_PQ_MismatchVector = 2*N_PQ_Bus+N_PV_Bus
+
+        # Initializing PQ_MismatchVector
+        PQ_MismatchVector = Array{Float64}(undef, Len_PQ_MismatchVector, 1)
+
+        # Initializing PQ_PV_Counter
+        PQ_PV_Counter = 0
+
+        # Computing P-Q Mismatch
+        for ii in 1:Len_PQ_MismatchVector
+
+                if (ii <= (N_Bus-1)) # Excluding Slack Bus
+
+
+                        if ((NR_Type == 1) || (NR_Type == 2)) # Full/Decoupled NR
+
+                                # Computing P Mismatch
+                                PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii]) - PQ_BusArray[ii+1,1]
+
+                        elseif (NR_Type == 3) # Fast-Decoupled NR
+
+                                # Computing P Mismatch
+                                PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii]) - PQ_BusArray[ii+1,1])/(SolutionVector_V[ii+1])
+
+                        end
+
+                else
+
+                        # Incrementing PQ_PV_Counter
+                        PQ_PV_Counter = PQ_PV_Counter +1
+
+                        if ((NR_Type == 1) || (NR_Type == 2)) # Full/Decoupled NR
+
+                                
+
+                                        # Computing Q Mismatch
+                                        PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- PQ_BusArray[PQ_PV_Counter+1,2]
+
+                                
+
+                        elseif (NR_Type == 3) # Fast-Decoupled NR
+
+                                
+
+                                        # Computing Q Mismatch
+                                        PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- PQ_BusArray[PQ_PV_Counter+1,2] )/(SolutionVector_V[PQ_PV_Counter+1])
+
+                                
+
+                        end
+                end
+
+        end
+
+        return PQ_MismatchVector
+
+end
+
 """
     PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, NR_Type, SolutionVector_NR)
 
@@ -342,7 +423,7 @@ type: Slack->PQ->PV.
 3 -> Fast Decoupled Newton-Raphson
 - 'SolutionVector_NR': Voltage and Angle at each bus ordered according to bus
 type: PQ->PV.
-- 'BusSwitching': 1 -> Bus Switching Employed, any other -> Bus Switching not Employed
+- 'BusSwitching': true -> Bus Switching Employed, false -> Bus Switching not Employed
 '''
 '''
 # Output
@@ -396,7 +477,7 @@ function PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Type, NR_Type, Soluti
         end
         
 
-        if (BusSwitching == 1) # Employ Bus Switching
+        if (BusSwitching == true) # Employ Bus Switching
 
                 #  Compute P-Q at Buses
                 PQ_BusArray = Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
@@ -688,7 +769,7 @@ function PQ_PV_Bus_Check_Modify(CDF_DF_List_pu, Ybus, Ybus_Type, NR_Type, Soluti
 
                                                                 BusDataCard_DF.Final_V_pu[ii] = V_set
 
-                                                        end
+                                                        end                                                       
 
                                                 end
 
@@ -771,7 +852,7 @@ type: PQ->PV.
 Data Card types in IEEE CDF file : [TitleCard_DF, BusDataCard_DF,
 BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
 TieLinesDataCard_DF]. Changed with changes in Line flows
-- 'LineFlow_Array': An array (N_Lines*2) for P and Q line flows ordered
+- 'LineFlow_Array': An array (N_Lines*4) for P and Q line flows ordered
 according to Branch Data Card.
 '''
 """
@@ -810,7 +891,7 @@ function Compute_LineFlows(CDF_DF_List_pu, Ybus, SolutionVector_NR)
         end        
 
         # Initializing LineFlow_Array
-        LineFlow_Array = Array{Float64}(undef, N_Lines,2)
+        LineFlow_Array = Array{Float64}(undef, N_Lines,4)
 
         # Initializing Bus_i_Index/Bus_j_Index - for getting reference outside For Loop
         Bus_i_Index = 0
@@ -865,18 +946,47 @@ function Compute_LineFlows(CDF_DF_List_pu, Ybus, SolutionVector_NR)
                 # Computing P_ij
                 P_ij = -(SolutionVector_V[Bus_i_Index]^(2)*real(Ybus[Bus_i_Index, Bus_j_Index])) +(SolutionVector_V[Bus_i_Index]*SolutionVector_V[Bus_j_Index]*abs(Ybus[Bus_i_Index, Bus_j_Index]))*cos(angle(Ybus[Bus_i_Index, Bus_j_Index])+deg2rad(SolutionVector_Delta[Bus_j_Index])-deg2rad(SolutionVector_Delta[Bus_i_Index]))
 
-                LineFlow_Array[ii,1] = P_ij
+                # Computing Q_ij
+                Q_ij = -((SolutionVector_V[Bus_i_Index]^(2)*((BranchDataCard_DF.B_pu[ii]/2) - imag(Ybus[Bus_i_Index, Bus_j_Index])))) - (SolutionVector_V[Bus_i_Index]*SolutionVector_V[Bus_j_Index]*abs(Ybus[Bus_i_Index, Bus_j_Index]))*sin(angle(Ybus[Bus_i_Index, Bus_j_Index])+deg2rad(SolutionVector_Delta[Bus_j_Index])-deg2rad(SolutionVector_Delta[Bus_i_Index]))
+
+                # Computing P_ji
+                P_ji = -(SolutionVector_V[Bus_j_Index]^(2)*real(Ybus[Bus_j_Index, Bus_i_Index])) +(SolutionVector_V[Bus_j_Index]*SolutionVector_V[Bus_i_Index]*abs(Ybus[Bus_j_Index, Bus_i_Index]))*cos(angle(Ybus[Bus_j_Index, Bus_i_Index])+deg2rad(SolutionVector_Delta[Bus_i_Index])-deg2rad(SolutionVector_Delta[Bus_j_Index]))
 
                 # Computing Q_ij
-                Q_ij = -((SolutionVector_V[Bus_i_Index]^(2)*((BranchDataCard_DF.B_pu[ii]/2) - imag(Ybus[Bus_i_Index, Bus_j_Index])))) +(SolutionVector_V[Bus_i_Index]*SolutionVector_V[Bus_j_Index]*abs(Ybus[Bus_i_Index, Bus_j_Index]))*sin(angle(Ybus[Bus_i_Index, Bus_j_Index])+deg2rad(SolutionVector_Delta[Bus_j_Index])-deg2rad(SolutionVector_Delta[Bus_i_Index]))
+                Q_ji = -((SolutionVector_V[Bus_j_Index]^(2)*((BranchDataCard_DF.B_pu[ii]/2) - imag(Ybus[Bus_j_Index, Bus_i_Index])))) - (SolutionVector_V[Bus_j_Index]*SolutionVector_V[Bus_i_Index]*abs(Ybus[Bus_j_Index, Bus_i_Index]))*sin(angle(Ybus[Bus_j_Index, Bus_i_Index])+deg2rad(SolutionVector_Delta[Bus_i_Index])-deg2rad(SolutionVector_Delta[Bus_j_Index]))
 
-                # Filling up LineFlow_Array
-                LineFlow_Array[ii,1] = P_ij
-                LineFlow_Array[ii,2] = Q_ij
+                # Addressing Machine Precision Problem and Filling up LineFlow_Array/Updating BranchDataCard_DF
+                if (abs(P_ij) < 1e-12)
+                        LineFlow_Array[ii,1] = 0
+                        BranchDataCard_DF.Line_Flow_P_ij[ii] = 0
+                else
+                        LineFlow_Array[ii,1] = P_ij
+                        BranchDataCard_DF.Line_Flow_P_ij[ii] = P_ij
+                end
 
-                # Updating BranchDataCard_DF
-                BranchDataCard_DF.Line_Flow_P[ii] = P_ij
-                BranchDataCard_DF.Line_Flow_Q[ii] = Q_ij
+                if (abs(P_ji) < 1e-12)
+                        LineFlow_Array[ii,2] = 0
+                        BranchDataCard_DF.Line_Flow_P_ji[ii] = 0
+                else
+                        LineFlow_Array[ii,2] = P_ji
+                        BranchDataCard_DF.Line_Flow_P_ji[ii] = P_ji
+                end
+
+                if (abs(Q_ij) < 1e-12)
+                        LineFlow_Array[ii,3] = 0
+                        BranchDataCard_DF.Line_Flow_Q_ij[ii] = 0
+                else
+                        LineFlow_Array[ii,3] = Q_ij
+                        BranchDataCard_DF.Line_Flow_Q_ij[ii] = Q_ij
+                end
+
+                if (abs(Q_ji) < 1e-12)
+                        LineFlow_Array[ii,4] = 0
+                        BranchDataCard_DF.Line_Flow_Q_ji[ii] = 0
+                else
+                        LineFlow_Array[ii,4] = Q_ji
+                        BranchDataCard_DF.Line_Flow_Q_ji[ii] = Q_ji
+                end
 
         end
 
@@ -914,6 +1024,9 @@ function Compute_ToleranceSatisfaction(CDF_DF_List_pu, Ybus, NR_Type, Tolerance,
         
     # Creating SolutionVector_V and SolutionVector_Delta
     SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_NR)
+
+    # @show SolutionVector_V
+    # @show SolutionVector_Delta
 
     #  Compute P-Q at Buses
     PQ_BusArray = Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
@@ -1025,6 +1138,52 @@ function Compute_Corrected_CorrectionVector(CDF_DF_List_pu, Correction_Vector_NR
         return Correction_Vector_NR_Corrected
 
 end
+
+
+"""
+    Compute_Corrected_Matrix(Matrix)
+
+Computes corrected matrix for elements close to zero for machine precision.
+
+'''
+# Arguments
+- 'Matrix': 
+'''
+'''
+# Output
+- 'Matrix': Elements close to zero by machine precision are converted to zero.
+'''
+"""
+function Compute_Corrected_Matrix(Matrix)
+
+        # Define Machine precision
+        Precision = 1e-12
+
+        # Getting number of Rows and Columns of Matrix
+        Row_Num = size(Matrix)[1]
+        Col_Num = size(Matrix)[2]
+
+        # For Loop: For correcting each element in Matrix
+        for ii in 1:Row_Num # Through Rows
+
+                for jj in 1:Col_Num # Through Columns 
+
+                        # If Loop: For correcting current Matrix element
+                        if (abs(Matrix[ii,jj]) < Precision)
+
+                                Matrix[ii,jj] = 0.0 
+
+                        end
+
+                end
+
+        end
+
+        return Matrix
+
+end
+
+
 
 function plotBuswiseDifferences(CDF_DF_List_pu::Vector{DataFrame},
         results::DataFrame;

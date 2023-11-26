@@ -1,5 +1,6 @@
 # BasicContinuationPowerFlow_Functions.jl
 
+
 """
     Create_Initial_SolutionVector_CPF(CDF_DF_List_pu)
 
@@ -90,7 +91,7 @@ function Create_SolutionVector_VDelta_CPF(CDF_DF_List_pu, SolutionVector_CPF)
 
         # Creating SolutionVector_V, SolutionVector_Delta
         SolutionVector_Delta =  vcat([0.0], SolutionVector_NR[1:(N_Bus-1),1])
-        SolutionVector_V[1:(N_PQ_Bus+1),1] =  vcat([1], SolutionVector_NR[(N_Bus-1)+1:end,1])
+        SolutionVector_V[1:(N_PQ_Bus+1),1] =  vcat([BusDataCard_DF.Final_V_pu_Original[end]], SolutionVector_NR[(N_Bus-1)+1:end,1])
 
         for ii in N_PQ_Bus+1+1:N_Bus # For each current PV Bus
 
@@ -182,10 +183,11 @@ function Create_KVector_CPF(CDF_DF_List_pu, PQ_V_Curve_Tuple)
         N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF))
 
         # Initializing K_Vector
-        K_Vector = zeros(N_Bus-1,1)
+        K_Vector_Len = 2*N_PQ_Bus+N_PV_Bus
+        K_Vector = zeros(K_Vector_Len,1)
 
         # For Loop: For filling up K_Vector
-        for ii in 1:N_Bus
+        for ii in 1:N_Bus-1
 
                 if (BusDataCard_DF.Bus_Num[ii] == PQ_V_Curve_Tuple[1])
 
@@ -202,6 +204,8 @@ function Create_KVector_CPF(CDF_DF_List_pu, PQ_V_Curve_Tuple)
                 end
 
         end
+
+        return K_Vector
 
 end
 
@@ -274,7 +278,7 @@ function Check_CriticalPoint_CPF(Tangent_Vector, PostCriticalPoint_Counter)
 
         end
 
-    return PostCriticalPoint_Counter_New
+    return PostCriticalPoint_Counter
 
 end
 
@@ -300,6 +304,8 @@ function Choose_ContinuationParameter_CPF(Tangent_Vector)
         Abs_Tangent_Vector = broadcast(abs, Tangent_Vector)
 
         Abs_Tangent_Vector_Max, Index_CPF = findmax(Abs_Tangent_Vector)
+
+        Index_CPF = Index_CPF[1]
 
         if (Tangent_Vector[Index_CPF,1] >= 0 ) # Parameter increasing or stable
 
@@ -339,6 +345,50 @@ function Compute_PredictVector_CPF(SolutionVector_CPF, Tangent_Vector, StepSize_
         CPF_Predictor_Vector = SolutionVector_CPF + (StepSize_CPF * Tangent_Vector)
 
     return CPF_Predictor_Vector
+
+end
+
+"""
+    Compute_Corrected_TangentVector_CPF(CDF_DF_List_pu, TangentVector)
+
+Creates corrected tangent vector by converting Deltas from radians to degrees.
+
+'''
+# Arguments
+- 'CDF_FilePath': File path to the IEEE CDF text file.
+- 'Tangent_Vector': Tangent Vector for Predict Step of Continuation Power
+Flow: PQ->PV->Lambda.
+'''
+'''
+# Output
+- 'Tangent_Vector_Corrected': Corrected tangent vector for deltas from radians to degrees
+'''
+"""
+function Compute_Corrected_TangentVector_CPF(CDF_DF_List_pu, Tangent_Vector)
+
+        # Getting required data from CDF_DF_List
+        BusDataCard_DF = CDF_DF_List_pu[2]
+
+        # Number of Buses
+        N_Bus = nrow(BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF))
+
+        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF))
+
+        # Initializing Tangent_Vector_Corrected
+        Tangent_Vector_Corrected = Tangent_Vector
+
+        # If Else Loop: For NR_Type       
+
+        for ii in 1 : (N_PQ_Bus + N_PV_Bus)
+
+                Tangent_Vector_Corrected[ii] = rad2deg(Tangent_Vector_Corrected[ii])
+
+        end           
+        
+        return Tangent_Vector_Corrected
 
 end
 
@@ -475,27 +525,21 @@ end
 """
     Compute_Corrected_CorrectionVector_CPF(CDF_DF_List_pu, Correction_Vector_NR, SolutionVector_NR, NR_Type)
 
-Creates Ybus without taps for a power system network.
+Creates corrected correction vector for NR Power-Flow based on NR_Type.
 
 '''
 # Arguments
 - 'CDF_FilePath': File path to the IEEE CDF text file.
-- 'Ybus_Taps_Indicator': 1 - Ybus with no taps, 2 - Ybus with Taps
+- 'Correction_Vector_NR': Correction Vector computed in the NR Power-Flow iteration voltage, angle and 
+Lambda at each bus ordered according to bus type: PQ->PV .
+- 'SolutionVector_NR': Voltage, Angle and Lambda at each bus ordered according to bus
+type: PQ->PV.
 'NR_Type': 1 -> Full Newton-Raphson, 2-> Decoupled Newton-Raphson,
 3 -> Fast Decoupled Newton-Raphson
-- 'Tolerance': Tolerance level for stopping criterion of Newton-Raphson Method.
-- 'Tol_Num': Tolerance for being near zero
 '''
 '''
 # Output
-- 'CDF_DF_List_pu': IEEE CDF file in List of Dataframe format according to
-Data Card types in IEEE CDF file : [TitleCard_DF, BusDataCard_DF,
-BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
-TieLinesDataCard_DF]. Changed with changes in Line flows
-- 'LineFlow_Array': An array (N_Lines*2) for P and Q line flows ordered
-according to Branch Data Card.
-- 'PowerFlow_IterationTimeInfo_Array': An array containing Iteration Number and
-Time in seconds for each iteration.
+- 'Correction_Vector_NR_Corrected': Corrected correction vector NR Power-Flow based on NR_Type
 '''
 """
 function Compute_Corrected_CorrectionVector_CPF(CDF_DF_List_pu, Correction_Vector_NR, SolutionVector_NR, NR_Type)
@@ -517,9 +561,15 @@ function Compute_Corrected_CorrectionVector_CPF(CDF_DF_List_pu, Correction_Vecto
         # If Else Loop: For NR_Type
         if ((NR_Type == 1) || (NR_Type == 2)) # Full NR Decoupled NR
 
+                for ii in 1 : (N_PQ_Bus + N_PV_Bus)
+
+                        Correction_Vector_NR_Corrected[ii] = rad2deg(Correction_Vector_NR_Corrected[ii])
+
+                end
+
                 for ii in (N_PQ_Bus + N_PV_Bus + 1) : (length(SolutionVector_NR)-1)
 
-                        Correction_Vector_NR_Corrected[ii] = Correction_Vector_NR_Corrected[ii]/SolutionVector_NR[ii]
+                        Correction_Vector_NR_Corrected[ii] = Correction_Vector_NR_Corrected[ii]*SolutionVector_NR[ii]
 
                 end
 
@@ -527,9 +577,90 @@ function Compute_Corrected_CorrectionVector_CPF(CDF_DF_List_pu, Correction_Vecto
 
                 Correction_Vector_NR_Corrected = Correction_Vector_NR
 
+                for ii in 1 : (N_PQ_Bus + N_PV_Bus)
+
+                        Correction_Vector_NR_Corrected[ii] = rad2deg(Correction_Vector_NR_Corrected[ii])
+
+                end
+
         end
 
         return Correction_Vector_NR_Corrected
+
+end
+
+"""
+    Compute_ToleranceSatisfaction_CPF(Tolerance, Corrections_Vector)
+
+Computes if the correction vector satifies the tolerance.
+
+'''
+# Arguments
+- 'CDF_DF_List_pu': IEEE CDF file in List of Dataframe format according to
+Data Card types in IEEE CDF file : [TitleCard_DF, BusDataCard_DF,
+BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
+TieLinesDataCard_DF].
+- 'Ybus': A complex array of Ybus elements ordered according to bus
+type: Slack->PQ->PV.
+- 'NR_Type': 1 -> Full Newton-Raphson, 2-> Decoupled Newton-Raphson,
+3 -> Fast Decoupled Newton-Raphson
+- 'Tolerance': Tolerance level for stopping criterion of Newton-Raphson Method.
+- 'SolutionVector_NR': Voltage and Angle at each bus ordered according to bus
+type: PQ->PV.
+- 'K_Vector': K Vector of CPF.
+- 'Lambda': A scalar Lambda value for CPF
+'''
+'''
+# Output
+- 'Tolerance_Satisfaction': A boolean value indicating tolerance satifaction
+(True) and disatisfaction (False).
+'''
+"""
+function Compute_ToleranceSatisfaction_CPF(CDF_DF_List_pu, Ybus, NR_Type, Tolerance, SolutionVector_NR, K_Vector, Current_Lambda)
+        
+    # Creating SolutionVector_V and SolutionVector_Delta
+    SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_CPF(CDF_DF_List_pu, SolutionVector_NR)
+
+    # @show SolutionVector_V
+    # @show SolutionVector_Delta
+
+    #  Compute P-Q at Buses
+    PQ_BusArray = Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
+
+    #  Compute PQ Mistmatch (DEBUG add CPF version of Compute PQ mismatch vector)
+    PQ_MismatchVector = Compute_PQ_MismatchVector_CPF(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V, NR_Type,  K_Vector, Current_Lambda)
+    
+    # Initializing Tolerance Counter
+    ToleranceCounter = 0
+
+    # Computing Tolerance Counter
+    for ii in 1: length(PQ_MismatchVector)
+
+            if (abs(PQ_MismatchVector[ii]) > Tolerance)
+
+                    # Incrementing the Tolerance Counter
+                    ToleranceCounter = ToleranceCounter + 1
+
+            else
+
+                    # Do nothing
+
+            end
+
+    end
+
+    # Computing Tolerance Satisfaction
+    if (ToleranceCounter > 0)
+
+          Tolerance_Satisfaction = false
+
+    else
+
+            Tolerance_Satisfaction = true
+
+    end
+
+    return Tolerance_Satisfaction
 
 end
 
@@ -587,6 +718,11 @@ function PowerFlow_MainFunction_CPF(CDF_DF_List_pu, Ybus, NR_Type, Initial_Solut
     # Intializing WhileLoop_Counter
     WhileLoop_Counter = 0
 
+    # Initializations
+    SolutionVector_NR = 0
+
+    #Current_Lambda = SolutionVector_NR[end,1]
+
     # While Loop: For Newton-Raphson Method
     while (!Tolerance_Satisfaction)
 
@@ -638,12 +774,12 @@ function PowerFlow_MainFunction_CPF(CDF_DF_List_pu, Ybus, NR_Type, Initial_Solut
             # Correcting Correction_Vector_NR
             Correction_Vector_NR = Compute_Corrected_CorrectionVector_CPF(CDF_DF_List_pu, Correction_Vector_NR, SolutionVector_NR, NR_Type)
 
-            # Compute Tolerance Satisfaction
-            Tolerance_Satisfaction = Compute_ToleranceSatisfaction(Tolerance, Correction_Vector_NR)
-
             # Computing New SolutionVector_NR
             SolutionVector_NR = SolutionVector_NR + Correction_Vector_NR
 
+            # Compute Tolerance Satisfaction
+            Tolerance_Satisfaction = Compute_ToleranceSatisfaction_CPF(CDF_DF_List_pu, Ybus, NR_Type, Tolerance, SolutionVector_NR,  K_Vector, Current_Lambda)
+           
             # Stopping Timer
             IterationTime = tok()
 

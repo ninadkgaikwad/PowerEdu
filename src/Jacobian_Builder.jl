@@ -345,15 +345,15 @@ function Create_Jacobian_CPF_Correct(CDF_DF_List_pu, Ybus, CPF_Predictor_Vector,
     Jacobian_NR_Correct = Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVector_Delta, PQ_BusArray, NR_Type, 1)
 
     # Augmenting NR Jacobian with K Vector
-    Jacobian_CPF_Correct = hcat(Jacobian_NR_Predict, K_Vector)
+    Jacobian_CPF_Correct = hcat(Jacobian_NR_Correct, K_Vector)
 
     # Creating Last row of CPF Jacobian
-    Jacobian_CPF_Correct_LastRow = zeros(1,size(Jacobian_CPF_Predict)[2])
+    Jacobian_CPF_Correct_LastRow = zeros(1,size(Jacobian_CPF_Correct)[2])
 
     Jacobian_CPF_Correct_LastRow[1,Index_CPF] = 1
 
     # Augmenting Last Row to CPF Jacobian
-    Jacobian_CPF_Correct = vcat(Jacobian_CPF_Predict, Jacobian_CPF_Predict_LastRow)
+    Jacobian_CPF_Correct = vcat(Jacobian_CPF_Correct, Jacobian_CPF_Correct_LastRow)
 
     return Jacobian_CPF_Correct
 
