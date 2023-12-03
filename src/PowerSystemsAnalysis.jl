@@ -260,10 +260,13 @@ finding critical point.
 Time in seconds for each iteration.
 '''
 """
-function ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus_Taps_Indicator, StepSize_CPF, Tolerance_NR, Tol_Num, PostCriticalPoint_Counter_Input, SortValue, BusSwitching)
+function ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus_Taps_Indicator, StepSize_Vector_CPF, Tolerance_NR, Tol_Num, PostCriticalPoint_Counter_Input, SortValue, BusSwitching)
+    
+    # Reading IEEE CDF File
+    CDF_DF_List = CDF_Parser(CDF_FilePath, SortValue)
 
-    # Solving Initial Power Flow Problem
-   CDF_DF_List_pu, LineFlow_Array, PowerFlow_IterationTimeInfo_Array =  PowerFlow_MainFunction(CDF_FilePath; Ybus_Taps_Indicator=Ybus_Taps_Indicator, NR_Type=1, Tolerance=Tolerance_NR, Tol_Num=Tol_Num, SortValue=SortValue, BusSwitching=BusSwitching)
+    # Converting CDF DataFrame to PU
+    CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List)
 
    # Create Ybus
    if (Ybus_Taps_Indicator == false) # Without Taps
@@ -278,16 +281,26 @@ function ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus
 
    end
 
-   # Creating Initial Solution Vector
-   Initial_SolutionVector_CPF = Create_Initial_SolutionVector_CPF(CDF_DF_List_pu)
-
    # Creating K_Vector
    K_Vector = Create_KVector_CPF(CDF_DF_List_pu, PQ_V_Curve_Tuple)
+
+   # Creating Initial Lambda
+   Lambda_Ini = 0
+
+   # Solving Initial Power Flow Problem
+   Initial_SolutionVector, PowerFlow_IterationTimeInfo_Array =  PowerFlow_MainFunction_Ini_CPF(CDF_DF_List_pu, Ybus, 1, Tolerance_NR, Tol_Num, K_Vector, Lambda_Ini)
+
+   # Creating Initial Solution Vector
+   #Initial_SolutionVector_CPF = Create_Initial_SolutionVector_CPF(CDF_DF_List_pu)
+   Initial_SolutionVector_CPF = vcat(Initial_SolutionVector, Lambda_Ini)   
 
    # Initializing Predictor/Corrector/Tangent Vector History
    Predictor_Vector_History = zeros(size(K_Vector)[1]+1,1)
    Corrector_Vector_History = zeros(size(K_Vector)[1]+1,1)
    Tangent_Vector_History = zeros(size(K_Vector)[1]+1,1)
+
+   # Updating Corrector_Vector_History
+   Corrector_Vector_History[1:size(Corrector_Vector_History)[1], 1] = Initial_SolutionVector_CPF
 
    # Initializing ContinuationPowerFlow_IterationTimeInfo_Array
    ContinuationPowerFlow_IterationTimeInfo_Array = zeros(1,2)
@@ -317,7 +330,7 @@ function ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus
            if (WhileLoop_Counter == 1)
 
                    # Getting Solution Vector comes from Load Flow Solution
-                   SolutionVector_CPF = Initial_SolutionVector_CPF
+                   SolutionVector_CPF = Corrector_Vector_History[:,WhileLoop_Counter]
 
                    # Getting Index k (Choosing Lambda)
                    Index_CPF = size(K_Vector)[1]+1
@@ -340,7 +353,18 @@ function ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus
 
            end
 
-           # Compute Continuation Power Flow Jacobian Predictor Step
+           # Choosing correct step size based on current continuation parameterization
+           if (Index_CPF == size(SolutionVector_CPF)[1])  # Lambda is the Continuation Parameter
+
+                StepSize_CPF = StepSize_Vector_CPF[1]
+
+           else # Lambda is not the Continuation Parameter
+
+                StepSize_CPF = StepSize_Vector_CPF[2]
+
+           end
+
+           # Compute Continuation Power Flow Jacobian Predictor Step (Debug remove multiplication by voltage)
            Jacobian_CPF_Predict = Create_Jacobian_CPF_Predict(CDF_DF_List_pu, Ybus, SolutionVector_CPF, 1, K_Vector, Index_CPF)
 
            # Compute Tangent Vector
@@ -362,7 +386,7 @@ function ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus
            CPF_Predictor_Vector = Compute_PredictVector_CPF(SolutionVector_CPF, Tangent_Vector_Corrected, StepSize_CPF)
 
            # Compute Continuation Power Flow Jacobian Corrector Step
-           Jacobian_CPF_Correct = Create_Jacobian_CPF_Correct(CDF_DF_List_pu, Ybus, CPF_Predictor_Vector, 1, K_Vector, Index_CPF)
+           # Jacobian_CPF_Correct = Create_Jacobian_CPF_Correct(CDF_DF_List_pu, Ybus, CPF_Predictor_Vector, 1, K_Vector, Index_CPF)
 
            # Update/Correct Solution
            CPF_Corrector_Vector, PowerFlow_IterationTimeInfo_Array_Corrector = PowerFlow_MainFunction_CPF(CDF_DF_List_pu, Ybus, 1, CPF_Predictor_Vector, Tolerance_NR, Tol_Num, K_Vector, Index_CPF)
@@ -402,6 +426,7 @@ Creates Ybus without taps for a power system network.
 otherwise 'nothing'; the measurements are scaled through scale variables to make bad data.
 - 'Bad_Branch_Measurement_Input': Array of format - [[Bus_Num_i, Bus_Num_j, P_+_scale, P_-_scale, Q_+_scale, Q_-_scale], []] when bad data present, 
 otherwise 'nothing'; the measurements are scaled through scale variables to make bad data.
+- 'alpha': Alpha value for Chi-Square Distribution computation for Bad Data detection
 - 'Ybus_Taps_Indicator': 1 - Ybus with no taps, 2 - Ybus with Taps
 - 'Tolerance': Tolerance level for stopping criterion of Newton-Raphson Method.
 - 'Tol_Num': Tolerance for being near zero
@@ -413,7 +438,7 @@ otherwise 'nothing'; the measurements are scaled through scale variables to make
 - '':
 '''
 """
-function PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Measurement_Error_Variance, Bad_Bus_Measurement_Input, Bad_Branch_Measurement_Input, Tolerance_SE, Ybus_Taps_Indicator, Tolerance_NR, Tol_Num, SortValue, BusSwitching)
+function PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Measurement_Error_Variance, Bad_Bus_Measurement_Input, Bad_Branch_Measurement_Input, Tolerance_SE, alpha, Ybus_Taps_Indicator, Tolerance_NR, Tol_Num, SortValue, BusSwitching)
 
         # Solving Initial Power Flow Problem
         CDF_DF_List_pu, LineFlow_Array, PowerFlow_IterationTimeInfo_Array =  PowerFlow_MainFunction(CDF_FilePath; Ybus_Taps_Indicator=Ybus_Taps_Indicator, NR_Type=1, Tolerance=Tolerance_NR, Tol_Num=Tol_Num, SortValue=SortValue, BusSwitching=BusSwitching)
@@ -432,7 +457,7 @@ function PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Measurement_Erro
         end
 
         # Creating Initial Solution Vector
-        Initial_SolutionVector_SE = Create_Initial_SolutionVector_SE(CDF_DF_List_pu)
+        Initial_SolutionVector_SE = Create_Initial_SolutionVector1_SE(CDF_DF_List_pu)
 
         # Getting Solution Vectors divided in Voltages and Deltas
         SolutionVector_V_Ini, SolutionVector_Delta_Ini = Create_SolutionVector_VDelta_SE(CDF_DF_List_pu, Initial_SolutionVector_SE)
@@ -488,10 +513,10 @@ function PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Measurement_Erro
                 end
 
                 # Perform State Estimation
-                State_Estimate, CDF_DF_List_pu, RInv_Matrix  = Compute_StateEstimation(CDF_DF_List_pu, SolutionVector_SE, Ybus, IncidenceMatrix_A, Detected_BadData_Vector, Tolerance_SE)
+                State_Estimate, CDF_DF_List_pu, R_Inv_Matrix, Z_Measured_Vector  = Compute_StateEstimation_SE(CDF_DF_List_pu, SolutionVector_SE, Ybus, IncidenceMatrix_A, Detected_BadData_Vector, Tolerance_SE)
 
                 # Perform Bad Data Detection
-                # Bad_Data_Indicator, Detected_BadData_Vector = Compute_Bad_Data_Detection(CDF_DF_List_pu, State_Estimate, RInv_Matrix, Detected_BadData_Vector)
+                Bad_Data_Indicator, Detected_BadData_Vector = Compute_Bad_Data_Detection_SE(CDF_DF_List_pu, State_Estimate, R_Inv_Matrix, IncidenceMatrix_A, Z_Measured_Vector, Ybus, Detected_BadData_Vector, alpha)
 
                 # Stopping Timer
                 IterationTime = TickTock.tok()

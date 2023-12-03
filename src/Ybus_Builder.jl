@@ -150,6 +150,21 @@ function Create_Ybus_WithoutTaps(CDF_DF_List_pu)
 
     Ybus_WithoutTaps = hcat(Ybus_WithoutTaps_2,Ybus_WithoutTaps_1)
 
+    # Addressing Machine Precision Problem
+    for ii in 1:size(Ybus_WithoutTaps)[1]
+
+        for jj in 1:size(Ybus_WithoutTaps)[2]
+
+            if (abs(Ybus_WithoutTaps[ii,jj]) < 1e-12)
+
+                Ybus_WithoutTaps[ii,jj] = 0
+
+            end
+
+        end
+
+    end    
+
     return Ybus_WithoutTaps
 
 
@@ -264,6 +279,21 @@ function Create_Ybus_WithTaps(Ybus_WithoutTaps,CDF_DF_List_pu)
         end
 
     end
+
+    # Addressing Machine Precision Problem
+    for ii in 1:size(Ybus_WithTaps)[1]
+
+        for jj in 1:size(Ybus_WithTaps)[2]
+
+            if (abs(Ybus_WithTaps[ii,jj]) < 1e-12)
+
+                Ybus_WithTaps[ii,jj] = 0
+
+            end
+
+        end
+
+    end 
 
     return Ybus_WithTaps
 

@@ -451,7 +451,63 @@ function Create_Initial_SolutionVector_SE(CDF_DF_List_pu)
         # Creating Initial_SolutionVector_SE V part for Slack-PQ-PV Buses
         Initial_SolutionVector_SE[(N_PQ_Bus+N_PV_Bus+1+1):end,1] = BusDataCard_DF.Final_V_pu[1:end-1]      
         
-        Initial_SolutionVector_SE[(N_PQ_Bus+N_PV_Bus+1),1] = BusDataCard_DF.Final_V_pu[end]   
+        Initial_SolutionVector_SE[(N_PQ_Bus+N_PV_Bus+1),1] = BusDataCard_DF.Final_V_pu[end]  
+        
+        # Initial_SolutionVector_SE = vcat(zeros(N_Bus-1, 1), ones(N_Bus, 1)) - Debugger
+
+        return Initial_SolutionVector_SE
+
+end
+
+"""
+    Create_Initial_SolutionVector1_SE(CDF_DF_List_pu)
+
+Creates Initial Solution Vector for the Power System State Estimation.
+
+'''
+# Arguments
+- 'CDF_DF_List_pu': IEEE CDF file in List of Dataframe format according to
+Data Card types in IEEE CDF file : [TitleCard_DF, BusDataCard_DF,
+BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
+TieLinesDataCard_DF].
+'''
+'''
+# Output
+- 'Initial_SolutionVector_SE': Power Flow Solution Voltage and Angle at each
+bus ordered according to bus type: Slack->PQ->PV.
+'''
+"""
+function Create_Initial_SolutionVector1_SE(CDF_DF_List_pu)
+
+        # Getting required data from CDF_DF_List
+        BusDataCard_DF = CDF_DF_List_pu[2]
+
+        # Number of Buses
+        N_Bus = nrow(BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF))
+
+        # Creating Initial_SolutionVector_SE Length
+        Initial_SolutionVector_SE_Len = (2*N_PQ_Bus)+(2*N_PV_Bus)+1
+
+        # Initializing Initial_SolutionVector_SE
+        Initial_SolutionVector_SE = Array{Float64}(undef, Initial_SolutionVector_SE_Len ,1)
+
+        # Creating Initial_SolutionVector_SE Delta part for both PQ and PV Buses
+        Initial_SolutionVector_SE[1:(N_PQ_Bus+N_PV_Bus),1] = zeros(N_Bus-1, 1)
+
+            
+        # Creating Initial_SolutionVector_SE V part for SlackBuses
+        Initial_SolutionVector_SE[(N_PQ_Bus+N_PV_Bus+1),1] = BusDataCard_DF.Final_V_pu[end]  
+
+        # Creating Initial_SolutionVector_SE V part for PQ Buses
+        Initial_SolutionVector_SE[(N_PQ_Bus+N_PV_Bus+1+1):(2*N_PQ_Bus+N_PV_Bus+1),1] = ones(N_PQ_Bus, 1)
+
+        # Creating Initial_SolutionVector_SE V part for PV Buses
+        Initial_SolutionVector_SE[(2*N_PQ_Bus+N_PV_Bus+1+1):end,1] = BusDataCard_DF.Final_V_pu[(N_PQ_Bus +1):end-1] 
+        
+        # Initial_SolutionVector_SE = vcat(zeros(N_Bus-1, 1), ones(N_Bus, 1)) - Debugger BusDataCard_DF.Final_V_pu[1:end-1] 
 
         return Initial_SolutionVector_SE
 
@@ -1137,7 +1193,15 @@ function Compute_Z_Measured_Vector_SE(CDF_DF_List_pu, Detected_BadData_Vector)
                                         Z_Measured_Vector_Size_Counter = Z_Measured_Vector_Size_Counter + 1
 
                                         # Filling the Diagonal element of Z_Measured_Vector
-                                        Z_Measured_Vector[Z_Measured_Vector_Size_Counter,1] = BusDataCard_DF.V_Measured[jj]
+                                        if (jj == 1)
+                                                
+                                                Z_Measured_Vector[Z_Measured_Vector_Size_Counter,1] = BusDataCard_DF.V_Measured[N_Bus]
+
+                                        else
+
+                                                Z_Measured_Vector[Z_Measured_Vector_Size_Counter,1] = BusDataCard_DF.V_Measured[jj-1]
+
+                                        end
 
                                 end
 
@@ -1149,7 +1213,15 @@ function Compute_Z_Measured_Vector_SE(CDF_DF_List_pu, Detected_BadData_Vector)
                                         Z_Measured_Vector_Size_Counter = Z_Measured_Vector_Size_Counter + 1
 
                                         # Filling the Diagonal element of Z_Measured_Vector
-                                        Z_Measured_Vector[Z_Measured_Vector_Size_Counter,1] = BusDataCard_DF.P_Measured[jj]
+                                        if (jj == 1)
+                                                
+                                                Z_Measured_Vector[Z_Measured_Vector_Size_Counter,1] = BusDataCard_DF.P_Measured[N_Bus]
+
+                                        else
+
+                                                Z_Measured_Vector[Z_Measured_Vector_Size_Counter,1] = BusDataCard_DF.P_Measured[jj-1]
+                                                
+                                        end
 
                                 end
 
@@ -1161,7 +1233,15 @@ function Compute_Z_Measured_Vector_SE(CDF_DF_List_pu, Detected_BadData_Vector)
                                         Z_Measured_Vector_Size_Counter = Z_Measured_Vector_Size_Counter + 1
 
                                         # Filling the Diagonal element of Z_Measured_Vector
-                                        Z_Measured_Vector[Z_Measured_Vector_Size_Counter,1] = BusDataCard_DF.Q_Measured[jj]
+                                        if (jj == 1)
+                                                
+                                                Z_Measured_Vector[Z_Measured_Vector_Size_Counter,1] = BusDataCard_DF.Q_Measured[N_Bus]
+
+                                        else
+
+                                                Z_Measured_Vector[Z_Measured_Vector_Size_Counter,1] = BusDataCard_DF.Q_Measured[jj-1]
+                                                
+                                        end                                        
 
                                 end
 
@@ -1512,33 +1592,6 @@ function Compute_Z_Calculated_Vector_SE(CDF_DF_List_pu, SolutionVector_V, Soluti
 
 end
 
-""" 
-Compute_H_Matrix_SE(CDF_DF_List_pu, SolutionVector_V, SolutionVector_Delta, Ybus, IncidenceMatrix_A, Detected_BadData_Vector)
-
-Creates Initial Solution Vector for the Power System State Estimation.
-
-'''     
-# Arguments 
-
-'''
-'''
-# Output
-
-'''
-"""
-function Compute_H_Matrix_SE(CDF_DF_List_pu, SolutionVector_V, SolutionVector_Delta, Ybus, IncidenceMatrix_A, Detected_BadData_Vector)
-
-        # Getting required data from CDF_DF_List
-        BusDataCard_DF = CDF_DF_List_pu[2]
-        BranchDataCard_DF = CDF_DF_List_pu[3]
-
-        # Number of Buses and Lines
-        N_Bus = nrow(BusDataCard_DF)
-        N_Lines = nrow(BranchDataCard_DF)       
-        
-        return H_Matrix 
-
-end
 
 """ 
 Compute_Corrected_MisMatchVector_SE(CDF_DF_List_pu, StateEstimation_MisMatch_Vector)
@@ -1599,7 +1652,7 @@ function Compute_ToleranceSatisfaction_SE(StateEstimation_MisMatch_Vector, Toler
         # Computing Tolerance Counter
         for ii in 1: length(StateEstimation_MisMatch_Vector)
 
-                if (abs(StateEstimation_MisMatch_Vector[ii]) > Tolerance)
+                if (abs(StateEstimation_MisMatch_Vector[ii]) > Tolerance_SE)
 
                         # Incrementing the Tolerance Counter
                         ToleranceCounter = ToleranceCounter + 1
@@ -1615,11 +1668,11 @@ function Compute_ToleranceSatisfaction_SE(StateEstimation_MisMatch_Vector, Toler
         # Computing Tolerance Satisfaction
         if (ToleranceCounter > 0)
 
-                Tolerance_Satisfaction = false
+                Tolerance_Satisfaction_SE = false
 
         else
 
-                Tolerance_Satisfaction = true
+                Tolerance_Satisfaction_SE = true
 
         end
 
@@ -1628,7 +1681,7 @@ function Compute_ToleranceSatisfaction_SE(StateEstimation_MisMatch_Vector, Toler
 end
 
 """ 
-Compute_StateEstimation(CDF_DF_List_pu, SolutionVector_SE, Detected_Bad_Data)
+Compute_StateEstimation_SE(CDF_DF_List_pu, SolutionVector_SE, Detected_Bad_Data)
 
 Creates Initial Solution Vector for the Power System State Estimation.
 
@@ -1641,7 +1694,7 @@ Creates Initial Solution Vector for the Power System State Estimation.
 
 '''
 """
-function Compute_StateEstimation(CDF_DF_List_pu, SolutionVector_SE_Ini, Ybus, IncidenceMatrix_A, Detected_BadData_Vector, Tolerance_SE)
+function Compute_StateEstimation_SE(CDF_DF_List_pu, SolutionVector_SE_Ini, Ybus, IncidenceMatrix_A, Detected_BadData_Vector, Tolerance_SE)
 
         # Getting required data from CDF_DF_List
         BusDataCard_DF = CDF_DF_List_pu[2]
@@ -1668,19 +1721,24 @@ function Compute_StateEstimation(CDF_DF_List_pu, SolutionVector_SE_Ini, Ybus, In
         # InItializing 
         WhileLoop_Counter = 0
 
-        SolutionVector_SE = zeros(N_Bus-1, 1)
+        SolutionVector_SE = copy(SolutionVector_SE_Ini)
+
+        #SolutionVector_SE = vcat(zeros(13,1),ones(14,1)) #- Debugger
 
         # While Loop: For performing State Estimation
-        while (!Tolerance_Satisfaction)
+        while ((!Tolerance_Satisfaction) && !(WhileLoop_Counter > 4))
 
                 # Incrementing WhileLoop_Counter
                 WhileLoop_Counter = WhileLoop_Counter + 1
+                @show WhileLoop_Counter
 
                  # If Else Loop: For checking First Iteration
                 if (WhileLoop_Counter == 1)
 
                         # Getting Solution Vectors divided in Voltages and Deltas
                         SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_SE(CDF_DF_List_pu, SolutionVector_SE_Ini)
+
+                        # SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_SE(CDF_DF_List_pu, SolutionVector_SE) # Debugger
                 
                 else
 
@@ -1699,10 +1757,10 @@ function Compute_StateEstimation(CDF_DF_List_pu, SolutionVector_SE_Ini, Ybus, In
                 MisMatch_Vector = Z_Measured_Vector - Z_Calculated_Vector 
 
                 # Compute G1 Matrix
-                G1_Matrix = H_Matrix' * RInv_Matrix * H_Matrix
+                G1_Matrix = H_Matrix' * R_Inv_Matrix * H_Matrix
 
                 # Compute G2 Matrix
-                G2_Matrix = H_Matrix' * RInv_Matrix * MisMatch_Vector
+                G2_Matrix = H_Matrix' * R_Inv_Matrix * MisMatch_Vector
 
                 # Computing State Estimation Mismatch Vector
                 StateEstimation_MisMatch_Vector = G1_Matrix \ G2_Matrix
@@ -1714,10 +1772,181 @@ function Compute_StateEstimation(CDF_DF_List_pu, SolutionVector_SE_Ini, Ybus, In
                 SolutionVector_SE = SolutionVector_SE + StateEstimation_MisMatch_Vector_Corrected
 
                 # Compute Tolerance Satisfaction
-                Tolerance_Satisfaction = Compute_ToleranceSatisfaction_SE(StateEstimation_MisMatch_Vector_Corrected, Tolerance_SE)
+                Tolerance_Satisfaction = Compute_ToleranceSatisfaction_SE(StateEstimation_MisMatch_Vector, Tolerance_SE)
 
         end
 
-        return SolutionVector_SE, CDF_DF_List_pu, RInv_Matrix 
+        return SolutionVector_SE, CDF_DF_List_pu, R_Inv_Matrix, Z_Measured_Vector 
+
+end
+
+""" 
+Compute_SumOfSquares_Error_SE(R_Inv_Matrix, MisMatch_Vector)
+
+Creates Initial Solution Vector for the Power System State Estimation.
+
+'''     
+# Arguments 
+
+'''
+'''
+# Output
+
+'''
+"""
+function Compute_SumOfSquares_Error_SE(R_Inv_Matrix, MisMatch_Vector)
+
+        # Getting Diagonal Elements of R_Inv_Matrix in a Vector
+        R_Inv_Matrix_Diag = diag(R_Inv_Matrix)
+
+        # Compute Square of MisMatch_Vector
+        MisMatch_Vector_Square = MisMatch_Vector.^(2)
+
+        # Compute Sum of Squares of Error
+        SumOfSquares_Error = dot(R_Inv_Matrix_Diag, MisMatch_Vector_Square)        
+
+        return SumOfSquares_Error
+
+end
+
+""" 
+Identify_BadData_SE(CDF_DF_List_pu, SolutionVector_V, SolutionVector_Delta, Ybus, IncidenceMatrix_A, MisMatch_Vector, R_Inv_Matrix)
+
+Creates Initial Solution Vector for the Power System State Estimation.
+
+'''     
+# Arguments 
+
+'''
+'''
+# Output
+
+'''
+"""
+function Identify_BadData_SE(CDF_DF_List_pu, SolutionVector_V, SolutionVector_Delta, Ybus, IncidenceMatrix_A, MisMatch_Vector, R_Inv_Matrix, Detected_BadData_Vector)
+
+        # Compute the H Matrix - Based on Detected Bad Data
+        H_Matrix = Compute_H_Matrix_SE(CDF_DF_List_pu, SolutionVector_V, SolutionVector_Delta, Ybus, IncidenceMatrix_A, Detected_BadData_Vector)
+
+        # Compute R_Matrix 
+        R_Inv_Matrix_Diag = diag(R_Inv_Matrix)
+
+        R_Matrix_Diag = R_Inv_Matrix_Diag.^(-1)
+
+        R_Matrix = Diagonal(R_Matrix_Diag)
+
+        # Compute G1 Matrix
+        G1_Matrix = H_Matrix' * R_Inv_Matrix * H_Matrix 
+
+        # Compute G1 Matrix Inverse
+        G1_Matrix_Inv = G1_Matrix \ I
+
+        # Compute R1 Matrix
+        R1_Matrix = (I - (H_Matrix * G1_Matrix_Inv * H_Matrix' * R_Inv_Matrix)) * R_Matrix
+
+        # Getting R1 Matrix Diagonal
+        R1_Matrix_Diag = diag(R1_Matrix)
+
+        # Computing R1 Inverse Squareroot Diagonal
+        R1_Matrix_Inv_Sqrt_Diag = R1_Matrix_Diag.^(-0.5)
+
+        # Compute Standardized Errors Vector 
+        Standardized_Errors_Vector = R1_Matrix_Inv_Sqrt_Diag .* MisMatch_Vector
+
+        # Get Max Element (i.e. Bad Data) of the absolute Standardized Errors Vector
+        Max_StandardError, Max_StandardError_Index = findmax(broadcast(abs,Standardized_Errors_Vector))
+
+        # Updating Detected_BadData_Vector with Max_StandardError_Index as New Bad Data (1 -> 0)
+        BadData_Counter = 0  # Initialization
+        for ii in 1:length(Detected_BadData_Vector)  # For each element array in Detected_BadData_Vector
+
+                for jj in 1:length(Detected_BadData_Vector[ii])  # For each element in Detected_BadData_Vector[ii]
+
+                        # Increment Size_R_Inv_Matrix
+                        if (Detected_BadData_Vector[ii][jj] == 1)  # Bad Data  not present
+
+                                # Increment Size_R_Inv_Matrix
+                                BadData_Counter = BadData_Counter + 1
+
+                        else  # Bad Data present
+
+                                
+
+                        end
+
+                        # If Loop: Update Bad Data Vector
+                        if (Max_StandardError_Index[1] == BadData_Counter)  # Bad Data present
+
+                                Detected_BadData_Vector[ii][jj] = 0
+
+                        else  # Bad Data not present
+
+                                
+
+                        end
+
+                end
+
+        end
+
+        return Detected_BadData_Vector 
+
+end
+
+""" 
+Compute_Bad_Data_Detection(CDF_DF_List_pu, State_Estimate, R_Inv_Matrix, Z_Measured_Vector, Detected_BadData_Vector, alpha
+
+Creates Initial Solution Vector for the Power System State Estimation.
+
+'''     
+# Arguments 
+
+'''
+'''
+# Output
+
+'''
+"""
+function Compute_Bad_Data_Detection_SE(CDF_DF_List_pu, State_Estimate, R_Inv_Matrix, IncidenceMatrix_A, Z_Measured_Vector, Ybus, Detected_BadData_Vector, alpha)
+
+        # Getting Solution Vectors divided in Voltages and Deltas
+        SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_SE(CDF_DF_List_pu, State_Estimate)
+
+        # Compute Z Vector for calculated measurements - Based on Detected Bad Data
+        Z_Calculated_Vector  = Compute_Z_Calculated_Vector_SE(CDF_DF_List_pu, SolutionVector_V, SolutionVector_Delta, Ybus, IncidenceMatrix_A, Detected_BadData_Vector)
+
+        # Compute MisMatch Vector
+        MisMatch_Vector = Z_Measured_Vector - Z_Calculated_Vector 
+
+        # Compute Sum of Squares of MisMatch
+        SumOfSquares_Error = Compute_SumOfSquares_Error_SE(R_Inv_Matrix, MisMatch_Vector) 
+        @show SumOfSquares_Error
+
+        # Compute Degrees of Freedom
+        DegreesOfFreedom = length(Z_Measured_Vector) - length(State_Estimate)
+        @show DegreesOfFreedom
+        
+
+        # Compute Chi-Square Value of Degrees of Freedom
+        ChiSquare_Value = cquantile(Chisq(DegreesOfFreedom), alpha)
+        @show ChiSquare_Value
+
+        # Bad Data Detection
+        if (SumOfSquares_Error > ChiSquare_Value)  # Bad Data Present
+
+                # Compute Bad_Data_Indicator
+                Bad_Data_Indicator = true
+
+                # Identifying Bad Data
+                Detected_BadData_Vector = Identify_BadData_SE(CDF_DF_List_pu, SolutionVector_V, SolutionVector_Delta, Ybus, IncidenceMatrix_A, MisMatch_Vector, R_Inv_Matrix, Detected_BadData_Vector)
+
+        else  # Bad Data not Present
+
+                # Compute Bad_Data_Indicator
+                Bad_Data_Indicator = false
+
+        end
+
+return Bad_Data_Indicator, Detected_BadData_Vector 
 
 end

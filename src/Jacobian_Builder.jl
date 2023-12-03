@@ -97,7 +97,7 @@ function Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVect
 
                 if (ii == jj) # Diagonal Term
 
-                    J_12[ii,jj] = (PQ_BusArray[ii+1,1]) + (SolutionVector_V[ii+1]^(2)*real(Ybus[ii+1,ii+1]))
+                    J_12[ii,jj] = ((PQ_BusArray[ii+1,1]) + (SolutionVector_V[ii+1]^(2)*real(Ybus[ii+1,ii+1])))
 
                 else # Off-Diagonal Term
 
@@ -135,7 +135,7 @@ function Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVect
 
                 if (ii == jj) # Diagonal Term
 
-                    J_22[ii,jj] = (PQ_BusArray[ii+1,2]) - (SolutionVector_V[ii+1]^(2)*imag(Ybus[ii+1,ii+1]))
+                    J_22[ii,jj] = ((PQ_BusArray[ii+1,2]) - (SolutionVector_V[ii+1]^(2)*imag(Ybus[ii+1,ii+1])))
 
                 else # Off-Diagonal Term
 
@@ -152,6 +152,21 @@ function Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVect
         Jacobian_NR2 = hcat(J_21,J_22)
 
         Jacobian_NR = vcat(Jacobian_NR1,Jacobian_NR2)
+
+        # Addressing Machine Precision Problem
+        for ii in 1:size(Jacobian_NR)[1]
+
+            for jj in 1:size(Jacobian_NR)[2]
+
+                if (abs(Jacobian_NR[ii,jj]) < 1e-12)
+
+                    Jacobian_NR[ii,jj] = 0
+
+                end
+
+            end
+
+        end
 
     elseif (NR_Type == 2) # Decoupled Newton-Raphson
 
@@ -204,6 +219,35 @@ function Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVect
 
             end
 
+            # Addressing Machine Precision Problem
+            for ii in 1:size(J_11)[1]
+
+                for jj in 1:size(J_11)[2]
+
+                    if (abs(J_11[ii,jj]) < 1e-12)
+
+                        J_11[ii,jj] = 0
+
+                    end
+
+                end
+
+            end
+
+            for ii in 1:size(J_22)[1]
+
+                for jj in 1:size(J_22)[2]
+
+                    if (abs(J_22[ii,jj]) < 1e-12)
+
+                        J_22[ii,jj] = 0
+
+                    end
+
+                end
+
+            end
+
             # Creating Jacobian_NR
             Jacobian_NR = [J_11, J_22]
 
@@ -237,6 +281,359 @@ function Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVect
             for jj in 1:J_22_ColNum # Through Columns
 
                 J_22 = -imag(Ybus[ii+1,jj+1])
+
+            end
+
+        end
+
+        # Addressing Machine Precision Problem
+        for ii in 1:size(J_11)[1]
+
+            for jj in 1:size(J_11)[2]
+
+                if (abs(J_11[ii,jj]) < 1e-12)
+
+                    J_11[ii,jj] = 0
+
+                end
+
+            end
+
+        end
+
+        for ii in 1:size(J_22)[1]
+
+            for jj in 1:size(J_22)[2]
+
+                if (abs(J_22[ii,jj]) < 1e-12)
+
+                    J_22[ii,jj] = 0
+
+                end
+
+            end
+
+        end
+
+        # Creating Jacobian_NR
+        Jacobian_NR = [J_11, J_22]
+
+    end
+
+    return Jacobian_NR
+
+end
+
+"""
+    Create_Jacobian_NR_CPF(CDF_DF_List_pu, Ybus, SolutionVector_V,
+    SolutionVector_Delta, PQ_BusArray)
+
+Creates Jacobian Matrix for power system network for full Newton-Raphson method.
+
+'''
+# Arguments
+- 'CDF_DF_List_pu': IEEE CDF file in List of Dataframe format according to
+Data Card types in IEEE CDF file : [TitleCard_DF, BusDataCard_DF,
+BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
+TieLinesDataCard_DF].
+- 'Ybus': A complex array of Ybus elements ordered according to bus
+type: Slack->PQ->PV.
+- 'SolutionVector_V': Voltage at each bus ordered according to bus
+type: Slack->PQ->PV.
+- 'SolutionVector_Delta': Angle at each bus ordered according to bus
+type: Slack->PQ->PV.
+- 'PQ_BusArray': An array (N*2) for P and Q vectors ordered according to bus
+type: Slack->PQ->PV.
+- 'NR_Type': 1 -> Full Newton-Raphson, 2-> Decoupled Newton-Raphson,
+3 -> Fast Decoupled Newton-Raphson
+- 'ContinuationPowerFlow_Indicator': 0 - Not Continuation Power Flow,
+1 - Yes Continuation Power Flow
+'''
+'''
+# Output
+- 'Jacobian_Matrix': Jacobian Matrix for full Newton-Raphson method: PQ->PV.
+'''
+"""
+function Create_Jacobian_NR_CPF(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVector_Delta, PQ_BusArray, NR_Type, ContinuationPowerFlow_Indicator)
+
+    # Getting required data from CDF_DF_List
+    BusDataCard_DF = CDF_DF_List_pu[2]
+
+    # Number of Buses
+    N_Bus = nrow(BusDataCard_DF)
+    if (ContinuationPowerFlow_Indicator == 0)
+
+        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+
+    elseif (ContinuationPowerFlow_Indicator == 1)
+
+        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF))
+
+    end
+
+    # Creating Jacobian Matrix based on NR_Type
+    if (NR_Type == 1) # Full Newton-Raphson
+
+        # Computing Sizes for Jacobian Submatrices
+        J_11_RowNum = N_PQ_Bus+N_PV_Bus
+        J_11_ColNum = N_PQ_Bus+N_PV_Bus
+
+        J_12_RowNum = N_PQ_Bus+N_PV_Bus
+        J_12_ColNum = N_PQ_Bus
+
+        J_21_RowNum = N_PQ_Bus
+        J_21_ColNum = N_PQ_Bus+N_PV_Bus
+
+        J_22_RowNum = N_PQ_Bus
+        J_22_ColNum = N_PQ_Bus
+
+        # Initializing the Jacobian Submatrices
+        J_11 = zeros(J_11_RowNum,J_11_ColNum)
+        J_12 = zeros(J_12_RowNum,J_12_ColNum)
+        J_21 = zeros(J_21_RowNum,J_21_ColNum)
+        J_22 = zeros(J_22_RowNum,J_22_ColNum)
+
+        # Computing J_11
+        for ii in 1:J_11_RowNum # Through Rows
+
+            for jj in 1:J_11_ColNum # Through Columns
+
+                if (ii == jj) # Diagonal Term
+
+                    J_11[ii,jj] = -(PQ_BusArray[ii+1,2]) - (SolutionVector_V[ii+1]^(2)*imag(Ybus[ii+1,ii+1]))
+
+                else # Off-Diagonal Term
+
+                    J_11[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))
+
+                end
+
+            end
+
+        end
+
+        # Computing J_12
+        for ii in 1:J_12_RowNum # Through Rows
+
+            for jj in 1:J_12_ColNum # Through Columns
+
+                if (ii == jj) # Diagonal Term
+
+                    J_12[ii,jj] = ((PQ_BusArray[ii+1,1]) + (SolutionVector_V[ii+1]^(2)*real(Ybus[ii+1,ii+1])))/SolutionVector_V[ii+1]
+
+                else # Off-Diagonal Term
+
+                    J_12[ii,jj] = (SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *cos(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))/SolutionVector_V[jj+1]
+
+                end
+
+            end
+
+        end
+
+        # Computing J_21
+        for ii in 1:J_21_RowNum # Through Rows
+
+            for jj in 1:J_21_ColNum # Through Columns
+
+                if (ii == jj) # Diagonal Term
+
+                    J_21[ii,jj] = (PQ_BusArray[ii+1,1]) - (SolutionVector_V[ii+1]^(2)*real(Ybus[ii+1,ii+1]))
+
+                else # Off-Diagonal Term
+
+                    J_21[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *cos(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))
+
+                end
+
+            end
+
+        end
+
+        # Computing J_22
+        for ii in 1:J_22_RowNum # Through Rows
+
+            for jj in 1:J_22_ColNum # Through Columns
+
+                if (ii == jj) # Diagonal Term
+
+                    J_22[ii,jj] = ((PQ_BusArray[ii+1,2]) - (SolutionVector_V[ii+1]^(2)*imag(Ybus[ii+1,ii+1])))/SolutionVector_V[ii+1]
+
+                else # Off-Diagonal Term
+
+                    J_22[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))/SolutionVector_V[jj+1]
+
+                end
+
+            end
+
+        end
+
+        # Creating Jacobian_NR
+        Jacobian_NR1 = hcat(J_11,J_12)
+        Jacobian_NR2 = hcat(J_21,J_22)
+
+        Jacobian_NR = vcat(Jacobian_NR1,Jacobian_NR2)
+
+        # Addressing Machine Precision Problem
+        for ii in 1:size(Jacobian_NR)[1]
+
+            for jj in 1:size(Jacobian_NR)[2]
+
+                if (abs(Jacobian_NR[ii,jj]) < 1e-12)
+
+                    Jacobian_NR[ii,jj] = 0
+
+                end
+
+            end
+
+        end
+
+    elseif (NR_Type == 2) # Decoupled Newton-Raphson
+
+            # Computing Sizes for Jacobian Submatrices
+            J_11_RowNum = N_PQ_Bus+N_PV_Bus
+            J_11_ColNum = N_PQ_Bus+N_PV_Bus
+
+            J_22_RowNum = N_PQ_Bus
+            J_22_ColNum = N_PQ_Bus
+
+            # Initializing the Jacobian Submatrices
+            J_11 = zeros(J_11_RowNum,J_11_ColNum)
+            J_22 = zeros(J_22_RowNum,J_22_ColNum)
+
+            # Computing J_11
+            for ii in 1:J_11_RowNum # Through Rows
+
+                for jj in 1:J_11_ColNum # Through Columns
+
+                    if (ii == jj) # Diagonal Term
+
+                        J_11[ii,jj] = -(PQ_BusArray[ii+1,2]) - (SolutionVector_V[ii+1]^(2)*imag(Ybus[ii+1,ii+1]))
+
+                    else # Off-Diagonal Term
+
+                        J_11[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))
+
+                    end
+
+                end
+
+            end
+
+            # Computing J_22
+            for ii in 1:J_22_RowNum # Through Rows
+
+                for jj in 1:J_22_ColNum # Through Columns
+
+                    if (ii == jj) # Diagonal Term
+
+                        J_22[ii,jj] = (PQ_BusArray[ii+1,2]) - (SolutionVector_V[ii+1]^(2)*imag(Ybus[ii+1,ii+1]))
+
+                    else # Off-Diagonal Term
+
+                        J_22[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))
+
+                    end
+
+                end
+
+            end
+
+            # Addressing Machine Precision Problem
+            for ii in 1:size(J_11)[1]
+
+                for jj in 1:size(J_11)[2]
+
+                    if (abs(J_11[ii,jj]) < 1e-12)
+
+                        J_11[ii,jj] = 0
+
+                    end
+
+                end
+
+            end
+
+            for ii in 1:size(J_22)[1]
+
+                for jj in 1:size(J_22)[2]
+
+                    if (abs(J_22[ii,jj]) < 1e-12)
+
+                        J_22[ii,jj] = 0
+
+                    end
+
+                end
+
+            end
+
+            # Creating Jacobian_NR
+            Jacobian_NR = [J_11, J_22]
+
+    elseif (NR_Type == 3) # Fast Decoupled Newton-Raphson
+
+        # Computing Sizes for Jacobian Submatrices
+        J_11_RowNum = N_PQ_Bus+N_PV_Bus
+        J_11_ColNum = N_PQ_Bus+N_PV_Bus
+
+        J_22_RowNum = N_PQ_Bus
+        J_22_ColNum = N_PQ_Bus
+
+        # Initializing the Jacobian Submatrices
+        J_11 = zeros(J_11_RowNum,J_11_ColNum)
+        J_22 = zeros(J_22_RowNum,J_22_ColNum)
+
+        # Computing J_11
+        for ii in 1:J_11_RowNum # Through Rows
+
+            for jj in 1:J_11_ColNum # Through Columns
+
+                J_11 = -imag(Ybus[ii+1,jj+1])
+
+            end
+
+        end
+
+        # Computing J_22
+        for ii in 1:J_22_RowNum # Through Rows
+
+            for jj in 1:J_22_ColNum # Through Columns
+
+                J_22 = -imag(Ybus[ii+1,jj+1])
+
+            end
+
+        end
+
+        # Addressing Machine Precision Problem
+        for ii in 1:size(J_11)[1]
+
+            for jj in 1:size(J_11)[2]
+
+                if (abs(J_11[ii,jj]) < 1e-12)
+
+                    J_11[ii,jj] = 0
+
+                end
+
+            end
+
+        end
+
+        for ii in 1:size(J_22)[1]
+
+            for jj in 1:size(J_22)[2]
+
+                if (abs(J_22[ii,jj]) < 1e-12)
+
+                    J_22[ii,jj] = 0
+
+                end
 
             end
 
@@ -288,7 +685,7 @@ function Create_Jacobian_CPF_Predict(CDF_DF_List_pu, Ybus, SolutionVector_CPF, N
     PQ_BusArray = Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
 
     # Computing NR Jacobian
-    Jacobian_NR_Predict = Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVector_Delta, PQ_BusArray, NR_Type, 1)
+    Jacobian_NR_Predict = Create_Jacobian_NR_CPF(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVector_Delta, PQ_BusArray, NR_Type, 1)
 
     # Augmenting NR Jacobian with K Vector
     Jacobian_CPF_Predict = hcat(Jacobian_NR_Predict, K_Vector)
@@ -342,10 +739,10 @@ function Create_Jacobian_CPF_Correct(CDF_DF_List_pu, Ybus, CPF_Predictor_Vector,
     PQ_BusArray = Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
 
     # Computing NR Jacobian
-    Jacobian_NR_Correct = Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVector_Delta, PQ_BusArray, NR_Type, 1)
+    Jacobian_NR_Correct = Create_Jacobian_NR_CPF(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVector_Delta, PQ_BusArray, NR_Type, 1)
 
-    # Augmenting NR Jacobian with K Vector
-    Jacobian_CPF_Correct = hcat(Jacobian_NR_Correct, K_Vector)
+    # Augmenting NR Jacobian with K Vector (Debugger -K_Vector)
+    Jacobian_CPF_Correct = hcat(Jacobian_NR_Correct, -K_Vector)
 
     # Creating Last row of CPF Jacobian
     Jacobian_CPF_Correct_LastRow = zeros(1,size(Jacobian_CPF_Correct)[2])
@@ -356,6 +753,808 @@ function Create_Jacobian_CPF_Correct(CDF_DF_List_pu, Ybus, CPF_Predictor_Vector,
     Jacobian_CPF_Correct = vcat(Jacobian_CPF_Correct, Jacobian_CPF_Correct_LastRow)
 
     return Jacobian_CPF_Correct
+
+end
+
+""" 
+Compute_H_Matrix_SE(CDF_DF_List_pu, SolutionVector_V, SolutionVector_Delta, Ybus, IncidenceMatrix_A, Detected_BadData_Vector)
+
+Creates Initial Solution Vector for the Power System State Estimation.
+
+'''     
+# Arguments 
+
+'''
+'''
+# Output
+
+'''
+"""
+function Compute_H_Matrix_SE(CDF_DF_List_pu, SolutionVector_V, SolutionVector_Delta, Ybus, IncidenceMatrix_A, Detected_BadData_Vector)
+
+    # Getting required data from CDF_DF_List
+    BusDataCard_DF = CDF_DF_List_pu[2]
+    BranchDataCard_DF = CDF_DF_List_pu[3]
+
+    # Number of Buses and Lines
+    N_Bus = nrow(BusDataCard_DF)
+    N_Lines = nrow(BranchDataCard_DF)    
+    
+    # Getting the contents of Detected_BadData_Vector
+    V_BadData_Vector = Detected_BadData_Vector[1]
+    P_BadData_Vector = Detected_BadData_Vector[2]
+    Q_BadData_Vector = Detected_BadData_Vector[3]
+    Pij_BadData_Vector = Detected_BadData_Vector[4]
+    Pji_BadData_Vector = Detected_BadData_Vector[5]
+    Qij_BadData_Vector = Detected_BadData_Vector[6]
+    Qji_BadData_Vector = Detected_BadData_Vector[7]
+
+    # Computing number of Columns for the H Matrix Submatrices
+    H_Matrix_Odd_ColNum = N_Bus-1
+    H_Matrix_Even_ColNum = N_Bus
+
+    # Computing number of Rows for the H Matrix Submatrices
+    H_Matrix_Sub_RowNum_Vector = zeros(length(Detected_BadData_Vector),1)  # Initialization
+    
+    for ii in 1:length(Detected_BadData_Vector)  # For each element array in Detected_BadData_Vector
+
+        Current_Matrix_RowNum = 0  # Initialization
+
+        for jj in 1:length(Detected_BadData_Vector[ii])  # For each element in Detected_BadData_Vector[ii]
+
+            # If Loop: To check for bad data
+            if (Detected_BadData_Vector[ii][jj] == 0)  # Bad Data present
+
+                # Do not Increment Size
+
+            else  # Bad Data not present
+
+                # Increment Current_Matrix_RowNum
+                Current_Matrix_RowNum = Current_Matrix_RowNum + 1
+
+            end
+
+        end
+
+        # Updating H_Matrix_Sub_RowNum_Vector
+        H_Matrix_Sub_RowNum_Vector[ii,1] = Current_Matrix_RowNum
+
+    end
+
+    # Initializing H Matrix Submatrices
+    H_1_SubMatrix = zeros(Int64(H_Matrix_Sub_RowNum_Vector[1,1]), N_Bus-1)  # Already Built
+    H_2_SubMatrix = zeros(Int64(H_Matrix_Sub_RowNum_Vector[1,1]), N_Bus)
+    H_3_SubMatrix = zeros(Int64(H_Matrix_Sub_RowNum_Vector[2,1]), N_Bus-1)
+    H_4_SubMatrix = zeros(Int64(H_Matrix_Sub_RowNum_Vector[2,1]), N_Bus)
+    H_5_SubMatrix = zeros(Int64(H_Matrix_Sub_RowNum_Vector[3,1]), N_Bus-1,)
+    H_6_SubMatrix = zeros(Int64(H_Matrix_Sub_RowNum_Vector[3,1]), N_Bus)
+    H_7_SubMatrix = zeros(Int64(H_Matrix_Sub_RowNum_Vector[4,1]), N_Bus-1)
+    H_8_SubMatrix = zeros(Int64(H_Matrix_Sub_RowNum_Vector[4,1]), N_Bus)
+    H_9_SubMatrix = zeros(Int64(H_Matrix_Sub_RowNum_Vector[5,1]), N_Bus-1)
+    H_10_SubMatrix = zeros(Int64(H_Matrix_Sub_RowNum_Vector[5,1]), N_Bus)
+    H_11_SubMatrix = zeros(Int64(H_Matrix_Sub_RowNum_Vector[6,1]), N_Bus-1)
+    H_12_SubMatrix = zeros(Int64(H_Matrix_Sub_RowNum_Vector[6,1]), N_Bus)
+    H_13_SubMatrix = zeros(Int64(H_Matrix_Sub_RowNum_Vector[7,1]), N_Bus-1)
+    H_14_SubMatrix = zeros(Int64(H_Matrix_Sub_RowNum_Vector[7,1]), N_Bus)
+
+    # Building H_2_SubMatrix
+    H_2_SubMatrix_ii = 0  # Initialization
+    for jj in 1:length(V_BadData_Vector)  # For each element in V_BadData_Vector[ii]
+
+        # If Loop: To check for bad data
+        if (V_BadData_Vector[jj] == 0)  # Bad Data present
+
+            # Do not Increment Size_R_Inv_Matrix
+
+        else  # Bad Data not present
+
+            # Incrementing H_2_SubMatrix_ii
+            H_2_SubMatrix_ii = H_2_SubMatrix_ii + 1
+
+            # Compute H_2_SubMatrix Element
+            H_2_SubMatrix[H_2_SubMatrix_ii, jj] = 1
+
+        end
+
+    end
+
+    # Building H_3_SubMatrix
+    H_3_SubMatrix_ii = 0  # Initialization
+    for ii in 1:length(P_BadData_Vector)  # For each element in P_BadData_Vector[ii]
+
+        # If Loop: To check for bad data
+        if (P_BadData_Vector[ii] == 0)  # Bad Data present
+
+            # Do not Increment Size_R_Inv_Matrix
+
+        else  # Bad Data not present
+
+            # Incrementing H_3_SubMatrix_ii
+            H_3_SubMatrix_ii = H_3_SubMatrix_ii + 1
+
+            # Compute H_3_SubMatrix Elements in the H_3_SubMatrix_ii Row
+            for jj in 1:H_Matrix_Odd_ColNum  # Through each column of H3
+
+                # Getting New_jj to correct for absence of Delta_1
+                New_jj = jj + 1
+
+                # To check for Diagonal and Off-Diagonal Terms
+                if (ii == New_jj)  # Diagonal Terms
+
+                    # Computing element H_3_SubMatrix[H_3_SubMatrix_ii, jj]
+                    for kk in 1:N_Bus  # For each bus
+
+                        if (ii == kk)
+
+                            continue
+
+                        else
+
+                            H_3_SubMatrix[H_3_SubMatrix_ii, jj] = H_3_SubMatrix[H_3_SubMatrix_ii, jj] + (SolutionVector_V[ii] * SolutionVector_V[kk] * abs(Ybus[ii,kk]) * sin(angle(Ybus[ii,kk]) + deg2rad(SolutionVector_Delta[kk]) - deg2rad(SolutionVector_Delta[ii])))
+
+                        end
+                        
+                    end
+
+                else  # Off-Diagonal Terms
+
+                    # Computing element H_3_SubMatrix[H_3_SubMatrix_ii, jj]
+                    H_3_SubMatrix[H_3_SubMatrix_ii, jj] = -(SolutionVector_V[ii] * SolutionVector_V[New_jj] * abs(Ybus[ii,New_jj]) * sin(angle(Ybus[ii,New_jj]) + deg2rad(SolutionVector_Delta[New_jj]) - deg2rad(SolutionVector_Delta[ii])))
+
+                end
+
+            end
+
+        end
+
+    end
+
+    # Building H_4_SubMatrix
+    H_4_SubMatrix_ii = 0  # Initialization
+    for ii in 1:length(P_BadData_Vector)  # For each element in P_BadData_Vector[ii]
+
+        # If Loop: To check for bad data
+        if (P_BadData_Vector[ii] == 0)  # Bad Data present
+
+            # Do not Increment Size_R_Inv_Matrix
+
+        else  # Bad Data not present
+
+            # Incrementing H_4_SubMatrix_ii
+            H_4_SubMatrix_ii = H_4_SubMatrix_ii + 1
+
+            # Compute H_3_SubMatrix Elements in the H_4_SubMatrix_ii Row
+            for jj in 1:H_Matrix_Even_ColNum  # Through each column of H4  
+                
+                # Getting New_jj to correct for absence of Delta_1
+                New_jj = jj 
+
+                # To check for Diagonal and Off-Diagonal Terms
+                if (ii == New_jj)  # Diagonal Terms
+
+                    # Computing element H_4_SubMatrix[H_4_SubMatrix_ii, jj]
+                    H_4_SubMatrix[H_4_SubMatrix_ii, jj] = H_4_SubMatrix[H_4_SubMatrix_ii, jj] + (2 * SolutionVector_V[ii] * real(Ybus[ii,ii]))
+                    for kk in 1:N_Bus  # For each bus
+
+                        if (ii == kk)
+
+                            continue
+
+                        else
+
+                            H_4_SubMatrix[H_4_SubMatrix_ii, jj] = H_4_SubMatrix[H_4_SubMatrix_ii, jj] + (SolutionVector_V[kk] * abs(Ybus[ii,kk]) * cos(angle(Ybus[ii,kk]) + deg2rad(SolutionVector_Delta[kk]) - deg2rad(SolutionVector_Delta[ii])))
+
+                        end
+                        
+                    end
+
+                else  # Off-Diagonal Terms
+
+                    # Computing element H_4_SubMatrix[H_4_SubMatrix_ii, jj]
+                    H_4_SubMatrix[H_4_SubMatrix_ii, jj] = (SolutionVector_V[ii] * abs(Ybus[ii,New_jj]) * cos(angle(Ybus[ii,New_jj]) + deg2rad(SolutionVector_Delta[New_jj]) - deg2rad(SolutionVector_Delta[ii])))
+
+                end
+
+            end
+            
+        end
+
+    end
+
+    # Building H_5_SubMatrix
+    H_5_SubMatrix_ii = 0  # Initialization
+    for ii in 1:length(Q_BadData_Vector)  # For each element in Q_BadData_Vector[ii]
+
+        # If Loop: To check for bad data
+        if (Q_BadData_Vector[ii] == 0)  # Bad Data present
+
+            # Do not Increment Size_R_Inv_Matrix
+
+        else  # Bad Data not present
+
+            # Incrementing H_5_SubMatrix_ii
+            H_5_SubMatrix_ii = H_5_SubMatrix_ii + 1
+
+            # Compute H_5_SubMatrix Elements in the H_5_SubMatrix_ii Row
+            for jj in 1:H_Matrix_Odd_ColNum  # Through each column of H5
+
+                # Getting New_jj to correct for absence of Delta_1
+                New_jj = jj + 1
+
+                # To check for Diagonal and Off-Diagonal Terms
+                if (ii == New_jj)  # Diagonal Terms
+
+                    # Computing element H_5_SubMatrix[H_5_SubMatrix_ii, jj]
+                    for kk in 1:N_Bus  # For each bus
+
+                        if (ii == kk)
+
+                            continue
+
+                        else
+
+                            H_5_SubMatrix[H_5_SubMatrix_ii, jj] = H_5_SubMatrix[H_5_SubMatrix_ii, jj] + (SolutionVector_V[ii] * SolutionVector_V[kk] * abs(Ybus[ii,kk]) * cos(angle(Ybus[ii,kk]) + deg2rad(SolutionVector_Delta[kk]) - deg2rad(SolutionVector_Delta[ii])))
+
+                        end
+                        
+                    end
+
+                else  # Off-Diagonal Terms
+
+                    # Computing element H_5_SubMatrix[H_5_SubMatrix_ii, jj]
+                    H_5_SubMatrix[H_5_SubMatrix_ii, jj] = -(SolutionVector_V[ii] * SolutionVector_V[New_jj] * abs(Ybus[ii,New_jj]) * cos(angle(Ybus[ii,New_jj]) + deg2rad(SolutionVector_Delta[New_jj]) - deg2rad(SolutionVector_Delta[ii])))
+
+                end
+
+            end
+
+        end
+
+    end
+
+    # Building H_6_SubMatrix
+    H_6_SubMatrix_ii = 0  # Initialization
+    for ii in 1:length(Q_BadData_Vector)  # For each element in Q_BadData_Vector[ii]
+
+        # If Loop: To check for bad data
+        if (Q_BadData_Vector[ii] == 0)  # Bad Data present
+
+            # Do not Increment Size_R_Inv_Matrix
+
+        else  # Bad Data not present
+
+            # Incrementing H_6_SubMatrix_ii
+            H_6_SubMatrix_ii = H_6_SubMatrix_ii + 1
+
+            # Compute H_6_SubMatrix Elements in the H_6_SubMatrix_ii Row
+            for jj in 1:H_Matrix_Even_ColNum  # Through each column of H4  
+                
+                # Getting New_jj to correct for absence of Delta_1
+                New_jj = jj 
+
+                # To check for Diagonal and Off-Diagonal Terms
+                if (ii == New_jj)  # Diagonal Terms
+
+                    # Computing element H_6_SubMatrix[H_6_SubMatrix_ii, jj]
+                    H_6_SubMatrix[H_6_SubMatrix_ii, jj] = H_6_SubMatrix[H_6_SubMatrix_ii, jj] - (2 * SolutionVector_V[ii] * imag(Ybus[ii,ii]))
+                    for kk in 1:N_Bus  # For each bus
+
+                        if (ii == kk)
+
+                            continue
+
+                        else
+
+                            H_6_SubMatrix[H_6_SubMatrix_ii, jj] = H_6_SubMatrix[H_6_SubMatrix_ii, jj] - (SolutionVector_V[kk] * abs(Ybus[ii,kk]) * sin(angle(Ybus[ii,kk]) + deg2rad(SolutionVector_Delta[kk]) - deg2rad(SolutionVector_Delta[ii])))
+
+                        end
+                        
+                    end
+
+                else  # Off-Diagonal Terms
+
+                    # Computing element H_6_SubMatrix[H_6_SubMatrix_ii, jj]
+                    H_6_SubMatrix[H_6_SubMatrix_ii, jj] = -(SolutionVector_V[ii] * abs(Ybus[ii,New_jj]) * sin(angle(Ybus[ii,New_jj]) + deg2rad(SolutionVector_Delta[New_jj]) - deg2rad(SolutionVector_Delta[ii])))
+
+                end
+
+            end
+            
+        end
+
+    end
+
+    # Building H_7_SubMatrix
+    H_7_SubMatrix_ii = 0  # Initialization
+    for ii in 1:length(Pij_BadData_Vector)  # For each element in Pij_BadData_Vector[ii]
+
+        # If Loop: To check for bad data
+        if (Pij_BadData_Vector[ii] == 0)  # Bad Data present
+
+            # Do not Increment Size_R_Inv_Matrix
+
+        else  # Bad Data not present
+
+            # Incrementing H_7_SubMatrix_ii
+            H_7_SubMatrix_ii = H_7_SubMatrix_ii + 1
+
+            ## Compute H_7_SubMatrix Elements in the H_7_SubMatrix_ii Row     
+            
+            # Getting Current IncidenceMatrix_A Row
+            Current_A_Row = IncidenceMatrix_A[ii,:]
+
+            # Computing Current measurements i and j Node Indices
+            Bus_i_Index = 0
+            Bus_j_Index = 0
+            for kk in 1:length(Current_A_Row)  # For Bus_i_Index
+                    if (Current_A_Row[kk] == 1)
+                            Bus_i_Index = kk
+                            break
+                    end
+            end
+            for kk in 1:length(Current_A_Row)  # For Bus_j_Index
+                    if (Current_A_Row[kk] == -1)
+                            Bus_j_Index = kk
+                            break
+                    end
+            end
+
+            # Computing Derivative w.r.t Delta_i
+            if (Bus_i_Index != 1)
+
+                # Computing New Bus i Index (for positioning)
+                New_Bus_i_Index = Bus_i_Index -1
+
+                # Computing element H_7_SubMatrix[H_7_SubMatrix_ii, New_Bus_i_Index] 
+                H_7_SubMatrix[H_7_SubMatrix_ii, New_Bus_i_Index] = (SolutionVector_V[Bus_i_Index] * SolutionVector_V[Bus_j_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * sin(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_j_Index]) - deg2rad(SolutionVector_Delta[Bus_i_Index])))
+
+            end
+
+            # Computing Derivative w.r.t Delta_j
+            if (Bus_j_Index != 1)
+
+                # Computing New Bus j Index (for positioning)
+                New_Bus_j_Index = Bus_j_Index -1
+
+                # Computing element H_7_SubMatrix[H_7_SubMatrix_ii, New_Bus_j_Index] 
+                H_7_SubMatrix[H_7_SubMatrix_ii, New_Bus_j_Index] = -(SolutionVector_V[Bus_i_Index] * SolutionVector_V[Bus_j_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * sin(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_j_Index]) - deg2rad(SolutionVector_Delta[Bus_i_Index])))
+
+            end          
+
+        end
+
+    end
+
+    # Building H_8_SubMatrix
+    H_8_SubMatrix_ii = 0  # Initialization
+    for ii in 1:length(Pij_BadData_Vector)  # For each element in Pij_BadData_Vector[ii]
+
+        # If Loop: To check for bad data
+        if (Pij_BadData_Vector[ii] == 0)  # Bad Data present
+
+            # Do not Increment Size_R_Inv_Matrix
+
+        else  # Bad Data not present
+
+            # Incrementing H_8_SubMatrix_ii
+            H_8_SubMatrix_ii = H_8_SubMatrix_ii + 1
+
+            ## Compute H_8_SubMatrix Elements in the H_8_SubMatrix_ii Row     
+            
+            # Getting Current IncidenceMatrix_A Row
+            Current_A_Row = IncidenceMatrix_A[ii,:]
+
+            # Computing Current measurements i and j Node Indices
+            Bus_i_Index = 0
+            Bus_j_Index = 0
+            for kk in 1:length(Current_A_Row)  # For Bus_i_Index
+                    if (Current_A_Row[kk] == 1)
+                            Bus_i_Index = kk
+                            break
+                    end
+            end
+            for kk in 1:length(Current_A_Row)  # For Bus_j_Index
+                    if (Current_A_Row[kk] == -1)
+                            Bus_j_Index = kk
+                            break
+                    end
+            end
+
+            # Computing Derivative w.r.t V_i
+
+            # Computing New Bus i Index (for positioning)
+            New_Bus_i_Index = Bus_i_Index 
+
+            # Computing element H_8_SubMatrix[H_8_SubMatrix_ii, New_Bus_i_Index] 
+            H_8_SubMatrix[H_8_SubMatrix_ii, New_Bus_i_Index] = (2 * SolutionVector_V[Bus_i_Index] * real(Ybus[Bus_i_Index,Bus_j_Index])) + (SolutionVector_V[Bus_j_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * cos(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_j_Index]) - deg2rad(SolutionVector_Delta[Bus_i_Index])))
+
+            # Computing Derivative w.r.t V_j
+
+            # Computing New Bus j Index (for positioning)
+            New_Bus_j_Index = Bus_j_Index 
+
+            # Computing element H_8_SubMatrix[H_8_SubMatrix_ii, New_Bus_j_Index] 
+            H_8_SubMatrix[H_8_SubMatrix_ii, New_Bus_j_Index] = (SolutionVector_V[Bus_i_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * cos(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_j_Index]) - deg2rad(SolutionVector_Delta[Bus_i_Index])))
+        
+        end
+
+    end
+
+    # Building H_9_SubMatrix
+    H_9_SubMatrix_ii = 0  # Initialization
+    for ii in 1:length(Pji_BadData_Vector)  # For each element in Pji_BadData_Vector[ii]
+
+        # If Loop: To check for bad data
+        if (Pji_BadData_Vector[ii] == 0)  # Bad Data present
+
+            # Do not Increment Size_R_Inv_Matrix
+
+        else  # Bad Data not present
+
+            # Incrementing H_9_SubMatrix_ii
+            H_9_SubMatrix_ii = H_9_SubMatrix_ii + 1
+
+            ## Compute H_9_SubMatrix Elements in the H_9_SubMatrix_ii Row     
+            
+            # Getting Current IncidenceMatrix_A Row
+            Current_A_Row = IncidenceMatrix_A[ii,:]
+
+            # Computing Current measurements i and j Node Indices
+            Bus_i_Index = 0
+            Bus_j_Index = 0
+            for kk in 1:length(Current_A_Row)  # For Bus_i_Index
+                    if (Current_A_Row[kk] == 1)
+                            Bus_i_Index = kk
+                            break
+                    end
+            end
+            for kk in 1:length(Current_A_Row)  # For Bus_j_Index
+                    if (Current_A_Row[kk] == -1)
+                            Bus_j_Index = kk
+                            break
+                    end
+            end
+
+            # Computing Derivative w.r.t Delta_i
+            if (Bus_i_Index != 1)
+
+                # Computing New Bus i Index (for positioning)
+                New_Bus_i_Index = Bus_i_Index -1
+
+                # Computing element H_9_SubMatrix[H_9_SubMatrix_ii, New_Bus_i_Index] 
+                H_9_SubMatrix[H_9_SubMatrix_ii, New_Bus_i_Index] = -(SolutionVector_V[Bus_i_Index] * SolutionVector_V[Bus_j_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * sin(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_i_Index]) - deg2rad(SolutionVector_Delta[Bus_j_Index])))
+
+            end
+
+            # Computing Derivative w.r.t Delta_j
+            if (Bus_j_Index != 1)
+
+                # Computing New Bus j Index (for positioning)
+                New_Bus_j_Index = Bus_j_Index -1
+
+                # Computing element H_9_SubMatrix[H_9_SubMatrix_ii, New_Bus_j_Index] 
+                H_9_SubMatrix[H_9_SubMatrix_ii, New_Bus_j_Index] = (SolutionVector_V[Bus_i_Index] * SolutionVector_V[Bus_j_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * sin(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_i_Index]) - deg2rad(SolutionVector_Delta[Bus_j_Index])))
+
+            end          
+
+        end
+
+    end
+
+    # Building H_10_SubMatrix
+    H_10_SubMatrix_ii = 0  # Initialization
+    for ii in 1:length(Pji_BadData_Vector)  # For each element in Pji_BadData_Vector[ii]
+
+        # If Loop: To check for bad data
+        if (Pji_BadData_Vector[ii] == 0)  # Bad Data present
+
+            # Do not Increment Size_R_Inv_Matrix
+
+        else  # Bad Data not present
+
+            # Incrementing H_10_SubMatrix_ii
+            H_10_SubMatrix_ii = H_10_SubMatrix_ii + 1
+
+            ## Compute H_10_SubMatrix Elements in the H_10_SubMatrix_ii Row     
+            
+            # Getting Current IncidenceMatrix_A Row
+            Current_A_Row = IncidenceMatrix_A[ii,:]
+
+            # Computing Current measurements i and j Node Indices
+            Bus_i_Index = 0
+            Bus_j_Index = 0
+            for kk in 1:length(Current_A_Row)  # For Bus_i_Index
+                    if (Current_A_Row[kk] == 1)
+                            Bus_i_Index = kk
+                            break
+                    end
+            end
+            for kk in 1:length(Current_A_Row)  # For Bus_j_Index
+                    if (Current_A_Row[kk] == -1)
+                            Bus_j_Index = kk
+                            break
+                    end
+            end
+
+            # Computing Derivative w.r.t V_i
+
+            # Computing New Bus i Index (for positioning)
+            New_Bus_i_Index = Bus_i_Index 
+
+            # Computing element H_10_SubMatrix[H_10_SubMatrix_ii, New_Bus_i_Index] 
+            H_10_SubMatrix[H_10_SubMatrix_ii, New_Bus_i_Index] =  (SolutionVector_V[Bus_j_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * cos(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_i_Index]) - deg2rad(SolutionVector_Delta[Bus_j_Index])))
+
+            # Computing Derivative w.r.t V_j
+
+            # Computing New Bus j Index (for positioning)
+            New_Bus_j_Index = Bus_j_Index 
+
+            # Computing element H_10_SubMatrix[H_10_SubMatrix_ii, New_Bus_j_Index] 
+            H_10_SubMatrix[H_10_SubMatrix_ii, New_Bus_j_Index] = (2 * SolutionVector_V[Bus_j_Index] * real(Ybus[Bus_i_Index,Bus_j_Index])) + (SolutionVector_V[Bus_i_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * cos(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_i_Index]) - deg2rad(SolutionVector_Delta[Bus_j_Index])))
+        
+        end
+
+    end
+
+    # Building H_11_SubMatrix
+    H_11_SubMatrix_ii = 0  # Initialization
+    for ii in 1:length(Qij_BadData_Vector)  # For each element in Qij_BadData_Vector[ii]
+
+        # If Loop: To check for bad data
+        if (Qij_BadData_Vector[ii] == 0)  # Bad Data present
+
+            # Do not Increment Size_R_Inv_Matrix
+
+        else  # Bad Data not present
+
+            # Incrementing H_11_SubMatrix_ii
+            H_11_SubMatrix_ii = H_11_SubMatrix_ii + 1
+
+            ## Compute H_11_SubMatrix Elements in the H_11_SubMatrix_ii Row     
+            
+            # Getting Current IncidenceMatrix_A Row
+            Current_A_Row = IncidenceMatrix_A[ii,:]
+
+            # Computing Current measurements i and j Node Indices
+            Bus_i_Index = 0
+            Bus_j_Index = 0
+            for kk in 1:length(Current_A_Row)  # For Bus_i_Index
+                    if (Current_A_Row[kk] == 1)
+                            Bus_i_Index = kk
+                            break
+                    end
+            end
+            for kk in 1:length(Current_A_Row)  # For Bus_j_Index
+                    if (Current_A_Row[kk] == -1)
+                            Bus_j_Index = kk
+                            break
+                    end
+            end
+
+            # Computing Derivative w.r.t Delta_i
+            if (Bus_i_Index != 1)
+
+                # Computing New Bus i Index (for positioning)
+                New_Bus_i_Index = Bus_i_Index -1
+
+                # Computing element H_11_SubMatrix[H_11_SubMatrix_ii, New_Bus_i_Index] 
+                H_11_SubMatrix[H_11_SubMatrix_ii, New_Bus_i_Index] = (SolutionVector_V[Bus_i_Index] * SolutionVector_V[Bus_j_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * cos(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_j_Index]) - deg2rad(SolutionVector_Delta[Bus_i_Index])))
+
+            end
+
+            # Computing Derivative w.r.t Delta_j
+            if (Bus_j_Index != 1)
+
+                # Computing New Bus j Index (for positioning)
+                New_Bus_j_Index = Bus_j_Index -1
+
+                # Computing element H_11_SubMatrix[H_11_SubMatrix_ii, New_Bus_j_Index] 
+                H_11_SubMatrix[H_11_SubMatrix_ii, New_Bus_j_Index] = -(SolutionVector_V[Bus_i_Index] * SolutionVector_V[Bus_j_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * cos(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_j_Index]) - deg2rad(SolutionVector_Delta[Bus_i_Index])))
+
+            end          
+
+        end
+
+    end
+
+    # Building H_12_SubMatrix
+    H_12_SubMatrix_ii = 0  # Initialization
+    for ii in 1:length(Qij_BadData_Vector)  # For each element in Qij_BadData_Vector[ii]
+
+        # If Loop: To check for bad data
+        if (Qij_BadData_Vector[ii] == 0)  # Bad Data present
+
+            # Do not Increment Size_R_Inv_Matrix
+
+        else  # Bad Data not present
+
+            # Incrementing H_12_SubMatrix_ii
+            H_12_SubMatrix_ii = H_12_SubMatrix_ii + 1
+
+            ## Compute H_12_SubMatrix Elements in the H_12_SubMatrix_ii Row     
+            
+            # Getting Current IncidenceMatrix_A Row
+            Current_A_Row = IncidenceMatrix_A[ii,:]
+
+            # Computing Current measurements i and j Node Indices
+            Bus_i_Index = 0
+            Bus_j_Index = 0
+            for kk in 1:length(Current_A_Row)  # For Bus_i_Index
+                    if (Current_A_Row[kk] == 1)
+                            Bus_i_Index = kk
+                            break
+                    end
+            end
+            for kk in 1:length(Current_A_Row)  # For Bus_j_Index
+                    if (Current_A_Row[kk] == -1)
+                            Bus_j_Index = kk
+                            break
+                    end
+            end
+
+            # Computing Derivative w.r.t V_i
+
+            # Computing New Bus i Index (for positioning)
+            New_Bus_i_Index = Bus_i_Index 
+
+            # Computing element H_12_SubMatrix[H_12_SubMatrix_ii, New_Bus_i_Index] 
+            H_12_SubMatrix[H_12_SubMatrix_ii, New_Bus_i_Index] =  -(2 * SolutionVector_V[Bus_i_Index] * ((BranchDataCard_DF.B_pu[ii]/2) + imag(Ybus[Bus_i_Index,Bus_j_Index]))) - (SolutionVector_V[Bus_j_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * sin(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_j_Index]) - deg2rad(SolutionVector_Delta[Bus_i_Index])))
+
+            # Computing Derivative w.r.t V_j
+
+            # Computing New Bus j Index (for positioning)
+            New_Bus_j_Index = Bus_j_Index 
+
+            # Computing element H_12_SubMatrix[H_12_SubMatrix_ii, New_Bus_j_Index] 
+            H_12_SubMatrix[H_12_SubMatrix_ii, New_Bus_j_Index] =  -(SolutionVector_V[Bus_i_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * sin(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_j_Index]) - deg2rad(SolutionVector_Delta[Bus_i_Index])))
+        
+        end
+
+    end
+
+    # Building H_13_SubMatrix
+    H_13_SubMatrix_ii = 0  # Initialization
+    for ii in 1:length(Qji_BadData_Vector)  # For each element in Qji_BadData_Vector[ii]
+
+        # If Loop: To check for bad data
+        if (Qji_BadData_Vector[ii] == 0)  # Bad Data present
+
+            # Do not Increment Size_R_Inv_Matrix
+
+        else  # Bad Data not present
+
+            # Incrementing H_13_SubMatrix_ii
+            H_13_SubMatrix_ii = H_13_SubMatrix_ii + 1
+
+            ## Compute H_13_SubMatrix Elements in the H_13_SubMatrix_ii Row     
+            
+            # Getting Current IncidenceMatrix_A Row
+            Current_A_Row = IncidenceMatrix_A[ii,:]
+
+            # Computing Current measurements i and j Node Indices
+            Bus_i_Index = 0
+            Bus_j_Index = 0
+            for kk in 1:length(Current_A_Row)  # For Bus_i_Index
+                    if (Current_A_Row[kk] == 1)
+                            Bus_i_Index = kk
+                            break
+                    end
+            end
+            for kk in 1:length(Current_A_Row)  # For Bus_j_Index
+                    if (Current_A_Row[kk] == -1)
+                            Bus_j_Index = kk
+                            break
+                    end
+            end
+
+            # Computing Derivative w.r.t Delta_i
+            if (Bus_i_Index != 1)
+
+                # Computing New Bus i Index (for positioning)
+                New_Bus_i_Index = Bus_i_Index -1
+
+                # Computing element H_13_SubMatrix[H_13_SubMatrix_ii, New_Bus_i_Index] 
+                H_13_SubMatrix[H_13_SubMatrix_ii, New_Bus_i_Index] = -(SolutionVector_V[Bus_i_Index] * SolutionVector_V[Bus_j_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * cos(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_i_Index]) - deg2rad(SolutionVector_Delta[Bus_j_Index])))
+
+            end
+
+            # Computing Derivative w.r.t Delta_j
+            if (Bus_j_Index != 1)
+
+                # Computing New Bus j Index (for positioning)
+                New_Bus_j_Index = Bus_j_Index -1
+
+                # Computing element H_13_SubMatrix[H_13_SubMatrix_ii, New_Bus_j_Index] 
+                H_13_SubMatrix[H_13_SubMatrix_ii, New_Bus_j_Index] = (SolutionVector_V[Bus_i_Index] * SolutionVector_V[Bus_j_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * cos(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_i_Index]) - deg2rad(SolutionVector_Delta[Bus_j_Index])))
+
+            end          
+
+        end
+
+    end
+
+    # Building H_14_SubMatrix
+    H_14_SubMatrix_ii = 0  # Initialization
+    for ii in 1:length(Qji_BadData_Vector)  # For each element in Qji_BadData_Vector[ii]
+
+        # If Loop: To check for bad data
+        if (Qji_BadData_Vector[ii] == 0)  # Bad Data present
+
+            # Do not Increment Size_R_Inv_Matrix
+
+        else  # Bad Data not present
+
+            # Incrementing H_14_SubMatrix_ii
+            H_14_SubMatrix_ii = H_14_SubMatrix_ii + 1
+
+            ## Compute H_14_SubMatrix Elements in the H_14_SubMatrix_ii Row     
+            
+            # Getting Current IncidenceMatrix_A Row
+            Current_A_Row = IncidenceMatrix_A[ii,:]
+
+            # Computing Current measurements i and j Node Indices
+            Bus_i_Index = 0
+            Bus_j_Index = 0
+            for kk in 1:length(Current_A_Row)  # For Bus_i_Index
+                    if (Current_A_Row[kk] == 1)
+                            Bus_i_Index = kk
+                            break
+                    end
+            end
+            for kk in 1:length(Current_A_Row)  # For Bus_j_Index
+                    if (Current_A_Row[kk] == -1)
+                            Bus_j_Index = kk
+                            break
+                    end
+            end
+
+            # Computing Derivative w.r.t V_i
+
+            # Computing New Bus i Index (for positioning)
+            New_Bus_i_Index = Bus_i_Index 
+
+            # Computing element H_14_SubMatrix[H_14_SubMatrix_ii, New_Bus_i_Index] 
+            H_14_SubMatrix[H_14_SubMatrix_ii, New_Bus_i_Index] =   - (SolutionVector_V[Bus_j_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * sin(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_i_Index]) - deg2rad(SolutionVector_Delta[Bus_j_Index])))
+
+            # Computing Derivative w.r.t V_j
+
+            # Computing New Bus j Index (for positioning)
+            New_Bus_j_Index = Bus_j_Index 
+
+            # Computing element H_14_SubMatrix[H_14_SubMatrix_ii, New_Bus_j_Index] 
+            H_14_SubMatrix[H_14_SubMatrix_ii, New_Bus_j_Index] =  -(2 * SolutionVector_V[Bus_j_Index] * ((BranchDataCard_DF.B_pu[ii]/2) + imag(Ybus[Bus_i_Index,Bus_j_Index]))) - (SolutionVector_V[Bus_i_Index] * abs(Ybus[Bus_i_Index,Bus_j_Index]) * sin(angle(Ybus[Bus_i_Index,Bus_j_Index]) + deg2rad(SolutionVector_Delta[Bus_i_Index]) - deg2rad(SolutionVector_Delta[Bus_j_Index])))
+        
+        end
+
+    end
+
+    # Developing Complete H_Matrix
+    H_12_Matrix = hcat(H_1_SubMatrix, H_2_SubMatrix)
+    H_34_Matrix = hcat(H_3_SubMatrix, H_4_SubMatrix)
+    H_56_Matrix = hcat(H_5_SubMatrix, H_6_SubMatrix)
+    H_78_Matrix = hcat(H_7_SubMatrix, H_8_SubMatrix)
+    H_910_Matrix = hcat(H_9_SubMatrix, H_10_SubMatrix)
+    H_1112_Matrix = hcat(H_11_SubMatrix, H_12_SubMatrix)
+    H_1314_Matrix = hcat(H_13_SubMatrix, H_14_SubMatrix)
+
+    H_Matrix = vcat(H_12_Matrix, H_34_Matrix, H_56_Matrix, H_78_Matrix, H_910_Matrix, H_1112_Matrix, H_1314_Matrix)
+
+    # Addressing Machine Precision Problem
+    for ii in 1:size(H_Matrix)[1]  # Through the Rows
+
+        for jj in 1:size(H_Matrix)[2]  # Through the Columns
+
+            if (abs(H_Matrix[ii, jj]) < 1e-12)
+
+                H_Matrix[ii, jj] = 0
+
+            end
+
+        end
+
+    end
+    
+    return H_Matrix 
 
 end
 

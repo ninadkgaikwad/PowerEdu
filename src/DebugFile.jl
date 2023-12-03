@@ -122,7 +122,7 @@ elseif (Debug_Indicator == 5) # Full Continuation Power Flow
 
     Ybus_Taps_Indicator = false
 
-    StepSize_CPF = 0.1
+    StepSize_Vector_CPF = [0.1 0.025]
 
     Tolerance_NR = 0.1
 
@@ -135,7 +135,7 @@ elseif (Debug_Indicator == 5) # Full Continuation Power Flow
     BusSwitching = false
     
     #  PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
-    PowerSystemsAnalysis.ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus_Taps_Indicator, StepSize_CPF, Tolerance_NR, Tol_Num, PostCriticalPoint_Counter_Input, SortValue, BusSwitching)
+    PowerSystemsAnalysis.ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus_Taps_Indicator, StepSize_Vector_CPF, Tolerance_NR, Tol_Num, PostCriticalPoint_Counter_Input, SortValue, BusSwitching)
 
 elseif (Debug_Indicator == 6) # Full State Estimation
 
@@ -147,15 +147,20 @@ elseif (Debug_Indicator == 6) # Full State Estimation
 
     Measurement_Error_Variance = [0.015, 0.02, 0.02]
 
-    Bad_Bus_Measurement_Input = [6 200 1 1; 7 300 1 1]
+    Bad_Bus_Measurement_Input= nothing
+    Bad_Branch_Measurement_Input = nothing
+
+    # Bad_Bus_Measurement_Input = [6 1 1 1; 7 1 1 1]    
     
-    Bad_Branch_Measurement_Input = [1 2 1 100 1 1; 2 3 1 1 1000 1]
+    # Bad_Branch_Measurement_Input = [1 2 1 1 1 1; 2 3 1 1 1 1]
 
     Tolerance_SE = 0.01
 
+    alpha = 0.01
+
     Ybus_Taps_Indicator = false
 
-    Tolerance_NR = 0.1
+    Tolerance_NR = 0.001
 
     Tol_Num = 0
 
@@ -164,7 +169,7 @@ elseif (Debug_Indicator == 6) # Full State Estimation
     BusSwitching = false
      
     #  PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
-     PowerSystemsAnalysis.PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Measurement_Error_Variance, Bad_Bus_Measurement_Input, Bad_Branch_Measurement_Input, Tolerance_SE, Ybus_Taps_Indicator, Tolerance_NR, Tol_Num, SortValue, BusSwitching)
+     PowerSystemsAnalysis.PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Measurement_Error_Variance, Bad_Bus_Measurement_Input, Bad_Branch_Measurement_Input, Tolerance_SE, alpha, Ybus_Taps_Indicator, Tolerance_NR, Tol_Num, SortValue, BusSwitching)
 
 
 end

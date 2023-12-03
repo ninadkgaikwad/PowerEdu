@@ -193,11 +193,11 @@ function Create_KVector_CPF(CDF_DF_List_pu, PQ_V_Curve_Tuple)
 
                         if (PQ_V_Curve_Tuple[2] == 'P')
 
-                                K_Vector[ii] = -(BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii])
+                                K_Vector[ii] = (BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii])
 
                         elseif (PQ_V_Curve_Tuple[2] == 'Q')
 
-                                K_Vector[N_PQ_Bus+N_PV_Bus+ii] = -(BusDataCard_DF.Gen_MVAR[ii] - BusDataCard_DF.Load_MVAR[ii])
+                                K_Vector[N_PQ_Bus+N_PV_Bus+ii] = (BusDataCard_DF.Gen_MVAR[ii] - BusDataCard_DF.Load_MVAR[ii])
 
                         end
 
@@ -523,6 +523,136 @@ function Compute_PQ_MismatchVector_CPF(CDF_DF_List_pu, PQ_BusArray, SolutionVect
 end
 
 """
+    Compute_PQ_MismatchVector_Ini_CPF(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V,
+    NR_Type)
+
+Computes P and Q mistmatch at each bus of a power system network for
+Newton-Raphson Method.
+
+'''
+# Arguments
+- 'CDF_DF_List_pu': IEEE CDF file in List of Dataframe format according to
+Data Card types in IEEE CDF file : [TitleCard_DF, BusDataCard_DF,
+BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
+TieLinesDataCard_DF].
+- 'PQ_BusArray': An array (N*2) for P and Q vectors ordered according to bus
+type: Slack->PQ->PV.
+- 'SolutionVector_V': Voltage at each bus ordered according to bus
+type: Slack->PQ->PV.
+- 'NR_Type': 1 -> Full Newton-Raphson, 2-> Decoupled Newton-Raphson,
+3 -> Fast Decoupled Newton-Raphson
+- 'K_Vector': K Vector of CPF.
+- 'Lambda': A scalar Lambda value for CPF
+'''
+'''
+# Output
+- 'PQ_MismatchVector': An complex array of P-Q Mistmatch elements along with CPF
+Corrector additional constraint ordered according to bus type: PQ->PV.
+'''
+"""
+function Compute_PQ_MismatchVector_Ini_CPF(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V, NR_Type, K_Vector, Lambda)
+
+        # Getting required data from CDF_DF_List
+        BusDataCard_DF = CDF_DF_List_pu[2]
+
+        # Number of Buses
+        N_Bus = nrow(BusDataCard_DF)
+        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF))
+        N_Slack_Bus = nrow(filter(row -> (row.Type_Original == 3), BusDataCard_DF))
+
+        # Length of PQ_MismatchVector
+        Len_PQ_MismatchVector = 2*N_PQ_Bus+N_PV_Bus
+
+        # Initializing PQ_MismatchVector
+        PQ_MismatchVector = Array{Float64}(undef, Len_PQ_MismatchVector, 1)
+
+        # Initializing PQ_PV_Counter
+        PQ_PV_Counter = 0
+
+        # Computing P-Q Mismatch
+        for ii in 1:Len_PQ_MismatchVector
+
+                if (ii <= (N_Bus-1)) # Excluding Slack Bus
+
+                        if (K_Vector[ii,1] != 0) # Effect of Lambda
+
+                                if ((NR_Type == 1) || (NR_Type == 2)) # Full/Decoupled NR
+
+                                        # Computing P Mismatch
+                                        PQ_MismatchVector[ii] = Lambda*(BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii] )- PQ_BusArray[ii+1,1]
+
+                                elseif (NR_Type == 3) # Fast-Decoupled NR
+
+                                        # Computing P Mismatch
+                                        PQ_MismatchVector[ii] = (Lambda*(BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii] ))- (PQ_BusArray[ii+1,1])/(SolutionVector_V[ii+1])
+                                end
+
+                        else
+
+                                if ((NR_Type == 1) || (NR_Type == 2)) # Full/Decoupled NR
+
+                                        # Computing P Mismatch
+                                        PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii] )- PQ_BusArray[ii+1,1]
+
+                                elseif (NR_Type == 3) # Fast-Decoupled NR
+
+                                        # Computing P Mismatch
+                                        PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MW[ii] - BusDataCard_DF.Load_MW[ii] )- PQ_BusArray[ii+1,1])/(SolutionVector_V[ii+1])
+
+                                end
+
+
+                        end
+
+
+                else
+
+                        # Incrementing PQ_PV_Counter
+                        PQ_PV_Counter = PQ_PV_Counter +1
+
+                        if (K_Vector[ii,1] != 0) # Effect of Lambda
+
+                                if ((NR_Type == 1) || (NR_Type == 2)) # Full/Decoupled NR
+
+                                        # Computing Q Mismatch
+                                        PQ_MismatchVector[ii] = Lambda*(BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- PQ_BusArray[PQ_PV_Counter+1,2]
+
+                                elseif (NR_Type == 3) # Fast-Decoupled NR
+
+                                        # Computing Q Mismatch
+                                        PQ_MismatchVector[ii] = (Lambda*(BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] ))- (PQ_BusArray[PQ_PV_Counter+1,2] )/(SolutionVector_V[PQ_PV_Counter+1])
+
+                                end
+
+                        else
+
+                                if ((NR_Type == 1) || (NR_Type == 2)) # Full/Decoupled NR
+
+                                        # Computing Q Mismatch
+                                        PQ_MismatchVector[ii] = (BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- PQ_BusArray[PQ_PV_Counter+1,2]
+
+                                elseif (NR_Type == 3) # Fast-Decoupled NR
+
+                                        # Computing Q Mismatch
+                                        PQ_MismatchVector[ii] = ((BusDataCard_DF.Gen_MVAR[PQ_PV_Counter] - BusDataCard_DF.Load_MVAR[PQ_PV_Counter] )- PQ_BusArray[PQ_PV_Counter+1,2] )/(SolutionVector_V[PQ_PV_Counter+1])
+
+                                end
+
+                        end
+
+                end
+
+        end
+
+        # Adding CPF Corrector Constraint
+        #PQ_MismatchVector = vcat(PQ_MismatchVector,0)
+
+        return PQ_MismatchVector
+
+end
+
+"""
     Compute_Corrected_CorrectionVector_CPF(CDF_DF_List_pu, Correction_Vector_NR, SolutionVector_NR, NR_Type)
 
 Creates corrected correction vector for NR Power-Flow based on NR_Type.
@@ -567,11 +697,11 @@ function Compute_Corrected_CorrectionVector_CPF(CDF_DF_List_pu, Correction_Vecto
 
                 end
 
-                for ii in (N_PQ_Bus + N_PV_Bus + 1) : (length(SolutionVector_NR)-1)
+                #= for ii in (N_PQ_Bus + N_PV_Bus + 1) : (length(SolutionVector_NR)-1)
 
                         Correction_Vector_NR_Corrected[ii] = Correction_Vector_NR_Corrected[ii]*SolutionVector_NR[ii]
 
-                end
+                end =#
 
         elseif (NR_Type == 3) # Fast Decoupled NR
 
@@ -620,6 +750,81 @@ function Compute_ToleranceSatisfaction_CPF(CDF_DF_List_pu, Ybus, NR_Type, Tolera
         
     # Creating SolutionVector_V and SolutionVector_Delta
     SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_CPF(CDF_DF_List_pu, SolutionVector_NR)
+
+    # @show SolutionVector_V
+    # @show SolutionVector_Delta
+
+    #  Compute P-Q at Buses
+    PQ_BusArray = Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
+
+    #  Compute PQ Mistmatch (DEBUG add CPF version of Compute PQ mismatch vector)
+    PQ_MismatchVector = Compute_PQ_MismatchVector_CPF(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V, NR_Type,  K_Vector, Current_Lambda)
+    
+    # Initializing Tolerance Counter
+    ToleranceCounter = 0
+
+    # Computing Tolerance Counter
+    for ii in 1: length(PQ_MismatchVector)
+
+            if (abs(PQ_MismatchVector[ii]) > Tolerance)
+
+                    # Incrementing the Tolerance Counter
+                    ToleranceCounter = ToleranceCounter + 1
+
+            else
+
+                    # Do nothing
+
+            end
+
+    end
+
+    # Computing Tolerance Satisfaction
+    if (ToleranceCounter > 0)
+
+          Tolerance_Satisfaction = false
+
+    else
+
+            Tolerance_Satisfaction = true
+
+    end
+
+    return Tolerance_Satisfaction
+
+end
+
+"""
+    Compute_ToleranceSatisfaction_Ini_CPF(Tolerance, Corrections_Vector)
+
+Computes if the correction vector satifies the tolerance.
+
+'''
+# Arguments
+- 'CDF_DF_List_pu': IEEE CDF file in List of Dataframe format according to
+Data Card types in IEEE CDF file : [TitleCard_DF, BusDataCard_DF,
+BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
+TieLinesDataCard_DF].
+- 'Ybus': A complex array of Ybus elements ordered according to bus
+type: Slack->PQ->PV.
+- 'NR_Type': 1 -> Full Newton-Raphson, 2-> Decoupled Newton-Raphson,
+3 -> Fast Decoupled Newton-Raphson
+- 'Tolerance': Tolerance level for stopping criterion of Newton-Raphson Method.
+- 'SolutionVector_NR': Voltage and Angle at each bus ordered according to bus
+type: PQ->PV.
+- 'K_Vector': K Vector of CPF.
+- 'Lambda': A scalar Lambda value for CPF
+'''
+'''
+# Output
+- 'Tolerance_Satisfaction': A boolean value indicating tolerance satifaction
+(True) and disatisfaction (False).
+'''
+"""
+function Compute_ToleranceSatisfaction_Ini_CPF(CDF_DF_List_pu, Ybus, NR_Type, Tolerance, SolutionVector_NR, K_Vector, Current_Lambda)
+        
+    # Creating SolutionVector_V and SolutionVector_Delta
+    SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_NR)
 
     # @show SolutionVector_V
     # @show SolutionVector_Delta
@@ -775,10 +980,142 @@ function PowerFlow_MainFunction_CPF(CDF_DF_List_pu, Ybus, NR_Type, Initial_Solut
             Correction_Vector_NR = Compute_Corrected_CorrectionVector_CPF(CDF_DF_List_pu, Correction_Vector_NR, SolutionVector_NR, NR_Type)
 
             # Computing New SolutionVector_NR
-            SolutionVector_NR = SolutionVector_NR + Correction_Vector_NR
+            SolutionVector_NR  = SolutionVector_NR + Correction_Vector_NR
 
             # Compute Tolerance Satisfaction
             Tolerance_Satisfaction = Compute_ToleranceSatisfaction_CPF(CDF_DF_List_pu, Ybus, NR_Type, Tolerance, SolutionVector_NR,  K_Vector, Current_Lambda)
+           
+            # Stopping Timer
+            IterationTime = tok()
+
+            # Filling-up PowerFlow_IterationTimeInfo_Array
+            PowerFlow_IterationTimeInfo_Array[WhileLoop_Counter,1:2] = [WhileLoop_Counter , IterationTime]
+
+    end
+
+
+    return SolutionVector_NR, PowerFlow_IterationTimeInfo_Array
+
+end
+
+"""
+    PowerFlow_MainFunction_Ini_CPF(CDF_DF_List_pu, Ybus, NR_Type,
+    Initial_SolutionVector_CPF, Tolerance, Tol_Num, K_Vector, Index_CPF)
+
+Creates Ybus without taps for a power system network.
+
+'''
+# Arguments
+- 'CDF_DF_List_pu': IEEE CDF file in List of Dataframe format according to
+Data Card types in IEEE CDF file coverted to pu: [TitleCard_DF, BusDataCard_DF,
+BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
+TieLinesDataCard_DF].
+- 'Ybus': Ybus of the Power Network.
+- 'NR_Type': 1 -> Full Newton-Raphson, 2-> Decoupled Newton-Raphson,
+3 -> Fast Decoupled Newton-Raphson.
+- 'Initial_SolutionVector_CPF': Solution vector from Predictor of CPF.
+- 'K_Vector': K Vector of CPF.
+- 'Index_CPF': Index of the Continuation Parameter of CPF.
+- 'Tolerance': Tolerance level for stopping criterion of Newton-Raphson Method.
+- 'Tol_Num': Tolerance for being near zero.
+'''
+'''
+# Output
+- 'SolutionVector_NR': Final Solution of the NR method for CPF Corrector Step.
+- 'PowerFlow_IterationTimeInfo_Array': An array containing Iteration Number and
+Time in seconds for each iteration.
+'''
+"""
+function PowerFlow_MainFunction_Ini_CPF(CDF_DF_List_pu, Ybus, NR_Type, Tolerance, Tol_Num, K_Vector, Lambda_Ini)
+
+    # Getting required data from CDF_DF_List
+    BusDataCard_DF = CDF_DF_List_pu[2]
+
+    # Number of Buses
+    N_Bus = nrow(BusDataCard_DF)
+    N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+    N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
+
+    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
+
+    # We have Y_Bus
+
+    # We have Initial_SolutionVector_NR
+    Initial_SolutionVector_CPF = Create_Initial_SolutionVector_NR(CDF_DF_List_pu)
+    Current_Lambda =  Lambda_Ini
+
+    # Initializing Tolerance_Satisfaction
+    Tolerance_Satisfaction = false
+
+    # Initializing PowerFlow_IterationTimeInfo_Array
+    PowerFlow_IterationTimeInfo_Array = zeros(1,2)
+
+    # Intializing WhileLoop_Counter
+    WhileLoop_Counter = 0
+
+    # Initializations
+    SolutionVector_NR = 0
+
+    #Current_Lambda = SolutionVector_NR[end,1]
+
+    # While Loop: For Newton-Raphson Method
+    while (!Tolerance_Satisfaction)
+
+            # Incrementing WhileLoop_Counter
+            WhileLoop_Counter = WhileLoop_Counter + 1
+            @show WhileLoop_Counter
+
+            # Starting Timer
+            tick()
+
+            # If Else Loop: For checking First Iteration
+            if (WhileLoop_Counter == 1)
+
+                    # Compute SolutionVector_V, SolutionVector_Delta
+                    SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, Initial_SolutionVector_CPF)
+
+                    # Initializing Solution Vector NR
+                    SolutionVector_NR = Initial_SolutionVector_CPF
+
+                    # Getting Current Lambda
+                    #Current_Lambda = SolutionVector_NR[end,1]
+
+            else
+
+                    # Compute SolutionVector_V, SolutionVector_Delta
+                    SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_NR)
+
+                    # Increasing  PowerFlow_IterationTimeInfo_Array Size
+                    PowerFlow_IterationTimeInfo_Array = vcat(PowerFlow_IterationTimeInfo_Array, zeros(1,2))
+
+                    # Getting Current Lambda
+                    #Current_Lambda = SolutionVector_NR[end,1]
+
+            end
+
+            # Compute PQ_BusArray
+            PQ_BusArray = Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
+
+            # Compute PQ_MismatchVector
+            PQ_MismatchVector = Compute_PQ_MismatchVector_Ini_CPF(CDF_DF_List_pu, PQ_BusArray, SolutionVector_V, NR_Type, K_Vector, Current_Lambda)
+
+            # We have Solution Vector NR
+
+            # Compute Continuation Power Flow Jacobian Corrector Step
+            Jacobian_CPF_Correct = Create_Jacobian_NR(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVector_Delta, PQ_BusArray, NR_Type, 1)
+
+            # Compute Correction_Vector_NR using LU Factorization
+            Correction_Vector_NR = PLU_Solve(Jacobian_CPF_Correct, PQ_MismatchVector, Tol_Num)
+
+            # Correcting Correction_Vector_NR
+            Correction_Vector_NR = Compute_Corrected_CorrectionVector(CDF_DF_List_pu, Correction_Vector_NR, SolutionVector_NR, NR_Type)
+
+            # Computing New SolutionVector_NR
+            SolutionVector_NR = SolutionVector_NR + Correction_Vector_NR
+
+            # Compute Tolerance Satisfaction
+            Tolerance_Satisfaction = Compute_ToleranceSatisfaction_Ini_CPF(CDF_DF_List_pu, Ybus, NR_Type, Tolerance, SolutionVector_NR,  K_Vector, Current_Lambda)
            
             # Stopping Timer
             IterationTime = tok()
