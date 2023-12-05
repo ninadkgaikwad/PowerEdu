@@ -19,7 +19,7 @@ fileType_CDFFile = ".txt";
 filename_CDFFile = folderInput*systemName*"/"*systemName*"_Data"*fileType_CDFFile
 
 # Which Code to Debug
-Debug_Indicator = 6
+Debug_Indicator = 4
 
 if (Debug_Indicator == 1) # LU Factorization
 
@@ -170,6 +170,17 @@ elseif (Debug_Indicator == 6) # Full State Estimation
      
     #  PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
      PowerSystemsAnalysis.PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Measurement_Error_Variance, Bad_Bus_Measurement_Input, Bad_Branch_Measurement_Input, Tolerance_SE, alpha, Ybus_Taps_Indicator, Tolerance_NR, Tol_Num, SortValue, BusSwitching)
+
+elseif (Debug_Indicator == 7)  # OPF: Economic Dispatch
+
+    GeneratorCostCurve_Array = [[0.0625,1,0],[0.0125,1,0],[0.0250,1,0]] 
+    
+    Load_Demand  = 952
+
+    PowerSystemsAnalysis.PowerSystem_EconomicDispatch_MainFunction(GeneratorCostCurve_Array, Load_Demand)
+
+elseif (Debug_Indicator == 8)  # OPF: Full OPF
+
 
 
 end

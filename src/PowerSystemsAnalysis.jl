@@ -219,6 +219,14 @@ function PowerFlow_MainFunction(CDF_FilePath; Ybus_Taps_Indicator=false, NR_Type
 
     end
 
+    # Compute Bus Injections
+
+    # Creating SolutionVector_V and SolutionVector_Delta
+    SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_NR)
+
+    #  Compute P-Q at Buses
+    PQ_BusArray = Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
+
     # Compute Line Flows
     CDF_DF_List_pu, LineFlow_Array = Compute_LineFlows(CDF_DF_List_pu, Ybus, SolutionVector_NR)
 
@@ -229,14 +237,14 @@ function PowerFlow_MainFunction(CDF_FilePath; Ybus_Taps_Indicator=false, NR_Type
 
     CDF_DF_List_pu[2] = BusDataCard_DF
 
-    return CDF_DF_List_pu, LineFlow_Array, PowerFlow_IterationTimeInfo_Array
+    return CDF_DF_List_pu, LineFlow_Array, PQ_BusArray, PowerFlow_IterationTimeInfo_Array
 
 end
 
 """
-    ContinuationPowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tol_Num))
+    ContinuationPowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tol_Num)
 
-Creates Ybus without taps for a power system network.
+Computes continuation power flow for a power system network.
 
 '''
 # Arguments
@@ -414,9 +422,9 @@ function ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus
 end
 
 """
-    PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num Tol_Num))
+    PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num Tol_Num)
 
-Creates Ybus without taps for a power system network.
+Computes state estimate for a power system network.
 
 '''
 # Arguments
@@ -435,13 +443,16 @@ otherwise 'nothing'; the measurements are scaled through scale variables to make
 '''
 '''
 # Output
-- '':
+- 'State_Estimate_V':
+- 'State_Estimate_Delta':
+- 'CDF_DF_List_pu':
+- 'StateEstimation_IterationTimeInfo_Array':
 '''
 """
 function PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Measurement_Error_Variance, Bad_Bus_Measurement_Input, Bad_Branch_Measurement_Input, Tolerance_SE, alpha, Ybus_Taps_Indicator, Tolerance_NR, Tol_Num, SortValue, BusSwitching)
 
         # Solving Initial Power Flow Problem
-        CDF_DF_List_pu, LineFlow_Array, PowerFlow_IterationTimeInfo_Array =  PowerFlow_MainFunction(CDF_FilePath; Ybus_Taps_Indicator=Ybus_Taps_Indicator, NR_Type=1, Tolerance=Tolerance_NR, Tol_Num=Tol_Num, SortValue=SortValue, BusSwitching=BusSwitching)
+        CDF_DF_List_pu, LineFlow_Array, PQ_BusArray, PowerFlow_IterationTimeInfo_Array =  PowerFlow_MainFunction(CDF_FilePath; Ybus_Taps_Indicator=Ybus_Taps_Indicator, NR_Type=1, Tolerance=Tolerance_NR, Tol_Num=Tol_Num, SortValue=SortValue, BusSwitching=BusSwitching)
 
         # Create Ybus
         if (Ybus_Taps_Indicator == false) # Without Taps
@@ -488,6 +499,8 @@ function PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Measurement_Erro
         # Initializing While Loop Counter
         WhileLoop_Counter = 0
 
+        State_Estimate = 0 
+
         # While Loop: For State Estimation and Bad Data Detection
         while (Bad_Data_Indicator == true)
 
@@ -527,9 +540,94 @@ function PowerSystem_StateEstimation_MainFunction(CDF_FilePath, Measurement_Erro
 
         end
 
-        # return State_Estimate, CDF_DF_List_pu, StateEstimation_IterationTimeInfo_Array  
+        # Getting Solution Vectors divided in Voltages and Deltas
+        State_Estimate_V, State_Estimate_Delta = Create_SolutionVector_VDelta_SE(CDF_DF_List_pu, State_Estimate)
+
+        return State_Estimate_V, State_Estimate_Delta, CDF_DF_List_pu, StateEstimation_IterationTimeInfo_Array  
  
-        return nothing
+        # return nothing
+
+end
+
+"""
+    PowerSystem_EconomicDispatch_MainFunction(GeneratorCostCurve_Array, Load_Demand)
+
+Computes economic dispatch for a set of generators.
+
+'''
+# Arguments
+- 'GeneratorCostCurve_Array': An array of generator quadratic cost parameters - 
+[[a1,b1,c1],[a1,b1,c1],...,[]].  
+- 'Load_Demand': Load demand value in MW.
+'''
+'''
+# Output
+- 'GeneratorSchedule_Array': An array of generator schedules - [P1, P2,...] in MW
+- 'Lambda': Incremental/Break-Even cost of production.  
+'''
+"""
+function PowerSystem_EconomicDispatch_MainFunction(GeneratorCostCurve_Array, Load_Demand)
+
+        # Creating Economic Dispatch A Matrix
+        EconomicDispatch_A_Matrix = Compute_EconomicDispatch_A_Matrix(GeneratorCostCurve_Array)
+
+        # Creating Economic Dispatch b Vector
+        EconomicDispatch_b_Vector = Compute_EconomicDispatch_b_Vector(GeneratorCostCurve_Array, Load_Demand)
+
+        # Computing Generator Schedule and Lambda
+        EconomicDispatch_Solution = EconomicDispatch_A_Matrix\EconomicDispatch_b_Vector
+
+        # Getting GeneratorSchedule_Array and Lambda
+        GeneratorSchedule_Array = EconomicDispatch_Solution[1:end-1,1]
+
+        Lambda = EconomicDispatch_Solution[end,1]
+
+        return GeneratorSchedule_Array, Lambda
+
+end
+
+"""
+    PowerSystem_OPF_MainFunction()
+
+Computes optimal power flow for a power network.
+
+'''
+# Arguments
+- '': 
+'''
+'''
+# Output
+- '':   
+'''
+"""
+function PowerSystem_OPF_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, Tolerance_NR, Tol_Num, SortValue, BusSwitching)
+
+        # Solving Initial Power Flow Problem
+        CDF_DF_List_pu, LineFlow_Array_Ini, PQ_BusArray_Ini, PowerFlow_IterationTimeInfo_Array =  PowerFlow_MainFunction(CDF_FilePath; Ybus_Taps_Indicator=Ybus_Taps_Indicator, NR_Type=1, Tolerance=Tolerance_NR, Tol_Num=Tol_Num, SortValue=SortValue, BusSwitching=BusSwitching)
+
+        # Create Ybus
+        if (Ybus_Taps_Indicator == false) # Without Taps
+
+                Ybus = Create_Ybus_WithoutTaps(CDF_DF_List_pu)
+
+        elseif (Ybus_Taps_Indicator == true) # With Taps
+
+                Ybus_WithoutTaps = Create_Ybus_WithoutTaps(CDF_DF_List_pu)
+
+                Ybus = Create_Ybus_WithTaps(Ybus_WithoutTaps,CDF_DF_List_pu)
+
+        end
+        
+        # Get Base MVA of the System
+        Base_MVA = Get_BaseMVA_OPF(CDF_DF_List_pu)
+        
+        # Create Initial Solution Vector - x for Power System Unknown States 
+        SolutionVector_x = Create_SolutionVector_x_OPF(CDF_DF_List_pu)
+
+        # Create Initial Solution Vector - u for Power System independent Powers
+
+
+        return  
 
 end
 
@@ -547,6 +645,8 @@ include("LU_Factorization.jl")
 include("BasicContinuationPowerFlow_Functions.jl")
 
 include("BasicStateEstimation_Functions.jl")
+
+include("BasicOPF_Functions.jl")
 
 include("Helper_Functions.jl")
 
