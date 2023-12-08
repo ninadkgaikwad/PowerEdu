@@ -290,7 +290,7 @@ function ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus
    end
 
    # Creating K_Vector
-   K_Vector = Create_KVector_CPF(CDF_DF_List_pu, PQ_V_Curve_Tuple)
+   K_Vector, Bus_Plot_Index  = Create_KVector_1_CPF(CDF_DF_List_pu, PQ_V_Curve_Tuple)
 
    # Creating Initial Lambda
    Lambda_Ini = 0
@@ -379,7 +379,7 @@ function ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus
            Tangent_Vector = Compute_Tangent_Vector_CPF(Jacobian_CPF_Predict, Tol_Num, Predict_b_Value_CPF, Index_CPF)
 
            Lambda_T = Tangent_Vector[end,1]
-           @show Lambda_T
+           #@show Lambda_T
 
            # Check if Critical Point is passed
            PostCriticalPoint_Counter = Check_CriticalPoint_CPF(Tangent_Vector, PostCriticalPoint_Counter)
@@ -407,6 +407,8 @@ function ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus
            Corrector_Vector_History = hcat(Corrector_Vector_History, CPF_Corrector_Vector)
            Tangent_Vector_History = hcat(Tangent_Vector_History, Tangent_Vector)
 
+
+
            # Stopping Timer
            IterationTime = TickTock.tok()
 
@@ -416,6 +418,11 @@ function ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus
    end
 
    ## Add Plotting Code ##
+   plot(Corrector_Vector_History[end,:], Corrector_Vector_History[Bus_Plot_Index,:], legend=false)
+   title!(L"Voltage vs. $\lambda$ : Bus Number -" * string(PQ_V_Curve_Tuple[1]))
+   xlabel!(L"$\lambda$")
+   ylabel!(L"Voltage $p.u.$")
+   savefig("CPF_Plot_BusNum_"*string(PQ_V_Curve_Tuple[1])*".png")
 
    return Predictor_Vector_History, Corrector_Vector_History, Tangent_Vector_History, PowerFlow_IterationTimeInfo_Array
 
@@ -736,6 +743,273 @@ function PowerSystem_OPF_MainFunction(CDF_FilePath, Generator_BusNum_CostCurve_A
 
 
         return  CDF_DF_List_pu, CostGeneration_Before_OPF, CostGeneration_After_OPF
+
+end
+
+"""
+    ContinuationPowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tol_Num)
+
+Computes continuation power flow for a power system network.
+
+'''
+# Arguments
+- 'CDF_FilePath': File path to the IEEE CDF text file.
+- 'PQ_V_Curve_Tuple': A Tuple containing (BusNumber,P/Q to be parametrized)
+- 'Ybus_Taps_Indicator': 1 - Ybus with no taps, 2 - Ybus with Taps
+- 'StepSize_CPF': Step size for Continuation Power Flow Predictor Step
+- 'Tolerance': Tolerance level for stopping criterion of Newton-Raphson Method.
+- 'Tol_Num': Tolerance for being near zero
+- 'PostCriticalPoint_Counter_Input': Number of iterations to be computed after
+finding critical point.
+- 'SortValue': 1 -> Sort CDF File according to Bus Type PQ->PV->Slack, any other value -> do not sort
+- 'BusSwitching': 1 -> Bus Switching Employed, any other -> Bus Switching not Employed
+'''
+'''
+# Output
+- 'Predictor_Vector_History': An array consiisting of each Predictor Vector computed per iteration of Continuation Power Flow.
+- 'Corrector_Vector_History': An array consiisting of each Corrector Vector computed per iteration of Continuation Power Flow.
+- 'Tangent_Vector_History': An array consiisting of each Tangent Vector computed per iteration of Continuation Power Flow.
+- 'PowerFlow_IterationTimeInfo_Array': An array containing Iteration Number and
+Time in seconds for each iteration.
+'''
+"""
+function ContinuationPowerFlow_1_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus_Taps_Indicator, StepSize_Vector_CPF, Tolerance_NR, Tol_Num, PostCriticalPoint_Counter_Input, SortValue, BusSwitching)
+    
+    # Reading IEEE CDF File
+    CDF_DF_List = CDF_Parser(CDF_FilePath, SortValue)
+
+    # Converting CDF DataFrame to PU
+    CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List)
+
+   # Create Ybus
+   if (Ybus_Taps_Indicator == false) # Without Taps
+
+           Ybus = Create_Ybus_WithoutTaps(CDF_DF_List_pu)
+
+   elseif (Ybus_Taps_Indicator == true) # With Taps
+
+           Ybus_WithoutTaps = Create_Ybus_WithoutTaps(CDF_DF_List_pu)
+
+           Ybus = Create_Ybus_WithTaps(Ybus_WithoutTaps,CDF_DF_List_pu)
+
+   end
+
+   # Creating K_Vector
+   K_Vector, Bus_Plot_Index  = Create_KVector_2_CPF(CDF_DF_List_pu, PQ_V_Curve_Tuple)
+
+   # Creating Initial Lambda
+   Lambda_Ini = 0
+
+   # Solving Initial Power Flow Problem
+   Initial_SolutionVector, PowerFlow_IterationTimeInfo_Array =  PowerFlow_MainFunction_Ini_CPF(CDF_DF_List_pu, Ybus, 1, Tolerance_NR, Tol_Num, K_Vector, Lambda_Ini)
+
+   # Creating Initial Solution Vector
+   #Initial_SolutionVector_CPF = Create_Initial_SolutionVector_CPF(CDF_DF_List_pu)
+   Initial_SolutionVector_CPF = vcat(Initial_SolutionVector, Lambda_Ini)   
+
+   # Initializing Predictor/Corrector/Tangent Vector History
+   Predictor_Vector_History = zeros(size(K_Vector)[1]+1,1)
+   Corrector_Vector_History = zeros(size(K_Vector)[1]+1,1)
+   Tangent_Vector_History = zeros(size(K_Vector)[1]+1,1)
+
+   # Updating Corrector_Vector_History
+   Corrector_Vector_History[1:size(Corrector_Vector_History)[1], 1] = Initial_SolutionVector_CPF
+
+   # Initializing ContinuationPowerFlow_IterationTimeInfo_Array
+   ContinuationPowerFlow_IterationTimeInfo_Array = zeros(1,2)
+
+   # Initializing CPF_Stop_Criterion
+   CPF_Stop_Criterion = false
+
+   # Initializing Phase Ybus_Taps_Indicator_User
+   Phase_CPF = 1
+
+   # Intializing WhileLoop_Counter
+   WhileLoop_Counter = 0
+
+   # Initializing
+   Index_CPF = 0
+   Index_CPF_New = 0
+   Predict_b_Value_CPF = 1
+   Predict_b_Value_CPF_New = 0
+
+   # While Loop: For computing Continuation Power Flow
+   while (!CPF_Stop_Criterion)
+
+           # Incrementing WhileLoop_Counter
+           WhileLoop_Counter = WhileLoop_Counter + 1
+
+           # Starting Timer
+           TickTock.tick()
+
+           # If Else Loop: For checking first iteration
+           if (WhileLoop_Counter == 1)
+
+                   # Getting Solution Vector comes from Load Flow Solution
+                   SolutionVector_CPF = Corrector_Vector_History[:,WhileLoop_Counter]
+
+           else
+                   # Getting Solution Vector From Corrector
+                   SolutionVector_CPF = Corrector_Vector_History[:,WhileLoop_Counter]
+
+                   # Increasing  ContinuationPowerFlow_IterationTimeInfo_Array Size
+                   ContinuationPowerFlow_IterationTimeInfo_Array = vcat(ContinuationPowerFlow_IterationTimeInfo_Array, zeros(1,2))
+
+           end
+
+           ## Three Phases of Continuation Power Flow
+           if (Phase_CPF == 1)
+
+                # Choose Correct Stepsize
+                StepSize_CPF = StepSize_Vector_CPF[1]
+
+                # Setting Index_CPF (Choosing Lambda)
+                Index_CPF = size(K_Vector)[1]+1
+
+                ## Predictor Step:
+
+                # Compute Continuation Power Flow Jacobian Predictor Step (Debug remove multiplication by voltage)
+                Jacobian_CPF_Predict = Create_Jacobian_Phase_CPF_Predict(CDF_DF_List_pu, Ybus, SolutionVector_CPF, 1, K_Vector, Index_CPF, Phase_CPF)
+
+                # Compute Tangent Vector
+                Tangent_Vector = Compute_Tangent_Vector_CPF(Jacobian_CPF_Predict, Tol_Num, Predict_b_Value_CPF, Index_CPF)
+
+                # Correcting Tangent Vector for Delts - Rad to Degree
+                Tangent_Vector_Corrected = Compute_Corrected_TangentVector_CPF(CDF_DF_List_pu, Tangent_Vector)
+
+                # Predict Solution
+                CPF_Predictor_Vector = Compute_PredictVector_CPF(SolutionVector_CPF, Tangent_Vector_Corrected, StepSize_CPF)    
+
+                ## Corrector Step:
+                CPF_Corrector_Vector, PowerFlow_IterationTimeInfo_Array_Corrector, Corrector_Convergence_Indicator = PowerFlow_MainFunction_Phase_CPF(CDF_DF_List_pu, Ybus, 1, CPF_Predictor_Vector, Tolerance_NR, Tol_Num, K_Vector, Index_CPF, Phase_CPF)
+
+
+                ## Updating Phase Step:
+                
+                # Checking Corrector_Convergence_Indicator
+                if (Corrector_Convergence_Indicator == true)  # Be in Phase 1
+
+                        Phase_CPF = 1
+
+                else  # Move to Phase 2
+
+                        Phase_CPF = 2
+
+                end
+
+           end
+
+           if (Phase_CPF == 2)
+
+                # Choose Correct Stepsize
+                StepSize_CPF = StepSize_Vector_CPF[2]
+
+                # Setting Index_CPF (Choosing Lambda)
+                Index_CPF = Bus_Plot_Index               
+
+                ## Predictor Step:
+
+                # Compute Continuation Power Flow Jacobian Predictor Step (Debug remove multiplication by voltage)
+                Jacobian_CPF_Predict = Create_Jacobian_Phase_CPF_Predict(CDF_DF_List_pu, Ybus, SolutionVector_CPF, 1, K_Vector, Index_CPF, Phase_CPF)
+
+                # Compute Tangent Vector
+                Tangent_Vector = Compute_Tangent_Vector_CPF(Jacobian_CPF_Predict, Tol_Num, Predict_b_Value_CPF, Index_CPF)
+
+                # Correcting Tangent Vector for Delts - Rad to Degree
+                Tangent_Vector_Corrected = Compute_Corrected_TangentVector_CPF(CDF_DF_List_pu, Tangent_Vector)
+
+                # Predict Solution
+                CPF_Predictor_Vector = Compute_PredictVector_CPF(SolutionVector_CPF, Tangent_Vector_Corrected, StepSize_CPF)    
+
+                ## Corrector Step:
+                CPF_Corrector_Vector, PowerFlow_IterationTimeInfo_Array_Corrector, Corrector_Convergence_Indicator = PowerFlow_MainFunction_Phase_CPF(CDF_DF_List_pu, Ybus, 1, CPF_Predictor_Vector, Tolerance_NR, Tol_Num, K_Vector, Index_CPF, Phase_CPF)
+
+                ## Updating Phase Step:
+
+                 # Get Before/After Lambda
+                 Before_Lambda = SolutionVector_CPF[end,1]
+                 After_Lambda = CPF_Corrector_Vector[end,1]
+
+                 # Checking if after Lambda is lower than before Lambda
+                 if (After_Lambda < Before_Lambda) # After lambda is lower than Before Lambda
+
+                        Phase_CPF = 3
+
+                 else # After lambda is not lower than Before Lambda
+
+                        Phase_CPF = 2
+
+                 end
+
+
+           elseif (Phase_CPF == 3)
+
+                # Choose Correct Stepsize
+                StepSize_CPF = StepSize_Vector_CPF[1]
+
+                # Setting Index_CPF (Choosing Lambda)
+                Index_CPF = size(K_Vector)[1]+1
+
+                ## Predictor Step:
+
+                # Compute Continuation Power Flow Jacobian Predictor Step (Debug remove multiplication by voltage)
+                Jacobian_CPF_Predict = Create_Jacobian_Phase_CPF_Predict(CDF_DF_List_pu, Ybus, SolutionVector_CPF, 1, K_Vector, Index_CPF, Phase_CPF)
+
+                # Compute Tangent Vector
+                Tangent_Vector = Compute_Tangent_Vector_CPF(Jacobian_CPF_Predict, Tol_Num, Predict_b_Value_CPF, Index_CPF)
+
+                # Correcting Tangent Vector for Delts - Rad to Degree
+                Tangent_Vector_Corrected = Compute_Corrected_TangentVector_CPF(CDF_DF_List_pu, Tangent_Vector)
+
+                # Predict Solution
+                CPF_Predictor_Vector = Compute_PredictVector_CPF(SolutionVector_CPF, Tangent_Vector_Corrected, StepSize_CPF)    
+
+                ## Corrector Step:
+                CPF_Corrector_Vector, PowerFlow_IterationTimeInfo_Array_Corrector, Corrector_Convergence_Indicator = PowerFlow_MainFunction_Phase_CPF(CDF_DF_List_pu, Ybus, 1, CPF_Predictor_Vector, Tolerance_NR, Tol_Num, K_Vector, Index_CPF, Phase_CPF)
+
+                ## Updating Phase Step:
+
+                # Getting current corrected Lambda
+                Current_Corrected_Lambda = CPF_Corrector_Vector[end,1]
+
+                # Checking if current corrected Lambda is close to zero
+                if (Current_Corrected_Lambda <= 0.5)  # Lambda close to zero
+
+                        CPF_Stop_Criterion = true
+
+                else  # Lambda not close to zero
+
+                        CPF_Stop_Criterion = false
+
+                end
+
+
+           end
+
+           Lambda_C = CPF_Corrector_Vector[end,1]
+           @show Lambda_C
+
+           # Update Predictor/Corrector Vector History
+           Predictor_Vector_History = hcat(Predictor_Vector_History, CPF_Predictor_Vector)
+           Corrector_Vector_History = hcat(Corrector_Vector_History, CPF_Corrector_Vector)
+           Tangent_Vector_History = hcat(Tangent_Vector_History, Tangent_Vector)
+
+           # Stopping Timer
+           IterationTime = TickTock.tok()
+
+           # Filling-up ContinuationPowerFlow_IterationTimeInfo_Array
+           ContinuationPowerFlow_IterationTimeInfo_Array[WhileLoop_Counter,1:2] = [WhileLoop_Counter , IterationTime]
+
+   end
+
+   ## Add Plotting Code ##
+   plot(Corrector_Vector_History[end,:], Corrector_Vector_History[Bus_Plot_Index,:], legend=false)
+   title!(L"Voltage vs. $\lambda$ : Bus Number -" * string(PQ_V_Curve_Tuple[1]))
+   xlabel!(L"$\lambda$")
+   ylabel!(L"Voltage $p.u.$")
+   savefig("CPF_Plot_BusNum_"*string(PQ_V_Curve_Tuple[1])*".png")
+
+   return Predictor_Vector_History, Corrector_Vector_History, Tangent_Vector_History, PowerFlow_IterationTimeInfo_Array
 
 end
 

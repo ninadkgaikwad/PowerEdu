@@ -19,7 +19,7 @@ fileType_CDFFile = ".txt";
 filename_CDFFile = folderInput*systemName*"/"*systemName*"_Data"*fileType_CDFFile
 
 # Which Code to Debug
-Debug_Indicator = 8
+Debug_Indicator = 5
 
 if (Debug_Indicator == 1) # LU Factorization
 
@@ -118,11 +118,11 @@ elseif (Debug_Indicator == 5) # Full Continuation Power Flow
     #  @show pwd()
     CDF_FilePath = "data/IEEE_14/IEEE_14_Data.txt"
 
-    PQ_V_Curve_Tuple = (10, 'P')
+    PQ_V_Curve_Tuple = (4, 'P')
 
     Ybus_Taps_Indicator = false
 
-    StepSize_Vector_CPF = [0.1 0.025]
+    StepSize_Vector_CPF = [0.1, 0.025] #[0.1, 0.025]
 
     Tolerance_NR = 0.1
 
@@ -135,7 +135,7 @@ elseif (Debug_Indicator == 5) # Full Continuation Power Flow
     BusSwitching = false
     
     #  PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
-    PowerSystemsAnalysis.ContinuationPowerFlow_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus_Taps_Indicator, StepSize_Vector_CPF, Tolerance_NR, Tol_Num, PostCriticalPoint_Counter_Input, SortValue, BusSwitching)
+    PowerSystemsAnalysis.ContinuationPowerFlow_1_MainFunction(CDF_FilePath, PQ_V_Curve_Tuple, Ybus_Taps_Indicator, StepSize_Vector_CPF, Tolerance_NR, Tol_Num, PostCriticalPoint_Counter_Input, SortValue, BusSwitching)
 
 elseif (Debug_Indicator == 6) # Full State Estimation
 

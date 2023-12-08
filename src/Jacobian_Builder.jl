@@ -688,12 +688,80 @@ function Create_Jacobian_CPF_Predict(CDF_DF_List_pu, Ybus, SolutionVector_CPF, N
     Jacobian_NR_Predict = Create_Jacobian_NR_CPF(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVector_Delta, PQ_BusArray, NR_Type, 1)
 
     # Augmenting NR Jacobian with K Vector
-    Jacobian_CPF_Predict = hcat(Jacobian_NR_Predict, K_Vector)
+    # Jacobian_CPF_Predict = hcat(Jacobian_NR_Predict, K_Vector)
+    Jacobian_CPF_Predict = hcat(Jacobian_NR_Predict, -K_Vector)  # Debugger
 
     # Creating Last row of CPF Jacobian
     Jacobian_CPF_Predict_LastRow = zeros(1,size(Jacobian_CPF_Predict)[2])
 
     Jacobian_CPF_Predict_LastRow[1,Index_CPF] = 1
+
+    # Augmenting Last Row to CPF Jacobian
+    Jacobian_CPF_Predict = vcat(Jacobian_CPF_Predict, Jacobian_CPF_Predict_LastRow)
+
+    return Jacobian_CPF_Predict
+
+end
+
+"""
+    Create_Jacobian_Phase_CPF_Predict(CDF_DF_List_pu, Ybus, SolutionVector_CPF,
+    NR_Type, K_Vector, Index_CPF, Phase_CPF)
+
+Creates Jacobian Matrix for power system network for Continuation Power Flow
+predict step.
+
+'''
+# Arguments
+- 'CDF_DF_List_pu': IEEE CDF file in List of Dataframe format according to
+Data Card types in IEEE CDF file : [TitleCard_DF, BusDataCard_DF,
+BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
+TieLinesDataCard_DF].
+- 'Ybus': A complex array of Ybus elements ordered according to bus
+type: Slack->PQ->PV.
+- 'SolutionVector_CPF': Power Flow Solution Voltage and Angle at each
+bus ordered according to bus type: PQ->PV->Lambda.
+- 'NR_Type': 1 -> Full Newton-Raphson, 2-> Decoupled Newton-Raphson,
+3 -> Fast Decoupled Newton-Raphson
+- 'K_Vector': K Vector of Continuation Power Flow
+- 'Index_CPF': Continuation Parameter Index
+'''
+'''
+# Output
+- 'Jacobian_CPF_Predict': Jacobian Matrix for Predict Step of Continuation Power
+Flow: PQ->PV->Lambda.
+'''
+"""
+function Create_Jacobian_Phase_CPF_Predict(CDF_DF_List_pu, Ybus, SolutionVector_CPF, NR_Type, K_Vector, Index_CPF, Phase_CPF)
+
+    # Creating Solution vectors for V Delta
+    SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_CPF(CDF_DF_List_pu, SolutionVector_CPF)
+
+    # Computing PQ Bus Array
+    PQ_BusArray = Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
+
+    # Computing NR Jacobian
+    Jacobian_NR_Predict = Create_Jacobian_NR_CPF(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVector_Delta, PQ_BusArray, NR_Type, 1)
+
+    # Augmenting NR Jacobian with K Vector
+    # Jacobian_CPF_Predict = hcat(Jacobian_NR_Predict, K_Vector)
+    Jacobian_CPF_Predict = hcat(Jacobian_NR_Predict, -K_Vector)  # Debugger
+
+    # Creating Last row of CPF Jacobian
+    Jacobian_CPF_Predict_LastRow = zeros(1,size(Jacobian_CPF_Predict)[2])
+
+    if (Phase_CPF == 1 )  # First Phase
+    
+        Jacobian_CPF_Predict_LastRow[1,Index_CPF] = 1
+
+    elseif (Phase_CPF == 2) # Second Phase
+
+        Jacobian_CPF_Predict_LastRow[1,Index_CPF] = -1
+
+    elseif (Phase_CPF == 3)  # Third Phase
+
+        Jacobian_CPF_Predict_LastRow[1,Index_CPF] = -1
+
+    end
 
     # Augmenting Last Row to CPF Jacobian
     Jacobian_CPF_Predict = vcat(Jacobian_CPF_Predict, Jacobian_CPF_Predict_LastRow)
@@ -747,10 +815,77 @@ function Create_Jacobian_CPF_Correct(CDF_DF_List_pu, Ybus, CPF_Predictor_Vector,
     # Creating Last row of CPF Jacobian
     Jacobian_CPF_Correct_LastRow = zeros(1,size(Jacobian_CPF_Correct)[2])
 
-    Jacobian_CPF_Correct_LastRow[1,Index_CPF] = 1
+    Jacobian_CPF_Correct_LastRow[1,Index_CPF] = -1
 
     # Augmenting Last Row to CPF Jacobian
     Jacobian_CPF_Correct = vcat(Jacobian_CPF_Correct, Jacobian_CPF_Correct_LastRow)
+
+    return Jacobian_CPF_Correct
+
+end
+
+"""
+    Create_Jacobian_Phase_CPF_Correct(CDF_DF_List_pu, Ybus, SolutionVector_CPF,
+    NR_Type, K_Vector, Index_CPF, Phase_CPF)
+
+Creates Jacobian Matrix for power system network for Continuation Power Flow
+for the correct step.
+
+'''
+# Arguments
+- 'CDF_DF_List_pu': IEEE CDF file in List of Dataframe format according to
+Data Card types in IEEE CDF file : [TitleCard_DF, BusDataCard_DF,
+BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
+TieLinesDataCard_DF].
+- 'Ybus': A complex array of Ybus elements ordered according to bus
+type: Slack->PQ->PV.
+- 'SolutionVector_CPF': Power Flow Solution Voltage and Angle at each
+bus ordered according to bus type: PQ->PV->Lambda.
+- 'NR_Type': 1 -> Full Newton-Raphson, 2-> Decoupled Newton-Raphson,
+3 -> Fast Decoupled Newton-Raphson
+- 'K_Vector': K Vector of Continuation Power Flow
+- 'Index_CPF': Continuation Parameter Index
+'''
+'''
+# Output
+- 'Jacobian_CPF_Correct': Jacobian Matrix for Predict Step of Continuation Power
+Flow: PQ->PV->Lambda.
+'''
+"""
+function Create_Jacobian_Phase_CPF_Correct(CDF_DF_List_pu, Ybus, CPF_Predictor_Vector, NR_Type, K_Vector, Index_CPF, Phase_CPF)
+
+    # Creating Solution vectors for V Delta
+    SolutionVector_V, SolutionVector_Delta = Create_SolutionVector_VDelta_CPF(CDF_DF_List_pu, CPF_Predictor_Vector)
+
+    # Computing PQ Bus Array
+    PQ_BusArray = Compute_PQ_BusArray(Ybus, SolutionVector_V, SolutionVector_Delta)
+
+    # Computing NR Jacobian
+    Jacobian_NR_Correct = Create_Jacobian_NR_CPF(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVector_Delta, PQ_BusArray, NR_Type, 1)
+
+    # Checking for Phase of CPF
+    if (Phase_CPF == 1)  # First Phase
+
+        Jacobian_CPF_Correct = Jacobian_NR_Correct
+
+    elseif (Phase_CPF == 2)  # Second Phase
+
+        # Augmenting NR Jacobian with K Vector (Debugger -K_Vector)
+        Jacobian_CPF_Correct = hcat(Jacobian_NR_Correct, -K_Vector)
+
+        # Creating Last row of CPF Jacobian
+        Jacobian_CPF_Correct_LastRow = zeros(1,size(Jacobian_CPF_Correct)[2])
+
+        Jacobian_CPF_Correct_LastRow[1,Index_CPF] = -1
+
+        # Augmenting Last Row to CPF Jacobian
+        Jacobian_CPF_Correct = vcat(Jacobian_CPF_Correct, Jacobian_CPF_Correct_LastRow)
+
+    elseif (Phase_CPF == 3)  # Third Phase
+
+        Jacobian_CPF_Correct = Jacobian_NR_Correct
+
+    end
 
     return Jacobian_CPF_Correct
 
