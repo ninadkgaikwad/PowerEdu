@@ -600,10 +600,13 @@ Computes optimal power flow for a power network.
 - '':   
 '''
 """
-function PowerSystem_OPF_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, Tolerance_NR, Tol_Num, SortValue, BusSwitching)
+function PowerSystem_OPF_MainFunction(CDF_FilePath, Generator_BusNum_CostCurve_Array, Line_PowerFlow_Limit_Array, Tolerance_OPF, StepSize_OPF, Ybus_Taps_Indicator, Tolerance_NR, Tol_Num, SortValue, BusSwitching)
 
         # Solving Initial Power Flow Problem
-        CDF_DF_List_pu, LineFlow_Array_Ini, PQ_BusArray_Ini, PowerFlow_IterationTimeInfo_Array =  PowerFlow_MainFunction(CDF_FilePath; Ybus_Taps_Indicator=Ybus_Taps_Indicator, NR_Type=1, Tolerance=Tolerance_NR, Tol_Num=Tol_Num, SortValue=SortValue, BusSwitching=BusSwitching)
+        CDF_DF_List_pu, LineFlow_Array, PQ_BusArray, PowerFlow_IterationTimeInfo_Array =  PowerFlow_MainFunction(CDF_FilePath; Ybus_Taps_Indicator=Ybus_Taps_Indicator, NR_Type=1, Tolerance=Tolerance_NR, Tol_Num=Tol_Num, SortValue=SortValue, BusSwitching=BusSwitching)
+
+        # Update CDF_DF_List_pu with Slack-Bus P Generated 
+        CDF_DF_List_pu = Update_CDFDFListpu_SlackP_OPF(CDF_DF_List_pu, PQ_BusArray)
 
         # Create Ybus
         if (Ybus_Taps_Indicator == false) # Without Taps
@@ -620,14 +623,119 @@ function PowerSystem_OPF_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, Toleran
         
         # Get Base MVA of the System
         Base_MVA = Get_BaseMVA_OPF(CDF_DF_List_pu)
+
+        # Get Generator_CostCurve_Matrix, u_Index_Vector (May have slack bus) and u_P_Index_Vector (Will never have Slack Bus)  
+        Generator_CostCurve_Matrix_New, u_Index_Vector, u_P_Index_Vector = Get_Generator_BusNum_CostCurve_Arrays_OPF(CDF_DF_List_pu, Generator_BusNum_CostCurve_Array)
         
+        # Get Line_Index_Vector, Line_Bus_Index_Matrix and Line_P_Limit_Vector from Line_PowerFlow_Limit_Array
+        Line_Index_Vector, Line_Bus_Index_Matrix, Line_P_Limit_Vector = Get_Line_Bus_Index_PLimit_Arrays_OPF(CDF_DF_List_pu, Line_PowerFlow_Limit_Array, Base_MVA)
+
         # Create Initial Solution Vector - x for Power System Unknown States 
         SolutionVector_x = Create_SolutionVector_x_OPF(CDF_DF_List_pu)
 
         # Create Initial Solution Vector - u for Power System independent Powers
+        SolutionVector_p, SolutionVector_p_Full = Create_SolutionVector_p_OPF(CDF_DF_List_pu, u_P_Index_Vector)
+
+        # Computing Generation Cost before OPF
+        CostGeneration_Before_OPF = Compute_GenerationCost_OPF(SolutionVector_p, SolutionVector_p_Full, Generator_CostCurve_Matrix_New, Base_MVA)
+
+        # Initializing OPF_IterationTimeInfo_Array
+        OPF_IterationTimeInfo_Array = zeros(1,2)
+
+        # Initializing Tolerance_Satisfaction
+        Tolerance_Satisfaction = false
+
+        # Initializing While Loop Counter
+        WhileLoop_Counter = 0
+
+        SolutionVector_x_loop = 0 
+        SolutionVector_p_loop = 0
+        SolutionVector_p_Full_loop = 0
+
+        # While Loop: For State Estimation and Bad Data Detection
+        while (Tolerance_Satisfaction == false)
+
+                # Incrementing While Loop Counter
+                WhileLoop_Counter = WhileLoop_Counter + 1
+
+                # Starting Timer
+                TickTock.tick()
+
+                # If Else Loop: For checking first iteration
+                if (WhileLoop_Counter == 1)
+
+                        # Getting Solution Vectors  from Initial Load Flow Solution
+                        SolutionVector_x_loop = SolutionVector_x
+
+                        SolutionVector_p_loop = SolutionVector_p
+
+                        SolutionVector_p_Full_loop = SolutionVector_p_Full
+
+                        # Creating SolutionVector_V and SolutionVector_Delta
+                        SolutionVector_x_V_loop, SolutionVector_x_Delta_loop = Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_x_loop)
 
 
-        return  
+                else
+                        ## Solving Initial Power Flow Problem
+                        CDF_DF_List_pu, LineFlow_Array, PQ_BusArray, PowerFlow_IterationTimeInfo_Array =  PowerFlow_MainFunction_OPF(CDF_DF_List_pu, Ybus, Ybus_Taps_Indicator, 1, Tolerance_NR, Tol_Num, SortValue, BusSwitching)
+
+                        # Update CDF_DF_List_pu with Slack-Bus P Generated 
+                        CDF_DF_List_pu = Update_CDFDFListpu_SlackP_OPF(CDF_DF_List_pu, PQ_BusArray)
+
+                        # Create Initial Solution Vector - x for Power System Unknown States 
+                        SolutionVector_x_loop = Create_SolutionVector_x_OPF(CDF_DF_List_pu)
+
+                        # Create Initial Solution Vector - u for Power System independent Powers
+                        SolutionVector_p_loop, SolutionVector_p_Full_loop = Create_SolutionVector_p_OPF(CDF_DF_List_pu, u_P_Index_Vector)
+
+                        # Creating SolutionVector_V and SolutionVector_Delta
+                        SolutionVector_x_V_loop, SolutionVector_x_Delta_loop = Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_x_loop)
+
+                        # Increasing  OPF_IterationTimeInfo_Array Size
+                        OPF_IterationTimeInfo_Array = vcat(OPF_IterationTimeInfo_Array, zeros(1,2))
+
+                end
+
+                # Compute Del-g/Del-u
+                Del_g_Del_u_Matrix = Compute_Del_g_Del_u_Matrix_OPF(CDF_DF_List_pu, u_P_Index_Vector)
+
+                # Compute Del-g/Del-x
+                Del_g_Del_x_Matrix = Compute_Del_g_Del_x_Matrix_OPF(CDF_DF_List_pu, Ybus, SolutionVector_x_V_loop, SolutionVector_x_Delta_loop, PQ_BusArray, 1, 0)
+
+                # Compute Del-f/Del-u 
+                Del_f_Del_u_Matrix = Compute_Del_f_Del_u_Matrix_OPF(SolutionVector_p_loop, Generator_CostCurve_Matrix_New)
+
+                # Compute Del-f/Del-x                         
+                Del_f_Del_x_Matrix = Compute_Del_f_Del_x_Matrix_OPF(CDF_DF_List_pu, SolutionVector_x_V_loop, SolutionVector_x_Delta_loop, SolutionVector_p_loop, SolutionVector_p_Full_loop, LineFlow_Array, Ybus, Generator_CostCurve_Matrix_New, Line_Index_Vector, Line_Bus_Index_Matrix, Line_P_Limit_Vector)
+
+                # Compute [Del-g/Del-x]^(T) Inverse
+                Del_g_Del_x_Matrix_T_Inv = Del_g_Del_x_Matrix' \ I
+
+                # Compute Delta_C_Vector
+                Delta_C_Vector = Del_f_Del_u_Matrix - (Del_g_Del_u_Matrix' * Del_g_Del_x_Matrix_T_Inv * Del_f_Del_x_Matrix)
+
+                # Updating SolutionVector_p_loop
+                SolutionVector_p_loop = SolutionVector_p_loop - (StepSize_OPF * Delta_C_Vector)
+
+                # Update CDF_DF_List_pu with updated SolutionVector_p_loop
+                CDF_DF_List_pu = Update_CDFDFListpu_uP_OPF(CDF_DF_List_pu, SolutionVector_p_loop, u_P_Index_Vector)
+
+                # Compute Tolerance Satisfaction
+                Tolerance_Satisfaction = Compute_ToleranceSatisfaction_OPF(Tolerance_OPF, Delta_C_Vector)
+
+                # Stopping Timer
+                IterationTime = TickTock.tok()
+
+                # Filling-up OPF_IterationTimeInfo_Array
+                OPF_IterationTimeInfo_Array[WhileLoop_Counter,1:2] = [WhileLoop_Counter , IterationTime]
+
+        end
+
+        # Computing Generation Cost after OPF
+        CostGeneration_After_OPF = Compute_GenerationCost_OPF(SolutionVector_p_loop, SolutionVector_p_Full_loop, Generator_CostCurve_Matrix_New, Base_MVA)
+
+
+        return  CDF_DF_List_pu, CostGeneration_Before_OPF, CostGeneration_After_OPF
 
 end
 

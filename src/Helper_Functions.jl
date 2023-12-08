@@ -305,3 +305,36 @@ function get_position(matrix, position::String)
     return positions[position]
 end
 
+"""
+    Addressing_MachinePrecision(Matrix_A, MachinePrecision)
+
+Computes the Del_g/Del_u Matrix for optimal power flow of a power network.
+
+'''
+# Arguments
+- '': 
+'''
+# Output
+- '': 
+'''
+"""
+function Addressing_MachinePrecision(Matrix_A, MachinePrecision)
+
+    for ii in 1:size(Matrix_A)[1]
+
+        for jj in 1:size(Matrix_A)[2]
+
+            if (abs(Matrix_A[ii,jj]) < MachinePrecision)
+
+                Matrix_A[ii,jj] = 0
+
+            end
+
+        end
+
+    end
+
+    return Matrix_A
+
+end
+

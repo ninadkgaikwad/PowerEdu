@@ -1558,6 +1558,699 @@ function Compute_H_Matrix_SE(CDF_DF_List_pu, SolutionVector_V, SolutionVector_De
 
 end
 
+"""
+Compute_Del_g_Del_u_Matrix_OPF(CDF_DF_List_pu, u_P_Index_Vector)
+
+Computes the Del_g/Del_u Matrix for optimal power flow of a power network.
+
+'''
+# Arguments
+- '': 
+'''
+# Output
+- '': 
+'''
+"""
+function Compute_Del_g_Del_u_Matrix_OPF(CDF_DF_List_pu, u_P_Index_Vector)
+
+    # Getting required data from CDF_DF_List
+    BusDataCard_DF = CDF_DF_List_pu[2]
+
+    # Number of Buses
+    N_Bus = nrow(BusDataCard_DF)
+    N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+    N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
+
+    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
+
+    # Getting number of Control variables
+    N_P = size(u_P_Index_Vector)[1]
+
+    # Computing Number of load flow equations
+    N_g_functions = 2*N_PQ_Bus + N_PV_Bus
+
+    # Initializing Del_g_Del_u_Matrix
+    Del_g_Del_u_Matrix = zeros(N_g_functions, N_P)
+
+    # Updating Del_g_Del_u_Matrix
+    for ii in 1:N_P  # For each element in u_P_Index_Vector
+
+        # Computing Row Index for Del_g_Del_u_Matrix
+        Del_g_Del_u_Matrix_RowIndex = Int64(u_P_Index_Vector[ii,1]) - 1
+
+        # Updating Del_g_Del_u_Matrix element
+        Del_g_Del_u_Matrix[Del_g_Del_u_Matrix_RowIndex,ii] = 1
+
+    end
+
+    # Addressing Machine Precision
+    Del_g_Del_u_Matrix = Addressing_MachinePrecision(Del_g_Del_u_Matrix, 1e-12)
+
+    return Del_g_Del_u_Matrix
+
+end
+
+
+
+"""
+    Compute_Del_g_Del_x_Matrix_OPF(CDF_DF_List_pu, Ybus, SolutionVector_V,
+    SolutionVector_Delta, PQ_BusArray)
+
+Creates Jacobian Matrix for power system network for full Newton-Raphson method.
+
+'''
+# Arguments
+- 'CDF_DF_List_pu': IEEE CDF file in List of Dataframe format according to
+Data Card types in IEEE CDF file : [TitleCard_DF, BusDataCard_DF,
+BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
+TieLinesDataCard_DF].
+- 'Ybus': A complex array of Ybus elements ordered according to bus
+type: Slack->PQ->PV.
+- 'SolutionVector_V': Voltage at each bus ordered according to bus
+type: Slack->PQ->PV.
+- 'SolutionVector_Delta': Angle at each bus ordered according to bus
+type: Slack->PQ->PV.
+- 'PQ_BusArray': An array (N*2) for P and Q vectors ordered according to bus
+type: Slack->PQ->PV.
+- 'NR_Type': 1 -> Full Newton-Raphson, 2-> Decoupled Newton-Raphson,
+3 -> Fast Decoupled Newton-Raphson
+- 'ContinuationPowerFlow_Indicator': 0 - Not Continuation Power Flow,
+1 - Yes Continuation Power Flow
+'''
+'''
+# Output
+- 'Jacobian_Matrix': Jacobian Matrix for full Newton-Raphson method: PQ->PV.
+'''
+"""
+function Compute_Del_g_Del_x_Matrix_OPF(CDF_DF_List_pu, Ybus, SolutionVector_V, SolutionVector_Delta, PQ_BusArray, NR_Type, ContinuationPowerFlow_Indicator)
+
+    # Getting required data from CDF_DF_List
+    BusDataCard_DF = CDF_DF_List_pu[2]
+
+    # Number of Buses
+    N_Bus = nrow(BusDataCard_DF)
+    if (ContinuationPowerFlow_Indicator == 0)
+
+        N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+
+    elseif (ContinuationPowerFlow_Indicator == 1)
+
+        N_PQ_Bus = nrow(filter(row -> ((row.Type_Original == 0) || (row.Type_Original == 1)), BusDataCard_DF))
+        N_PV_Bus = nrow(filter(row -> (row.Type_Original == 2), BusDataCard_DF))
+
+    end
+
+    # Creating Jacobian Matrix based on NR_Type
+    if (NR_Type == 1) # Full Newton-Raphson
+
+        # Computing Sizes for Jacobian Submatrices
+        J_11_RowNum = N_PQ_Bus+N_PV_Bus
+        J_11_ColNum = N_PQ_Bus+N_PV_Bus
+
+        J_12_RowNum = N_PQ_Bus+N_PV_Bus
+        J_12_ColNum = N_PQ_Bus
+
+        J_21_RowNum = N_PQ_Bus
+        J_21_ColNum = N_PQ_Bus+N_PV_Bus
+
+        J_22_RowNum = N_PQ_Bus
+        J_22_ColNum = N_PQ_Bus
+
+        # Initializing the Jacobian Submatrices
+        J_11 = zeros(J_11_RowNum,J_11_ColNum)
+        J_12 = zeros(J_12_RowNum,J_12_ColNum)
+        J_21 = zeros(J_21_RowNum,J_21_ColNum)
+        J_22 = zeros(J_22_RowNum,J_22_ColNum)
+
+        # Computing J_11
+        for ii in 1:J_11_RowNum # Through Rows
+
+            for jj in 1:J_11_ColNum # Through Columns
+
+                if (ii == jj) # Diagonal Term
+
+                    J_11[ii,jj] = -(PQ_BusArray[ii+1,2]) - (SolutionVector_V[ii+1]^(2)*imag(Ybus[ii+1,ii+1]))
+
+                else # Off-Diagonal Term
+
+                    J_11[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))
+
+                end
+
+            end
+
+        end
+
+        # Computing J_12
+        for ii in 1:J_12_RowNum # Through Rows
+
+            for jj in 1:J_12_ColNum # Through Columns
+
+                if (ii == jj) # Diagonal Term
+
+                    J_12[ii,jj] = ((PQ_BusArray[ii+1,1]) + (SolutionVector_V[ii+1]^(2)*real(Ybus[ii+1,ii+1])))/SolutionVector_V[ii+1]
+
+                else # Off-Diagonal Term
+
+                    J_12[ii,jj] = (SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *cos(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))/SolutionVector_V[jj+1]
+
+                end
+
+            end
+
+        end
+
+        # Computing J_21
+        for ii in 1:J_21_RowNum # Through Rows
+
+            for jj in 1:J_21_ColNum # Through Columns
+
+                if (ii == jj) # Diagonal Term
+
+                    J_21[ii,jj] = (PQ_BusArray[ii+1,1]) - (SolutionVector_V[ii+1]^(2)*real(Ybus[ii+1,ii+1]))
+
+                else # Off-Diagonal Term
+
+                    J_21[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *cos(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))
+
+                end
+
+            end
+
+        end
+
+        # Computing J_22
+        for ii in 1:J_22_RowNum # Through Rows
+
+            for jj in 1:J_22_ColNum # Through Columns
+
+                if (ii == jj) # Diagonal Term
+
+                    J_22[ii,jj] = ((PQ_BusArray[ii+1,2]) - (SolutionVector_V[ii+1]^(2)*imag(Ybus[ii+1,ii+1])))/SolutionVector_V[ii+1]
+
+                else # Off-Diagonal Term
+
+                    J_22[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))/SolutionVector_V[jj+1]
+
+                end
+
+            end
+
+        end
+
+        # Creating Jacobian_NR
+        Jacobian_NR1 = hcat(J_11,J_12)
+        Jacobian_NR2 = hcat(J_21,J_22)
+
+        Jacobian_NR11 = vcat(Jacobian_NR1,Jacobian_NR2)
+
+        # Negating the Jacobian for Optimal Power Flow
+        Jacobian_NR = -Jacobian_NR11
+
+        # Addressing Machine Precision
+        Jacobian_NR = Addressing_MachinePrecision(Jacobian_NR, 1e-12)
+
+    elseif (NR_Type == 2) # Decoupled Newton-Raphson
+
+            # Computing Sizes for Jacobian Submatrices
+            J_11_RowNum = N_PQ_Bus+N_PV_Bus
+            J_11_ColNum = N_PQ_Bus+N_PV_Bus
+
+            J_22_RowNum = N_PQ_Bus
+            J_22_ColNum = N_PQ_Bus
+
+            # Initializing the Jacobian Submatrices
+            J_11 = zeros(J_11_RowNum,J_11_ColNum)
+            J_22 = zeros(J_22_RowNum,J_22_ColNum)
+
+            # Computing J_11
+            for ii in 1:J_11_RowNum # Through Rows
+
+                for jj in 1:J_11_ColNum # Through Columns
+
+                    if (ii == jj) # Diagonal Term
+
+                        J_11[ii,jj] = -(PQ_BusArray[ii+1,2]) - (SolutionVector_V[ii+1]^(2)*imag(Ybus[ii+1,ii+1]))
+
+                    else # Off-Diagonal Term
+
+                        J_11[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))
+
+                    end
+
+                end
+
+            end
+
+            # Computing J_22
+            for ii in 1:J_22_RowNum # Through Rows
+
+                for jj in 1:J_22_ColNum # Through Columns
+
+                    if (ii == jj) # Diagonal Term
+
+                        J_22[ii,jj] = (PQ_BusArray[ii+1,2]) - (SolutionVector_V[ii+1]^(2)*imag(Ybus[ii+1,ii+1]))
+
+                    else # Off-Diagonal Term
+
+                        J_22[ii,jj] = -(SolutionVector_V[ii+1]*SolutionVector_V[jj+1]*abs(Ybus[ii+1,jj+1]) *sin(angle(Ybus[ii+1,jj+1]) + deg2rad(SolutionVector_Delta[jj+1]) - deg2rad(SolutionVector_Delta[ii+1])))
+
+                    end
+
+                end
+
+            end
+
+            # Addressing Machine Precision Problem
+            for ii in 1:size(J_11)[1]
+
+                for jj in 1:size(J_11)[2]
+
+                    if (abs(J_11[ii,jj]) < 1e-12)
+
+                        J_11[ii,jj] = 0
+
+                    end
+
+                end
+
+            end
+
+            for ii in 1:size(J_22)[1]
+
+                for jj in 1:size(J_22)[2]
+
+                    if (abs(J_22[ii,jj]) < 1e-12)
+
+                        J_22[ii,jj] = 0
+
+                    end
+
+                end
+
+            end
+
+            # Creating Jacobian_NR
+            Jacobian_NR = [J_11, J_22]
+
+    elseif (NR_Type == 3) # Fast Decoupled Newton-Raphson
+
+        # Computing Sizes for Jacobian Submatrices
+        J_11_RowNum = N_PQ_Bus+N_PV_Bus
+        J_11_ColNum = N_PQ_Bus+N_PV_Bus
+
+        J_22_RowNum = N_PQ_Bus
+        J_22_ColNum = N_PQ_Bus
+
+        # Initializing the Jacobian Submatrices
+        J_11 = zeros(J_11_RowNum,J_11_ColNum)
+        J_22 = zeros(J_22_RowNum,J_22_ColNum)
+
+        # Computing J_11
+        for ii in 1:J_11_RowNum # Through Rows
+
+            for jj in 1:J_11_ColNum # Through Columns
+
+                J_11 = -imag(Ybus[ii+1,jj+1])
+
+            end
+
+        end
+
+        # Computing J_22
+        for ii in 1:J_22_RowNum # Through Rows
+
+            for jj in 1:J_22_ColNum # Through Columns
+
+                J_22 = -imag(Ybus[ii+1,jj+1])
+
+            end
+
+        end
+
+        # Addressing Machine Precision Problem
+        for ii in 1:size(J_11)[1]
+
+            for jj in 1:size(J_11)[2]
+
+                if (abs(J_11[ii,jj]) < 1e-12)
+
+                    J_11[ii,jj] = 0
+
+                end
+
+            end
+
+        end
+
+        for ii in 1:size(J_22)[1]
+
+            for jj in 1:size(J_22)[2]
+
+                if (abs(J_22[ii,jj]) < 1e-12)
+
+                    J_22[ii,jj] = 0
+
+                end
+
+            end
+
+        end
+
+        # Creating Jacobian_NR
+        Jacobian_NR = [J_11, J_22]
+
+    end
+
+    return Jacobian_NR
+
+end
+
+"""
+    Compute_Del_f_Del_u_Matrix_OPF(CDF_DF_List_pu, u_P_Index_Vector)
+
+Computes the Del_g/Del_u Matrix for optimal power flow of a power network.
+
+'''
+# Arguments
+- '': 
+'''
+# Output
+- '': 
+'''
+"""
+function Compute_Del_f_Del_u_Matrix_OPF(SolutionVector_p_loop, Generator_CostCurve_Matrix_New)
+
+    # Getting length of Del_f_Del_u_Matrix
+    Len_Del_f_Del_u_Matrix = size(SolutionVector_p_loop)[1]
+
+    # Getting length of Generator_CostCurve_Matrix_New
+    Len_Generator_CostCurve_Matrix_New = size(Generator_CostCurve_Matrix_New)[1]
+
+    # Initializing Del_f_Del_u_Matrix
+    Del_f_Del_u_Matrix = zeros(Len_Del_f_Del_u_Matrix, 1)
+
+    # Updating Del_f_Del_u_Matrix
+    for ii in 1:Len_Del_f_Del_u_Matrix   # SolutionVector_p_loop
+
+        # Checking if Slack-Bus is part of Cost Functions
+        if (Len_Del_f_Del_u_Matrix != Len_Generator_CostCurve_Matrix_New)  # Slack-Bus is part of Cost Function
+
+            # Updating Del_f_Del_u_Matrix element
+            Del_f_Del_u_Matrix[ii,1] = (2 * (Generator_CostCurve_Matrix_New[ii+1,1]) * (SolutionVector_p_loop[ii,1])) + (Generator_CostCurve_Matrix_New[ii+1,2])
+
+        else  # Slack-Bus is not part of Cost Function
+            
+            # Updating Del_f_Del_u_Matrix element
+            Del_f_Del_u_Matrix[ii,1] = (2 * (Generator_CostCurve_Matrix_New[ii,1]) * (SolutionVector_p_loop[ii,1])) + (Generator_CostCurve_Matrix_New[ii,2])
+
+        end
+        
+    end
+
+    # Addressing Machine Precision
+    Del_f_Del_u_Matrix = Addressing_MachinePrecision(Del_f_Del_u_Matrix, 1e-12)
+
+    return Del_f_Del_u_Matrix
+
+end
+
+"""
+    Compute_Del_f_Del_x_Matrix_OPF(CDF_DF_List_pu, SolutionVector_x_V_loop, SolutionVector_x_Delta_loop, SolutionVector_p_loop, SolutionVector_p_Full_loop, LineFlow_Array, Ybus, Generator_CostCurve_Matrix_New, Line_Index_Vector, Line_Bus_Index_Matrix, Line_P_Limit_Vector)
+
+Sets the P Generation for Slack Bus in CDF DF Bus Data Card to values computed in converged Power Flow iteration.
+
+'''
+# Arguments
+- '': 
+'''
+# Output
+- '': 
+'''
+"""
+function Compute_Del_f_Del_x_Matrix_OPF(CDF_DF_List_pu, SolutionVector_x_V_loop, SolutionVector_x_Delta_loop, SolutionVector_p_loop, SolutionVector_p_Full_loop, LineFlow_Array, Ybus, Generator_CostCurve_Matrix_New, Line_Index_Vector, Line_Bus_Index_Matrix, Line_P_Limit_Vector)
+
+    # Getting required data from CDF_DF_List
+    BusDataCard_DF = CDF_DF_List_pu[2]
+
+    # Number of Buses
+    N_Bus = nrow(BusDataCard_DF)
+    N_PQ_Bus = nrow(filter(row -> ((row.Type == 0) || (row.Type == 1)), BusDataCard_DF))
+    N_PV_Bus = nrow(filter(row -> (row.Type == 2), BusDataCard_DF))
+    N_Slack_Bus = nrow(filter(row -> (row.Type == 3), BusDataCard_DF))
+    
+    # Computing Len_Delta and Len_V
+    Len_Delta = N_PQ_Bus + N_PV_Bus
+    Len_V = N_PQ_Bus
+    
+    # Initializing Del_f_Del_x_Matrix_Delta and Del_f_Del_x_Matrix_V
+    Del_f_Del_x_Matrix_Delta = zeros(Len_Delta, 1)
+    Del_f_Del_x_Matrix_V = zeros(Len_V, 1)
+
+    # Getting Lengths of SolutionVector_p_loop and Generator_CostCurve_Matrix_New
+    Len_SolutionVector_p_loop = size(SolutionVector_p_loop)[1]
+    Len_Generator_CostCurve_Matrix_New = size(Generator_CostCurve_Matrix_New)[1]
+
+    # Checking for Type of Cost Function  
+    if ((Len_SolutionVector_p_loop == Len_Generator_CostCurve_Matrix_New) && (Line_Index_Vector == nothing) && (Line_Bus_Index_Matrix == nothing) && (Line_P_Limit_Vector == nothing))  # No Slack Bus in Cost Function and No Line Limits present
+
+        # Constructing Del_f_Del_x_Matrix
+        Del_f_Del_x_Matrix = vcat(Del_f_Del_x_Matrix_Delta, Del_f_Del_x_Matrix_V)
+
+    elseif ((Len_SolutionVector_p_loop != Len_Generator_CostCurve_Matrix_New) && (Line_Index_Vector == nothing) && (Line_Bus_Index_Matrix == nothing) && (Line_P_Limit_Vector == nothing))  # Slack Bus in Cost Function and No Line Limits present
+
+        ## Compute Slack Bus part of Del_f_Del_x_Matrix
+
+        # Initializing Del_f_Del_x_Matrix_Delta_SlackBus and Del_f_Del_x_Matrix_V_SlackBus
+        Del_f_Del_x_Matrix_Delta_SlackBus = zeros(Len_Delta, 1)
+        Del_f_Del_x_Matrix_V_SlackBus = zeros(Len_V, 1)
+
+        # Updating Del_f_Del_x_Matrix_Delta_SlackBus
+        for ii in 1:Len_Delta  # For each element in Del_f_Del_x_Matrix_Delta_SlackBus
+
+            Del_f_Del_x_Matrix_Delta_SlackBus[ii,1] = -((SolutionVector_x_V_loop[1,1] * SolutionVector_x_V_loop[ii+1,1] * abs(Ybus[1,ii+1])) *(sin(angle(Ybus[1,ii+1]) +  deg2rad(SolutionVector_x_Delta_loop[ii+1,1]) - deg2rad(SolutionVector_x_Delta_loop[1,1]))))
+
+        end
+
+        # Updating Del_f_Del_x_Matrix_V_SlackBus
+        for ii in 1:Len_V  # For each element in Del_f_Del_x_Matrix_V_SlackBus
+
+            Del_f_Del_x_Matrix_V_SlackBus[ii,1] = ((SolutionVector_x_V_loop[1,1] * abs(Ybus[1,ii+1])) *(cos(angle(Ybus[1,ii+1]) +  deg2rad(SolutionVector_x_Delta_loop[ii+1,1]) - deg2rad(SolutionVector_x_Delta_loop[1,1]))))
+
+        end
+
+        # Updating Del_f_Del_x_Matrix_Delta and Del_f_Del_x_Matrix_V_SlackBus
+        Del_f_Del_x_Matrix_Delta = ((2*Generator_CostCurve_Matrix_New[1,1] * SolutionVector_p_Full_loop[1,1]) + (Generator_CostCurve_Matrix_New[1,2])) * Del_f_Del_x_Matrix_Delta_SlackBus
+        Del_f_Del_x_Matrix_V = ((2*Generator_CostCurve_Matrix_New[1,1] * SolutionVector_p_Full_loop[1,1]) + (Generator_CostCurve_Matrix_New[1,2])) * Del_f_Del_x_Matrix_V_SlackBus
+
+        # Computing Del_f_Del_x_Matrix
+        Del_f_Del_x_Matrix = vcat(Del_f_Del_x_Matrix_Delta, Del_f_Del_x_Matrix_V) 
+
+
+    elseif ((Len_SolutionVector_p_loop == Len_Generator_CostCurve_Matrix_New) && (Line_Index_Vector != nothing) && (Line_Bus_Index_Matrix != nothing) && (Line_P_Limit_Vector != nothing))  # No Slack Bus in Cost Function and Line Limits present
+
+        # Computing Line Limit Violation indicator
+        LineLimit_Violation_Indicator, Line_LimitViolated_Index_Vector, Line_LimitViolated_Bus_Index_Matrix, Line_LimitViolated_P_Limit_Vector = Compute_LineLimit_Violation_Indicator_OPF(LineFlow_Array, Line_Index_Vector, Line_Bus_Index_Matrix, Line_P_Limit_Vector)
+
+        # Checking if Limits were violated
+        if (LineLimit_Violation_Indicator == true)  # Line Limits are violated
+
+            ## Compute Line Limits part of Del_f_Del_x_Matrix
+
+            for ii in 1:size(Line_LimitViolated_Index_Vector)[1]  # For each element in Line_LimitViolated_Index_Vector
+
+                # Initializing Del_f_Del_x_Matrix_Delta_Line and Del_f_Del_x_Matrix_V_Line
+                Del_f_Del_x_Matrix_Delta_Line = zeros(Len_Delta, 1)
+                Del_f_Del_x_Matrix_V_Line = zeros(Len_V, 1)
+
+                # Getting desired Indices and Line Limit and Del_f_Del_Pij
+                Line_Index = Int64(Line_LimitViolated_Index_Vector[ii,1])
+                Bus_i_Index = Int64(Line_LimitViolated_Bus_Index_Matrix[ii,1])
+                Bus_j_Index = Int64(Line_LimitViolated_Bus_Index_Matrix[ii,2])
+                Line_Limit = Line_LimitViolated_P_Limit_Vector[ii,1]
+                Del_f_Del_Pij = 2 * (LineFlow_Array[Line_Index,1] - Line_Limit)
+
+                # Updating Del_f_Del_x_Matrix_Delta_Line w.r.t Delta_i
+                if (Bus_i_Index != 1) # Not Slack Bus
+
+                    Del_f_Del_x_Matrix_Delta_Line[Bus_i_Index-1,1] = ((SolutionVector_x_V_loop[Bus_i_Index,1] * SolutionVector_x_V_loop[Bus_j_Index,1] * abs(Ybus[Bus_i_Index,Bus_j_Index])) *(sin(angle(Ybus[Bus_i_Index,Bus_j_Index]) +  deg2rad(SolutionVector_x_Delta_loop[Bus_j_Index,1]) - deg2rad(SolutionVector_x_Delta_loop[Bus_i_Index,1]))))
+
+                end
+
+                # Updating Del_f_Del_x_Matrix_Delta_Line w.r.t Delta_j
+                if (Bus_j_Index != 1) # Not Slack Bus
+
+                    Del_f_Del_x_Matrix_Delta_Line[Bus_j_Index-1,1] = -((SolutionVector_x_V_loop[Bus_i_Index,1] * SolutionVector_x_V_loop[Bus_j_Index,1] * abs(Ybus[Bus_i_Index,Bus_j_Index])) *(sin(angle(Ybus[Bus_i_Index,Bus_j_Index]) +  deg2rad(SolutionVector_x_Delta_loop[Bus_j_Index,1]) - deg2rad(SolutionVector_x_Delta_loop[Bus_i_Index,1]))))
+
+                end
+
+                # Updating Del_f_Del_x_Matrix_Delta_Line with Del_f_Del_Pij
+                Del_f_Del_x_Matrix_Delta_Line = Del_f_Del_Pij * Del_f_Del_x_Matrix_Delta_Line
+
+                # Updating Del_f_Del_x_Matrix_V_Line w.r.t V_i
+                if ((Bus_i_Index > 1) && (Bus_i_Index <= (N_PQ_Bus + 1)))  # Not a Slack or PV Bus
+
+                    Del_f_Del_x_Matrix_V_Line[Bus_i_Index-1,1] = (2 *  SolutionVector_x_V_loop[Bus_i_Index,1] * real(Ybus[Bus_i_Index,Bus_j_Index])) + ((SolutionVector_x_V_loop[Bus_j_Index,1] * abs(Ybus[Bus_i_Index,Bus_j_Index])) *(cos(angle(Ybus[Bus_i_Index,Bus_j_Index]) +  deg2rad(SolutionVector_x_Delta_loop[Bus_j_Index,1]) - deg2rad(SolutionVector_x_Delta_loop[Bus_i_Index,1]))))
+
+                end
+
+                # Updating Del_f_Del_x_Matrix_V_Line w.r.t V_j
+                if ((Bus_j_Index > 1) && (Bus_j_Index <= (N_PQ_Bus + 1)))  # Not a Slack or PV Bus
+
+                    Del_f_Del_x_Matrix_V_Line[Bus_j_Index-1,1] = ((SolutionVector_x_V_loop[Bus_i_Index,1] * abs(Ybus[Bus_i_Index,Bus_j_Index])) *(cos(angle(Ybus[Bus_i_Index,Bus_j_Index]) +  deg2rad(SolutionVector_x_Delta_loop[Bus_j_Index,1]) - deg2rad(SolutionVector_x_Delta_loop[Bus_i_Index,1]))))
+
+                end
+
+                # Updating Del_f_Del_x_Matrix_V_Line with Del_f_Del_Pij
+                Del_f_Del_x_Matrix_V_Line = Del_f_Del_Pij * Del_f_Del_x_Matrix_Delta_Line
+
+                # Updating Del_f_Del_x_Matrix_Delta and Del_f_Del_x_Matrix_V_SlackBus
+                Del_f_Del_x_Matrix_Delta = Del_f_Del_x_Matrix_Delta + Del_f_Del_x_Matrix_Delta_Line
+                Del_f_Del_x_Matrix_V = Del_f_Del_x_Matrix_V + Del_f_Del_x_Matrix_V_Line
+
+            end
+
+            # Computing Del_f_Del_x_Matrix
+            Del_f_Del_x_Matrix = vcat(Del_f_Del_x_Matrix_Delta, Del_f_Del_x_Matrix_V) 
+
+        else  # Line Limits are not violated
+
+            # Constructing Del_f_Del_x_Matrix
+            Del_f_Del_x_Matrix = vcat(Del_f_Del_x_Matrix_Delta, Del_f_Del_x_Matrix_V)
+
+        end
+
+    elseif ((Len_SolutionVector_p_loop != Len_Generator_CostCurve_Matrix_New) && (Line_Index_Vector != nothing) && (Line_Bus_Index_Matrix != nothing) && (Line_P_Limit_Vector != nothing))  # Slack Bus in Cost Function and Line Limits present
+
+        # Computing Line Limit Violation indicator
+        LineLimit_Violation_Indicator, Line_LimitViolated_Index_Vector, Line_LimitViolated_Bus_Index_Matrix, Line_LimitViolated_P_Limit_Vector = Compute_LineLimit_Violation_Indicator_OPF(LineFlow_Array, Line_Index_Vector, Line_Bus_Index_Matrix, Line_P_Limit_Vector)
+
+        # Checking if Limits were violated
+        if (LineLimit_Violation_Indicator == true)  # Line Limits are violated
+
+            ## Compute Slack Bus part of Del_f_Del_x_Matrix
+
+            # Initializing Del_f_Del_x_Matrix_Delta_SlackBus and Del_f_Del_x_Matrix_V_SlackBus
+            Del_f_Del_x_Matrix_Delta_SlackBus = zeros(Len_Delta, 1)
+            Del_f_Del_x_Matrix_V_SlackBus = zeros(Len_V, 1)
+
+            # Updating Del_f_Del_x_Matrix_Delta_SlackBus
+            for ii in 1:Len_Delta  # For each element in Del_f_Del_x_Matrix_Delta_SlackBus
+
+                Del_f_Del_x_Matrix_Delta_SlackBus[ii,1] = -((SolutionVector_x_V_loop[1,1] * SolutionVector_x_V_loop[ii+1,1] * abs(Ybus[1,ii+1])) *(sin(angle(Ybus[1,ii+1]) +  deg2rad(SolutionVector_x_Delta_loop[ii+1,1]) - deg2rad(SolutionVector_x_Delta_loop[1,1]))))
+
+            end
+
+            # Updating Del_f_Del_x_Matrix_V_SlackBus
+            for ii in 1:Len_V  # For each element in Del_f_Del_x_Matrix_V_SlackBus
+
+                Del_f_Del_x_Matrix_V_SlackBus[ii,1] = ((SolutionVector_x_V_loop[1,1] * abs(Ybus[1,ii+1])) *(cos(angle(Ybus[1,ii+1]) +  deg2rad(SolutionVector_x_Delta_loop[ii+1,1]) - deg2rad(SolutionVector_x_Delta_loop[1,1]))))
+
+            end
+
+            # Updating Del_f_Del_x_Matrix_Delta and Del_f_Del_x_Matrix_V_SlackBus
+            Del_f_Del_x_Matrix_Delta = ((2*Generator_CostCurve_Matrix_New[1,1] * SolutionVector_p_Full_loop[1,1]) + (Generator_CostCurve_Matrix_New[1,2])) * Del_f_Del_x_Matrix_Delta_SlackBus
+            Del_f_Del_x_Matrix_V = ((2*Generator_CostCurve_Matrix_New[1,1] * SolutionVector_p_Full_loop[1,1]) + (Generator_CostCurve_Matrix_New[1,2])) * Del_f_Del_x_Matrix_V_SlackBus
+
+            ## Compute Line Limits part of Del_f_Del_x_Matrix
+            for ii in 1:size(Line_LimitViolated_Index_Vector)[1]  # For each element in Line_LimitViolated_Index_Vector
+
+                # Initializing Del_f_Del_x_Matrix_Delta_Line and Del_f_Del_x_Matrix_V_Line
+                Del_f_Del_x_Matrix_Delta_Line = zeros(Len_Delta, 1)
+                Del_f_Del_x_Matrix_V_Line = zeros(N_PQ_Bus, 1)
+
+                # Getting desired Indices and Line Limit and Del_f_Del_Pij
+                Line_Index = Int64(Line_LimitViolated_Index_Vector[ii,1])
+                Bus_i_Index = Int64(Line_LimitViolated_Bus_Index_Matrix[ii,1])
+                Bus_j_Index = Int64(Line_LimitViolated_Bus_Index_Matrix[ii,2])
+                Line_Limit = Line_LimitViolated_P_Limit_Vector[ii,1]
+                Del_f_Del_Pij = 2 * (LineFlow_Array[Line_Index,1] - Line_Limit)
+
+                # Updating Del_f_Del_x_Matrix_Delta_Line w.r.t Delta_i
+                if (Bus_i_Index != 1) # Not Slack Bus
+
+                    Del_f_Del_x_Matrix_Delta_Line[Bus_i_Index-1,1] = ((SolutionVector_x_V_loop[Bus_i_Index,1] * SolutionVector_x_V_loop[Bus_j_Index,1] * abs(Ybus[Bus_i_Index,Bus_j_Index])) *(sin(angle(Ybus[Bus_i_Index,Bus_j_Index]) +  deg2rad(SolutionVector_x_Delta_loop[Bus_j_Index,1]) - deg2rad(SolutionVector_x_Delta_loop[Bus_i_Index,1]))))
+
+                end
+
+                # Updating Del_f_Del_x_Matrix_Delta_Line w.r.t Delta_j
+                if (Bus_j_Index != 1) # Not Slack Bus
+
+                    Del_f_Del_x_Matrix_Delta_Line[Bus_j_Index-1,1] = -((SolutionVector_x_V_loop[Bus_i_Index,1] * SolutionVector_x_V_loop[Bus_j_Index,1] * abs(Ybus[Bus_i_Index,Bus_j_Index])) *(sin(angle(Ybus[Bus_i_Index,Bus_j_Index]) +  deg2rad(SolutionVector_x_Delta_loop[Bus_j_Index,1]) - deg2rad(SolutionVector_x_Delta_loop[Bus_i_Index,1]))))
+
+                end
+
+                # Updating Del_f_Del_x_Matrix_Delta_Line with Del_f_Del_Pij
+                Del_f_Del_x_Matrix_Delta_Line = Del_f_Del_Pij * Del_f_Del_x_Matrix_Delta_Line
+
+                # Updating Del_f_Del_x_Matrix_V_Line w.r.t V_i
+                if ((Bus_i_Index > 1) && (Bus_i_Index <= (N_PQ_Bus + 1)))  # Not a Slack or PV Bus
+
+                    Del_f_Del_x_Matrix_V_Line[Bus_i_Index-1,1] = (2 *  SolutionVector_x_V_loop[Bus_i_Index,1] * real(Ybus[Bus_i_Index,Bus_j_Index])) + ((SolutionVector_x_V_loop[Bus_j_Index,1] * abs(Ybus[Bus_i_Index,Bus_j_Index])) *(cos(angle(Ybus[Bus_i_Index,Bus_j_Index]) +  deg2rad(SolutionVector_x_Delta_loop[Bus_j_Index,1]) - deg2rad(SolutionVector_x_Delta_loop[Bus_i_Index,1]))))
+
+                end
+
+                # Updating Del_f_Del_x_Matrix_V_Line w.r.t V_j
+                if ((Bus_j_Index > 1) && (Bus_j_Index <= (N_PQ_Bus + 1)))  # Not a Slack or PV Bus
+
+                    Del_f_Del_x_Matrix_V_Line[Bus_j_Index-1,1] = ((SolutionVector_x_V_loop[Bus_i_Index,1] * abs(Ybus[Bus_i_Index,Bus_j_Index])) *(cos(angle(Ybus[Bus_i_Index,Bus_j_Index]) +  deg2rad(SolutionVector_x_Delta_loop[Bus_j_Index,1]) - deg2rad(SolutionVector_x_Delta_loop[Bus_i_Index,1]))))
+
+                end
+
+                # Updating Del_f_Del_x_Matrix_V_Line with Del_f_Del_Pij
+                Del_f_Del_x_Matrix_V_Line = Del_f_Del_Pij * Del_f_Del_x_Matrix_V_Line
+
+                # Updating Del_f_Del_x_Matrix_Delta and Del_f_Del_x_Matrix_V_SlackBus
+                Del_f_Del_x_Matrix_Delta = Del_f_Del_x_Matrix_Delta + Del_f_Del_x_Matrix_Delta_Line
+                Del_f_Del_x_Matrix_V = Del_f_Del_x_Matrix_V + Del_f_Del_x_Matrix_V_Line
+
+            end
+
+            # Computing Del_f_Del_x_Matrix
+            Del_f_Del_x_Matrix = vcat(Del_f_Del_x_Matrix_Delta, Del_f_Del_x_Matrix_V) 
+
+        else  # Line Limits are not violated
+
+            ## Compute Slack Bus part of Del_f_Del_x_Matrix
+
+            # Initializing Del_f_Del_x_Matrix_Delta_SlackBus and Del_f_Del_x_Matrix_V_SlackBus
+            Del_f_Del_x_Matrix_Delta_SlackBus = zeros(Len_Delta, 1)
+            Del_f_Del_x_Matrix_V_SlackBus = zeros(N_PQ_Bus, 1)
+
+            # Updating Del_f_Del_x_Matrix_Delta_SlackBus
+            for ii in 1:Len_Delta  # For each element in Del_f_Del_x_Matrix_Delta_SlackBus
+
+                Del_f_Del_x_Matrix_Delta_SlackBus[ii,1] = -((SolutionVector_x_V_loop[1,1] * SolutionVector_x_V_loop[ii+1,1] * abs(Ybus[1,ii+1])) *(sin(angle(Ybus[1,ii+1]) +  deg2rad(SolutionVector_x_Delta_loop[ii+1,1]) - deg2rad(SolutionVector_x_Delta_loop[1,1]))))
+
+            end
+
+            # Updating Del_f_Del_x_Matrix_V_SlackBus
+            for ii in 1:Len_V  # For each element in Del_f_Del_x_Matrix_V_SlackBus
+
+                Del_f_Del_x_Matrix_v_SlackBus[ii,1] = ((SolutionVector_x_V_loop[1,1] * abs(Ybus[1,ii+1])) *(cos(angle(Ybus[1,ii+1]) +  deg2rad(SolutionVector_x_Delta_loop[ii+1,1]) - deg2rad(SolutionVector_x_Delta_loop[1,1]))))
+
+            end
+
+            # Updating Del_f_Del_x_Matrix_Delta and Del_f_Del_x_Matrix_V_SlackBus
+            Del_f_Del_x_Matrix_Delta = ((2*Generator_CostCurve_Matrix_New[1,1] * SolutionVector_p_Full_loop[1,1]) + (Generator_CostCurve_Matrix_New[1,2])) * Del_f_Del_x_Matrix_Delta_SlackBus
+            Del_f_Del_x_Matrix_V = ((2*Generator_CostCurve_Matrix_New[1,1] * SolutionVector_p_Full_loop[1,1]) + (Generator_CostCurve_Matrix_New[1,2])) * Del_f_Del_x_Matrix_V_SlackBus
+
+            # Computing Del_f_Del_x_Matrix
+            Del_f_Del_x_Matrix = vcat(Del_f_Del_x_Matrix_Delta, Del_f_Del_x_Matrix_V) 
+
+        end
+
+    end
+
+    # Addressing Machine Precision
+    Del_f_Del_x_Matrix = Addressing_MachinePrecision(Del_f_Del_x_Matrix, 1e-12)
+
+    return Del_f_Del_x_Matrix 
+
+end
+
 function constructJacobian(CDF_DF_List_pu::Vector{DataFrame},
     P::Vector{Float64}, Q::Vector{Float64}, V::Vector{Float64}, 
     delta::Vector{Float64}, ybus::Matrix{ComplexF64};
@@ -1604,6 +2297,8 @@ function constructJacobian(CDF_DF_List_pu::Vector{DataFrame},
     return J
     
 end
+
+
 
 function constructJacobianSubMatrix(CDF_DF_List_pu::Vector{DataFrame},
     P::Vector{Float64},
@@ -1705,3 +2400,4 @@ function constructJacobianSubMatrix(CDF_DF_List_pu::Vector{DataFrame},
 
     return JSub
 end
+
