@@ -528,7 +528,7 @@ function PowerFlow_MainFunction_OPF(CDF_DF_List_pu, Ybus, Ybus_Taps_Indicator, N
             # Incrementing WhileLoop_Counter
             WhileLoop_Counter = WhileLoop_Counter + 1
             
-            @show WhileLoop_Counter
+            #@show WhileLoop_Counter
 
             # Starting Timer
             TickTock.tick()
@@ -596,7 +596,7 @@ function PowerFlow_MainFunction_OPF(CDF_DF_List_pu, Ybus, Ybus_Taps_Indicator, N
 
             end
 
-            @show Correction_Vector_NR
+            # @show Correction_Vector_NR
 
             # Computing New SolutionVector_NR
             SolutionVector_NR = SolutionVector_NR + Correction_Vector_NR

@@ -2364,7 +2364,7 @@ function Compute_Del_f_Del_x_Matrix_OPF(CDF_DF_List_pu, SolutionVector_x_V_loop,
             # Updating Del_f_Del_x_Matrix_V_SlackBus
             for ii in 1:Len_V  # For each element in Del_f_Del_x_Matrix_V_SlackBus
 
-                Del_f_Del_x_Matrix_v_SlackBus[ii,1] = ((SolutionVector_x_V_loop[1,1] * abs(Ybus[1,ii+1])) *(cos(angle(Ybus[1,ii+1]) +  deg2rad(SolutionVector_x_Delta_loop[ii+1,1]) - deg2rad(SolutionVector_x_Delta_loop[1,1]))))
+                Del_f_Del_x_Matrix_V_SlackBus[ii,1] = ((SolutionVector_x_V_loop[1,1] * abs(Ybus[1,ii+1])) *(cos(angle(Ybus[1,ii+1]) +  deg2rad(SolutionVector_x_Delta_loop[ii+1,1]) - deg2rad(SolutionVector_x_Delta_loop[1,1]))))
 
             end
 

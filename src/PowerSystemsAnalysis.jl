@@ -646,6 +646,11 @@ function PowerSystem_OPF_MainFunction(CDF_FilePath, Generator_BusNum_CostCurve_A
         # Computing Generation Cost before OPF
         CostGeneration_Before_OPF = Compute_GenerationCost_OPF(SolutionVector_p, SolutionVector_p_Full, Generator_CostCurve_Matrix_New, Base_MVA)
 
+        SolutionVector_p  = Base_MVA * SolutionVector_p  # Debugger
+        SolutionVector_p_Full  = Base_MVA * SolutionVector_p_Full  # Debugger
+        LineFlow_Array = Base_MVA * LineFlow_Array  # Debugger
+        Line_P_Limit_Vector = Base_MVA * Line_P_Limit_Vector  # Debugger
+        
         # Initializing OPF_IterationTimeInfo_Array
         OPF_IterationTimeInfo_Array = zeros(1,2)
 
@@ -695,6 +700,10 @@ function PowerSystem_OPF_MainFunction(CDF_FilePath, Generator_BusNum_CostCurve_A
                         # Create Initial Solution Vector - u for Power System independent Powers
                         SolutionVector_p_loop, SolutionVector_p_Full_loop = Create_SolutionVector_p_OPF(CDF_DF_List_pu, u_P_Index_Vector)
 
+                        SolutionVector_p_loop  = Base_MVA * SolutionVector_p_loop   # Debugger
+                        SolutionVector_p_Full_loop   = Base_MVA * SolutionVector_p_Full_loop   # Debugger
+                        LineFlow_Array = Base_MVA * LineFlow_Array  # Debugger
+
                         # Creating SolutionVector_V and SolutionVector_Delta
                         SolutionVector_x_V_loop, SolutionVector_x_Delta_loop = Create_SolutionVector_VDelta_NR(CDF_DF_List_pu, SolutionVector_x_loop)
 
@@ -720,10 +729,13 @@ function PowerSystem_OPF_MainFunction(CDF_FilePath, Generator_BusNum_CostCurve_A
 
                 # Compute Delta_C_Vector
                 Delta_C_Vector = Del_f_Del_u_Matrix - (Del_g_Del_u_Matrix' * Del_g_Del_x_Matrix_T_Inv * Del_f_Del_x_Matrix)
-
+                @show Delta_C_Vector[:]
                 # Updating SolutionVector_p_loop
                 SolutionVector_p_loop = SolutionVector_p_loop - (StepSize_OPF * Delta_C_Vector)
+                @show SolutionVector_p_loop[:]
 
+                SolutionVector_p_loop  = SolutionVector_p_loop / Base_MVA  # Debugger
+                SolutionVector_p_Full_loop = SolutionVector_p_Full_loop / Base_MVA  # Debugger
                 # Update CDF_DF_List_pu with updated SolutionVector_p_loop
                 CDF_DF_List_pu = Update_CDFDFListpu_uP_OPF(CDF_DF_List_pu, SolutionVector_p_loop, u_P_Index_Vector)
 
@@ -735,6 +747,10 @@ function PowerSystem_OPF_MainFunction(CDF_FilePath, Generator_BusNum_CostCurve_A
 
                 # Filling-up OPF_IterationTimeInfo_Array
                 OPF_IterationTimeInfo_Array[WhileLoop_Counter,1:2] = [WhileLoop_Counter , IterationTime]
+
+                # Computing Generation Cost after OPF
+                CostGeneration_After_OPF = Compute_GenerationCost_OPF(SolutionVector_p_loop, SolutionVector_p_Full_loop, Generator_CostCurve_Matrix_New, Base_MVA)
+                @show CostGeneration_After_OPF
 
         end
 
