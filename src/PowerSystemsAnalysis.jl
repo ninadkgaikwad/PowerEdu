@@ -649,7 +649,10 @@ function PowerSystem_OPF_MainFunction(CDF_FilePath, Generator_BusNum_CostCurve_A
         SolutionVector_p  = Base_MVA * SolutionVector_p  # Debugger
         SolutionVector_p_Full  = Base_MVA * SolutionVector_p_Full  # Debugger
         LineFlow_Array = Base_MVA * LineFlow_Array  # Debugger
-        Line_P_Limit_Vector = Base_MVA * Line_P_Limit_Vector  # Debugger
+
+        if (Line_PowerFlow_Limit_Array != nothing)
+                Line_P_Limit_Vector = Base_MVA * Line_P_Limit_Vector  # Debugger
+        end
         
         # Initializing OPF_IterationTimeInfo_Array
         OPF_IterationTimeInfo_Array = zeros(1,2)

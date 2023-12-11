@@ -188,18 +188,18 @@ elseif (Debug_Indicator == 8)  # OPF: Full OPF
 
     Generator_BusNum_CostCurve_Array = [[1,0.004,8,0],[2, 0.0048,6.4,0]] # ,[3, 0.003,5,0]
 
-    Line_PowerFlow_Limit_Array = [[1,2,5]]
+    # Line_PowerFlow_Limit_Array = [[1,2,5]]
 
-    # Line_PowerFlow_Limit_Array = nothing
+    Line_PowerFlow_Limit_Array = nothing
 
 
     StepSize_OPF = 1
 
-    Tolerance_OPF = 0.1
+    Tolerance_OPF = 0.00001
 
     Ybus_Taps_Indicator = false
 
-    Tolerance_NR = 0.01
+    Tolerance_NR = 0.001
 
     Tol_Num = 0
 
@@ -208,7 +208,7 @@ elseif (Debug_Indicator == 8)  # OPF: Full OPF
     BusSwitching = false
      
     #  PowerSystemsAnalysis.PowerFlow_MainFunction(CDF_FilePath, Ybus_Taps_Indicator, NR_Type, Tolerance, Tol_Num)
-    PowerSystemsAnalysis.PowerSystem_OPF_MainFunction(CDF_FilePath, Generator_BusNum_CostCurve_Array, Line_PowerFlow_Limit_Array, Tolerance_OPF, StepSize_OPF, Ybus_Taps_Indicator, Tolerance_NR, Tol_Num, SortValue, BusSwitching)
+    CDF_DF_List_pu, CostGeneration_Before_OPF, CostGeneration_After_OPF = PowerSystemsAnalysis.PowerSystem_OPF_MainFunction(CDF_FilePath, Generator_BusNum_CostCurve_Array, Line_PowerFlow_Limit_Array, Tolerance_OPF, StepSize_OPF, Ybus_Taps_Indicator, Tolerance_NR, Tol_Num, SortValue, BusSwitching)
 
 elseif (Debug_Indicator == 9)  # OPF: Economic Dispatch
 

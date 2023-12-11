@@ -844,7 +844,7 @@ function Compute_LineLimit_Violation_Indicator_OPF(LineFlow_Array, Line_Index_Ve
     # Checking for Line Limit Violations
     for ii in 1:Len_Line_Index_Vector  # For each element in Line_Index_Vector
 
-        if (LineFlow_Array[Int64(Line_Index_Vector[ii,1]),1] > Line_P_Limit_Vector[ii,1])  # Line Limit is violated 
+        if (abs(LineFlow_Array[Int64(Line_Index_Vector[ii,1]),1]) > Line_P_Limit_Vector[ii,1])  # Line Limit is violated  ## Debugger abs()
 
             # Updating LineLimit_Violation_Counter
             LineLimit_Violation_Counter = LineLimit_Violation_Counter + 1
