@@ -19,7 +19,7 @@ being built by current PhD ECE (Power Systems) students at Washington State Univ
 
 In-progress.
 
-Expected Release Date: 01 September 2023
+Expected Release Date: 2024
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://ninadkgaikwad.github.io/PowerSystemsAnalysis.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://ninadkgaikwad.github.io/PowerSystemsAnalysis.jl/dev/)
