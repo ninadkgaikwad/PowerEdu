@@ -6,25 +6,29 @@
 # include("Ybus_Builder.jl")
 
 """
-    CDF_Parser(CDF_FilePath)
+CDF_Parser(CDF_FilePath::String; sortingOrder::String = `"busNums"`, saveTables::Bool = `false`, saveLocation::String = `"processedData/"`)
 
-Creates Julia Dataframe from the IEEE Common Data Format (CDF) text file.
+Parse the provided IEEE CDF (Common Data Format) file to extract the relevant data.
 
-'''
-# Arguments
-- 'CDF_FilePath': File path to the IEEE CDF text file.
-- 'SortValue': True - Sort CDF File according to Bus Type PQ->PV->Slack, False - do not sort
-'''
-'''
-# Output
-- 'CDF_DF_List': IEEE CDF file in List of Dataframe format according to
-Data Card types in IEEE CDF file : [TitleCard_DF, BusDataCard_DF,
-BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF,
-TieLinesDataCard_DF].
-'''
+# Arguments:
+- `CDF_FilePath::String`: Path to the IEEE CDF file.
+
+# Keyword Arguments:
+- `sortingOrder::String`: Determines how the bus data should be sorted. Accepts two values:
+    * `"busNums"`: Default, orders data by bus numbers.
+    * `"busTypes"`: Orders data first by bus types (PQ->PV->Slack).
+- `saveTables::Bool`: Flag to determine if the parsed tables should be saved. Default is `false`.
+- `saveLocation::String`: Directory path where the parsed tables should be saved, if `saveTables` is set to `true`. Default is `"processedData/"`.
+
+# Returns:
+This function will return the parsed data in a structured format. Exact return type and structure are dependent on further implementation details.
+
+# Example:
+```julia
+CDF_Parser("path_to_CDF_file.txt", sortingOrder="busTypes", saveTables=true)
 """
-function CDF_Parser(CDF_FilePath,
-        SortValue ;
+function CDF_Parser(CDF_FilePath::String;
+        sortingOrder::String="busNums",
         saveTables::Bool=false, 
         saveLocation = "processedData/")
         
@@ -37,11 +41,11 @@ function CDF_Parser(CDF_FilePath,
 
         # Gathering Data From Title Card into a DataFrame
         TitleCard_DF = DataFrame(DateTime = CDF_Text_Array[1][2:9],
-                                 Origin = CDF_Text_Array[1][11:30],
-                                 MVA_Base = parse(Float64, CDF_Text_Array[1][32:37]),
-                                 Year = parse(Int64, CDF_Text_Array[1][39:42]),
-                                 Season = CDF_Text_Array[1][44],
-                                 Case_ID = CDF_Text_Array[1][46:end])
+                Origin = CDF_Text_Array[1][11:30],
+                MVA_Base = parse(Float64, CDF_Text_Array[1][32:37]),
+                Year = parse(Int64, CDF_Text_Array[1][39:42]),
+                Season = CDF_Text_Array[1][44],
+                Case_ID = CDF_Text_Array[1][46:end])
 
         # Initializing Data Card Arrays
         BusDataCard_Array=[]
@@ -196,128 +200,124 @@ function CDF_Parser(CDF_FilePath,
 
         # Initializing Data DataFrames
         BusDataCard_DF=DataFrame(Bus_Num = Int64[],
-                                 Name = String[],
-                                 LF_Area_Num = Int64[],
-                                 LZ_Num = Int64[],
-                                 Type = Int64[],
-                                 Type_Original = Int64[],
-                                 SE_V_pu = Float64[],
-                                 SE_A_deg = Float64[],
-                                 Final_V_pu = Float64[],
-                                 Final_A_deg = Float64[],
-                                 Final_V_pu_Original = Float64[],
-                                 Final_A_deg_Original = Float64[],
-                                 Load_MW = Float64[],
-                                 Load_MVAR = Float64[],
-                                 Gen_MW = Float64[],
-                                 Gen_MVAR = Float64[],
-                                 Base_KV = Float64[],
-                                 Desired_V_pu = Float64[],
-                                 Max_MVAR_V = Float64[],
-                                 Min_MVAR_V = Float64[],
-                                 MVAR_V_Limit = Float64[],
-                                 G_pu = Float64[],
-                                 B_pu = Float64[],
-                                 Remote_Con_Bus_Num = Int64[],
-                                 V_Measured = Float64[],
-                                 P_Measured = Float64[],
-                                 Q_Measured = Float64[],
-                                 ErrorVariance_V = Float64[],
-                                 ErrorVariance_P = Float64[],
-                                 ErrorVariance_Q = Float64[])
+                Name = String[],
+                LF_Area_Num = Int64[],
+                LZ_Num = Int64[],
+                Type = Int64[],
+                Type_Original = Int64[],
+                Final_V_pu = Float64[],
+                Final_A_deg = Float64[],
+                Final_V_pu_Original = Float64[],
+                Final_A_deg_Original = Float64[],
+                Load_MW = Float64[],
+                Load_MVAR = Float64[],
+                Gen_MW = Float64[],
+                Gen_MVAR = Float64[],
+                Base_KV = Float64[],
+                Desired_V_pu = Float64[],
+                Max_MVAR_V = Float64[],
+                Min_MVAR_V = Float64[],
+                MVAR_V_Limit = Float64[],
+                G_pu = Float64[],
+                B_pu = Float64[],
+                Remote_Con_Bus_Num = Int64[],
+                V_Measured = Float64[],
+                P_Measured = Float64[],
+                Q_Measured = Float64[],
+                ErrorVariance_V = Float64[],
+                ErrorVariance_P = Float64[],
+                ErrorVariance_Q = Float64[])
 
         BranchDataCard_DF=DataFrame(Tap_Bus_Num = Int64[],
-                                    Z_Bus_Num = Int64[],
-                                    LF_Area = Int64[],
-                                    LZ = Int64[],
-                                    Circuit = Int64[],
-                                    Type = Int64[],
-                                    R_pu = Float64[],
-                                    X_pu =Float64[],
-                                    B_pu = Float64[],
-                                    MVA_Rating_1 = Int64[],
-                                    MVA_Rating_2 = Int64[],
-                                    MVA_Rating_3 = Int64[],
-                                    Con_Bus_Num = Int64[],
-                                    Side = Int64[],
-                                    Transformer_t = Float64[],
-                                    Transformer_ps = Float64[],
-                                    Min_t_ps = Float64[],
-                                    Max_t_ps = Float64[],
-                                    StepSize = Float64[],
-                                    Min_MVAR_MW_V = Float64[],
-                                    Max_MVAR_MW_V = Float64[],
-                                    Line_Flow_P_ij = Float64[],
-                                    Line_Flow_Q_ij = Float64[],
-                                    Line_Flow_P_ji = Float64[],
-                                    Line_Flow_Q_ji = Float64[],
-                                    Line_Flow_Pos_P = Float64[],
-                                    Line_Flow_Neg_P = Float64[],
-                                    Line_Flow_Pos_Q = Float64[],
-                                    Line_Flow_Neg_Q = Float64[],
-                                    ErrorVariance_Pos_P = Float64[],
-                                    ErrorVariance_Neg_P = Float64[],
-                                    ErrorVariance_Pos_Q = Float64[],
-                                    ErrorVariance_Neg_Q = Float64[])
+                Z_Bus_Num = Int64[],
+                LF_Area = Int64[],
+                LZ = Int64[],
+                Circuit = Int64[],
+                Type = Int64[],
+                R_pu = Float64[],
+                X_pu =Float64[],
+                B_pu = Float64[],
+                MVA_Rating_1 = Int64[],
+                MVA_Rating_2 = Int64[],
+                MVA_Rating_3 = Int64[],
+                Con_Bus_Num = Int64[],
+                Side = Int64[],
+                Transformer_t = Float64[],
+                Transformer_ps = Float64[],
+                Min_t_ps = Float64[],
+                Max_t_ps = Float64[],
+                StepSize = Float64[],
+                Min_MVAR_MW_V = Float64[],
+                Max_MVAR_MW_V = Float64[],
+                Line_Flow_P = Float64[],
+                Line_Flow_Q = Float64[],
+                Line_Flow_Pos_P = Float64[],
+                Line_Flow_Neg_P = Float64[],
+                Line_Flow_Pos_Q = Float64[],
+                Line_Flow_Neg_Q = Float64[],
+                ErrorVariance_Pos_P = Float64[],
+                ErrorVariance_Neg_P = Float64[],
+                ErrorVariance_Pos_Q = Float64[],
+                ErrorVariance_Neg_Q = Float64[])
 
         LossZonesCard_DF=DataFrame(LZ_Num = Int64[],
-                                   LZ_Name = String[])
+                LZ_Name = String[])
 
         InterchangeDataCard_DF=DataFrame(Area_Num = Int64[],
-                                         Inter_SB_Num = Int64[],
-                                         Alt_SB_Name = String[],
-                                         Area_Inter_export = Float64[],
-                                         Area_Inter_tol = Float64[],
-                                         Area_Code = String[],
-                                         Area_Name = String[])
+                Inter_SB_Num = Int64[],
+                Alt_SB_Name = String[],
+                Area_Inter_export = Float64[],
+                Area_Inter_tol = Float64[],
+                Area_Code = String[],
+                Area_Name = String[])
 
         TieLinesDataCard_DF=DataFrame(Meter_Bus_Num = Int64[],
-                                  Meter_Area_Num = Int64[],
-                                  NonMeter_Bus_Num = Int64[],
-                                  NonMeter_Area_Num = Int64[],
-                                  Circuit_Num = Int64[])
+                Meter_Area_Num = Int64[],
+                NonMeter_Bus_Num = Int64[],
+                NonMeter_Area_Num = Int64[],
+                Circuit_Num = Int64[])
 
         # Filling up BusDataCard_DF
         for ii in 1:length(BusDataCard_Array)
 
                 push!(BusDataCard_DF,(parse(Int64,BusDataCard_Array[ii][1:4]),
-                                      BusDataCard_Array[ii][6:17],
-                                      parse(Int64,BusDataCard_Array[ii][19:20]),
-                                      parse(Int64,BusDataCard_Array[ii][21:23]),
-                                      parse(Int64,BusDataCard_Array[ii][25:26]),
-                                      parse(Int64,BusDataCard_Array[ii][25:26]),
-                                      parse(Float64,BusDataCard_Array[ii][28:33]),
-                                      parse(Float64,BusDataCard_Array[ii][34:40]),
-                                      parse(Float64,BusDataCard_Array[ii][28:33]),
-                                      parse(Float64,BusDataCard_Array[ii][34:40]),
-                                      parse(Float64,BusDataCard_Array[ii][28:33]),
-                                      parse(Float64,BusDataCard_Array[ii][34:40]),
-                                      parse(Float64,BusDataCard_Array[ii][41:49]),
-                                      parse(Float64,BusDataCard_Array[ii][50:59]),
-                                      parse(Float64,BusDataCard_Array[ii][60:67]),
-                                      parse(Float64,BusDataCard_Array[ii][68:75]),
-                                      parse(Float64,BusDataCard_Array[ii][77:83]),
-                                      parse(Float64,BusDataCard_Array[ii][85:90]),
-                                      parse(Float64,BusDataCard_Array[ii][91:98]),
-                                      parse(Float64,BusDataCard_Array[ii][99:106]),
-                                      -9999,
-                                      parse(Float64,BusDataCard_Array[ii][107:114]),
-                                      parse(Float64,BusDataCard_Array[ii][115:122]),
-                                      parse(Int64,BusDataCard_Array[ii][124:end]),
-                                      -9999,
-                                      -9999,
-                                      -9999,
-                                      -9999,
-                                      -9999,
-                                      -9999))
+                        BusDataCard_Array[ii][6:17],
+                        parse(Int64,BusDataCard_Array[ii][19:20]),
+                        parse(Int64,BusDataCard_Array[ii][21:23]),
+                        parse(Int64,BusDataCard_Array[ii][25:26]),
+                        parse(Int64,BusDataCard_Array[ii][25:26]),
+                        parse(Float64,BusDataCard_Array[ii][28:33]),
+                        parse(Float64,BusDataCard_Array[ii][34:40]),
+                        parse(Float64,BusDataCard_Array[ii][28:33]),
+                        parse(Float64,BusDataCard_Array[ii][34:40]),
+                        parse(Float64,BusDataCard_Array[ii][41:49]),
+                        parse(Float64,BusDataCard_Array[ii][50:59]),
+                        parse(Float64,BusDataCard_Array[ii][60:67]),
+                        parse(Float64,BusDataCard_Array[ii][68:75]),
+                        parse(Float64,BusDataCard_Array[ii][77:83]),
+                        parse(Float64,BusDataCard_Array[ii][85:90]),
+                        parse(Float64,BusDataCard_Array[ii][91:98]),
+                        parse(Float64,BusDataCard_Array[ii][99:106]),
+                        -9999,
+                        parse(Float64,BusDataCard_Array[ii][107:114]),
+                        parse(Float64,BusDataCard_Array[ii][115:122]),
+                        parse(Int64,BusDataCard_Array[ii][124:end]),
+                        -9999,
+                        -9999,
+                        -9999,
+                        -9999,
+                        -9999,
+                        -9999))
 
         end
 
         # Ordering BusDataCard_DF: PQ->PV->Slack
-        if (SortValue == true)
-        
+        if sortingOrder == "busTypes"
                 sort!(BusDataCard_DF, [order(:Type)])
-
+        elseif sortingOrder == "busNums"
+                # keep same order
+        else
+                error("Unknown sorting order.");        
         end
 
 
@@ -325,38 +325,36 @@ function CDF_Parser(CDF_FilePath,
         for ii in 1:length(BranchDataCard_Array)
 
                 push!(BranchDataCard_DF,(parse(Int64,BranchDataCard_Array[ii][1:4]),
-                                      parse(Int64,BranchDataCard_Array[ii][6:9]),
-                                      parse(Int64,BranchDataCard_Array[ii][11:12]),
-                                      parse(Int64,BranchDataCard_Array[ii][13:15]),
-                                      parse(Int64,BranchDataCard_Array[ii][17]),
-                                      parse(Int64,BranchDataCard_Array[ii][19]),
-                                      parse(Float64,BranchDataCard_Array[ii][20:29]),
-                                      parse(Float64,BranchDataCard_Array[ii][30:40]),
-                                      parse(Float64,BranchDataCard_Array[ii][41:50]),
-                                      parse(Int64,BranchDataCard_Array[ii][51:55]),
-                                      parse(Int64,BranchDataCard_Array[ii][57:61]),
-                                      parse(Int64,BranchDataCard_Array[ii][63:67]),
-                                      parse(Int64,BranchDataCard_Array[ii][69:72]),
-                                      parse(Int64,BranchDataCard_Array[ii][74]),
-                                      parse(Float64,BranchDataCard_Array[ii][77:82]),
-                                      parse(Float64,BranchDataCard_Array[ii][84:90]),
-                                      parse(Float64,BranchDataCard_Array[ii][91:97]),
-                                      parse(Float64,BranchDataCard_Array[ii][98:104]),
-                                      parse(Float64,BranchDataCard_Array[ii][106:111]),
-                                      parse(Float64,BranchDataCard_Array[ii][113:118]),
-                                      parse(Float64,BranchDataCard_Array[ii][120:end]),
-                                      0.0,
-                                      0.0,
-                                      0.0,
-                                      0.0,
-                                      -9999,
-                                      -9999,
-                                      -9999,
-                                      -9999,
-                                      -9999,
-                                      -9999,
-                                      -9999,
-                                      -9999))
+                        parse(Int64,BranchDataCard_Array[ii][6:9]),
+                        parse(Int64,BranchDataCard_Array[ii][11:12]),
+                        parse(Int64,BranchDataCard_Array[ii][13:15]),
+                        parse(Int64,BranchDataCard_Array[ii][17]),
+                        parse(Int64,BranchDataCard_Array[ii][19]),
+                        parse(Float64,BranchDataCard_Array[ii][20:29]),
+                        parse(Float64,BranchDataCard_Array[ii][30:40]),
+                        parse(Float64,BranchDataCard_Array[ii][41:50]),
+                        parse(Int64,BranchDataCard_Array[ii][51:55]),
+                        parse(Int64,BranchDataCard_Array[ii][57:61]),
+                        parse(Int64,BranchDataCard_Array[ii][63:67]),
+                        parse(Int64,BranchDataCard_Array[ii][69:72]),
+                        parse(Int64,BranchDataCard_Array[ii][74]),
+                        parse(Float64,BranchDataCard_Array[ii][77:82]),
+                        parse(Float64,BranchDataCard_Array[ii][84:90]),
+                        parse(Float64,BranchDataCard_Array[ii][91:97]),
+                        parse(Float64,BranchDataCard_Array[ii][98:104]),
+                        parse(Float64,BranchDataCard_Array[ii][106:111]),
+                        parse(Float64,BranchDataCard_Array[ii][113:118]),
+                        parse(Float64,BranchDataCard_Array[ii][120:end]),
+                        0.0,
+                        0.0,
+                        -9999,
+                        -9999,
+                        -9999,
+                        -9999,
+                        -9999,
+                        -9999,
+                        -9999,
+                        -9999))
 
         end
 
@@ -364,7 +362,7 @@ function CDF_Parser(CDF_FilePath,
         for ii in 1:length(LossZonesCard_Array)
 
                 push!(LossZonesCard_DF,(parse(Int64,LossZonesCard_Array[ii][1:3]),
-                                      LossZonesCard_Array[ii][5:end]))
+                        LossZonesCard_Array[ii][5:end]))
 
         end
 
@@ -373,12 +371,12 @@ function CDF_Parser(CDF_FilePath,
         for ii in 1:length(InterchangeDataCard_Array)
 
                 push!(InterchangeDataCard_DF,(parse(Int64,InterchangeDataCard_Array[ii][1:2]),
-                                      parse(Int64,InterchangeDataCard_Array[ii][4:7]),
-                                      InterchangeDataCard_Array[ii][9:20],
-                                      parse(Float64,InterchangeDataCard_Array[ii][21:28]),
-                                      parse(Float64,InterchangeDataCard_Array[ii][30:35]),
-                                      InterchangeDataCard_Array[ii][38:43],
-                                      InterchangeDataCard_Array[ii][46:end]))
+                        parse(Int64,InterchangeDataCard_Array[ii][4:7]),
+                        InterchangeDataCard_Array[ii][9:20],
+                        parse(Float64,InterchangeDataCard_Array[ii][21:28]),
+                        parse(Float64,InterchangeDataCard_Array[ii][30:35]),
+                        InterchangeDataCard_Array[ii][38:43],
+                        InterchangeDataCard_Array[ii][46:end]))
 
         end
 
@@ -386,11 +384,19 @@ function CDF_Parser(CDF_FilePath,
         for ii in 1:length(TieLinesCard_Array)
 
                 push!(TieLinesDataCard_DF,(parse(Int64,TieLinesCard_Array[ii][1:4]),
-                                      parse(Int64,TieLinesCard_Array[ii][7:8]),
-                                      parse(Int64,TieLinesCard_Array[ii][11:14]),
-                                      parse(Int64,TieLinesCard_Array[ii][17:18]),
-                                      parse(Int64,TieLinesCard_Array[ii][21])))
+                        parse(Int64,TieLinesCard_Array[ii][7:8]),
+                        parse(Int64,TieLinesCard_Array[ii][11:14]),
+                        parse(Int64,TieLinesCard_Array[ii][17:18]),
+                        parse(Int64,TieLinesCard_Array[ii][21])))
 
+        end
+
+        if sortingOrder == "busTypes"
+                sort!(BusDataCard_DF, [order(:Type)])
+        elseif sortingOrder == "busNums"
+                # do nothing
+        else
+                error("Unknown sorting order.")
         end
 
         CDF_DF_List = [TitleCard_DF, BusDataCard_DF, BranchDataCard_DF, LossZonesCard_DF, InterchangeDataCard_DF, TieLinesDataCard_DF]
@@ -409,38 +415,22 @@ function CDF_Parser(CDF_FilePath,
 end
 
 """
-    CDF_pu_Converter(CDF_DF_List; saveTables::Bool=false, saveLocation="processedData/")
+Converts the provided data frames into per-unit (pu) system based on the MVA base of the system.
 
-Converts the actual value columns of a Common Data Format (CDF) DataFrame list to per unit (pu) values.
+# Arguments:
+- `CDF_DF_List::Vector{DataFrame}`: A list of DataFrames corresponding to different parts of the power system.
+- `saveTables::Bool=false`: Determines whether the converted tables should be saved to CSV files.
+- `saveLocation = "processedData/"`: Location where the CSV files will be saved, if `saveTables` is set to true.
 
-## Arguments
-- `CDF_DF_List`: A list of DataFrames representing the CDF data. The list should contain the following DataFrames in the specified order:
-    - `TitleCard_DF`: DataFrame representing the title card data.
-    - `BusDataCard_DF`: DataFrame representing the bus data card.
-    - `BranchDataCard_DF`: DataFrame representing the branch data card.
-    - `LossZonesCard_DF`: DataFrame representing the loss zones card.
-    - `InterchangeDataCard_DF`: DataFrame representing the interchange data card.
-    - `TieLinesDataCard_DF`: DataFrame representing the tie lines data card.
-- `saveTables::Bool` (optional, default=false): A flag indicating whether to save the converted DataFrames as CSV files.
-- `saveLocation` (optional, default="processedData/"): The directory path where the converted CSV files will be saved.
+# Returns:
+- A list of DataFrames converted into pu system.
 
-## Returns
-- `CDF_DF_List_pu`: A list of DataFrames with the actual value columns converted to per unit (pu) values.
+# Notes:
+The function converts all the actual values from the provided DataFrames into a per-unit system. It utilizes the MVA base
 
-## Note
-This function assumes that the input DataFrames have specific column names and structures. Make sure the input DataFrames match the expected format.
-
-## Example
-```julia
-# Assuming you have loaded the CDF data into the CDF_DF_List
-
-# Convert the actual value columns to per unit (pu) values
-CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List, saveTables=true, saveLocation="processedData/")
-
-# CDF_DF_List_pu contains the converted DataFrames
-# The converted DataFrames are also saved as CSV files in the "processedData" directory
+from the `TitleCard_DF` (first DataFrame in the list) to perform the conversion.
 """
-function CDF_pu_Converter(CDF_DF_List;
+function CDF_pu_Converter(CDF_DF_List::Vector{DataFrame};
         saveTables::Bool=false, 
         saveLocation = "processedData/")
 
@@ -557,12 +547,3 @@ function CDF_pu_Converter(CDF_DF_List;
 
         return CDF_DF_List_pu
 end
-
-# # test the parser
-# CDF_DF_List = CDF_Parser("data/IEEE_14/IEEE_14_Data.txt")
-# busData = CDF_DF_List[2]
-# busData.Gen_MW
-
-# CDF_DF_List_pu = CDF_pu_Converter(CDF_DF_List)
-# busData_pu = CDF_DF_List_pu[2]
-# busData_pu.Gen_MW

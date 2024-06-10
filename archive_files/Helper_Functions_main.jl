@@ -67,7 +67,7 @@ function extractSystemName(CDF_DF_List::Vector{DataFrame})
         bus_number = match_obj.captures[2]
         bus_name = string(prefix, "_", bus_number)
         return bus_name
-    else
+    elsen
         return "Bus number not found.\n"
     end
 end
@@ -293,48 +293,40 @@ function numPQBuses(CDF_Data_List_pu::Vector{DataFrame}; busTypes::String = "cur
     return result.nPQ
 end
 
-function get_position(matrix, position::String)
-    nrows, ncols = size(matrix)
-    positions = Dict(
-        "northeast" => (nrows * 0.9, ncols * 0.9),
-        "northwest" => (nrows * 0.9, ncols * 0.1),
-        "southeast" => (nrows * 0.1, ncols * 0.9),
-        "southwest" => (nrows * 0.1, ncols * 0.1)
-        # Add more if needed
-    )
-    return positions[position]
-end
+# function get_position(matrix, position::String)
+#     nrows, ncols = size(matrix)
+#     positions = Dict(
+#         "northeast" => (nrows * 0.9, ncols * 0.9),
+#         "northwest" => (nrows * 0.9, ncols * 0.1),
+#         "southeast" => (nrows * 0.1, ncols * 0.9),
+#         "southwest" => (nrows * 0.1, ncols * 0.1)
+#         # Add more if needed
+#     )
+#     return positions[position]
+# end
 
 """
-    Addressing_MachinePrecision(Matrix_A, MachinePrecision)
+    getBaseMVA(dfpu::Vector{DataFrame}) -> Float64
 
-Computes the Del_g/Del_u Matrix for optimal power flow of a power network.
+Retrieve the base MVA value from a vector of DataFrames that describe a power system in per unit (pu) format.
 
-'''
-# Arguments
-- '': 
-'''
-# Output
-- '': 
-'''
+# Arguments:
+    - `dfpu::Vector{DataFrame}`: A vector of DataFrames. The first DataFrame in the vector is expected to contain the base MVA value in a column named `MVA_Base`.
+
+# Returns:
+    - `Float64`: The base MVA value of the power system.
+
+# Notes:
+    - Currently, the function retrieves the `MVA_Base` value as a 1x1 vector. This should be addressed in future revisions for cleaner extraction.
+
+# Example:
+```julia
+dfpu = [DataFrame(MVA_Base = [100.0]), ...]
+base_mva = getBaseMVA(dfpu)
+println(base_mva)  # Output: 100.0
 """
-function Addressing_MachinePrecision(Matrix_A, MachinePrecision)
-
-    for ii in 1:size(Matrix_A)[1]
-
-        for jj in 1:size(Matrix_A)[2]
-
-            if (abs(Matrix_A[ii,jj]) < MachinePrecision)
-
-                Matrix_A[ii,jj] = 0
-
-            end
-
-        end
-
-    end
-
-    return Matrix_A
-
+function getBaseMVA(dfpu::Vector{DataFrame})
+    titleCard = dfpu[1]
+    MVA_B =  titleCard.MVA_Base; # Outputs a 1x1 vector. Should fix that later.
+    return MVA_B[1] 
 end
-
